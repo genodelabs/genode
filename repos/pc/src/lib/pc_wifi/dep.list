@@ -115,8 +115,6 @@ drivers/net/wireless/intel/iwlwifi/fw/runtime.h
 drivers/net/wireless/intel/iwlwifi/fw/uefi.h
 drivers/net/wireless/intel/iwlwifi/iwl-agn-hw.h
 drivers/net/wireless/intel/iwlwifi/iwl-config.h
-drivers/net/wireless/intel/iwlwifi/iwl-context-info-gen3.h
-drivers/net/wireless/intel/iwlwifi/iwl-context-info.h
 drivers/net/wireless/intel/iwlwifi/iwl-csr.h
 drivers/net/wireless/intel/iwlwifi/iwl-dbg-tlv.h
 drivers/net/wireless/intel/iwlwifi/iwl-debug.h
@@ -137,6 +135,7 @@ drivers/net/wireless/intel/iwlwifi/iwl-phy-db.h
 drivers/net/wireless/intel/iwlwifi/iwl-prph.h
 drivers/net/wireless/intel/iwlwifi/iwl-scd.h
 drivers/net/wireless/intel/iwlwifi/iwl-trans.h
+drivers/net/wireless/intel/iwlwifi/iwl-utils.h
 drivers/net/wireless/intel/iwlwifi/mei/iwl-mei.h
 drivers/net/wireless/intel/iwlwifi/mvm/constants.h
 drivers/net/wireless/intel/iwlwifi/mvm/debugfs.h
@@ -147,7 +146,10 @@ drivers/net/wireless/intel/iwlwifi/mvm/sta.h
 drivers/net/wireless/intel/iwlwifi/mvm/testmode.h
 drivers/net/wireless/intel/iwlwifi/mvm/time-event.h
 drivers/net/wireless/intel/iwlwifi/mvm/time-sync.h
-drivers/net/wireless/intel/iwlwifi/pcie/internal.h
+drivers/net/wireless/intel/iwlwifi/pcie/gen1_2/internal.h
+drivers/net/wireless/intel/iwlwifi/pcie/iwl-context-info-v2.h
+drivers/net/wireless/intel/iwlwifi/pcie/iwl-context-info.h
+drivers/net/wireless/intel/iwlwifi/pcie/utils.h
 drivers/net/wireless/realtek/rtlwifi/base.h
 drivers/net/wireless/realtek/rtlwifi/btcoexist/halbt_precomp.h
 drivers/net/wireless/realtek/rtlwifi/btcoexist/halbtc8192e2ant.h
@@ -208,6 +210,7 @@ include/crypto/gf128mul.h
 include/crypto/ghash.h
 include/crypto/hash.h
 include/crypto/hash_info.h
+include/crypto/hmac.h
 include/crypto/internal/acompress.h
 include/crypto/internal/aead.h
 include/crypto/internal/akcipher.h
@@ -227,15 +230,16 @@ include/crypto/scatterwalk.h
 include/crypto/sha1.h
 include/crypto/sha2.h
 include/crypto/sha3.h
-include/crypto/sha256_base.h
+include/crypto/sig.h
 include/crypto/skcipher.h
 include/crypto/streebog.h
 include/dt-bindings/leds/common.h
 include/keys/asymmetric-type.h
+include/kunit/static_stub.h
 include/linux/asn1.h
 include/linux/asn1_ber_bytecode.h
 include/linux/asn1_decoder.h
-include/linux/ath9k_platform.h
+include/linux/average.h
 include/linux/bpf-cgroup-defs.h
 include/linux/bpf-cgroup.h
 include/linux/bpf.h
@@ -253,6 +257,7 @@ include/linux/cpu_rmap.h
 include/linux/crash_dump.h
 include/linux/crypto.h
 include/linux/devcoredump.h
+include/linux/device/faux.h
 include/linux/dmaengine.h
 include/linux/dpll.h
 include/linux/errqueue.h
@@ -322,6 +327,7 @@ include/linux/usb/ch9.h
 include/linux/virtio.h
 include/linux/virtio_byteorder.h
 include/linux/virtio_config.h
+include/linux/virtio_features.h
 include/linux/virtio_net.h
 include/linux/wireless.h
 include/linux/xattr.h
@@ -433,6 +439,7 @@ include/uapi/linux/net_namespace.h
 include/uapi/linux/nl80211.h
 include/uapi/linux/pfkeyv2.h
 include/uapi/linux/phonet.h
+include/uapi/linux/pidfd.h
 include/uapi/linux/pps.h
 include/uapi/linux/ptp_clock.h
 include/uapi/linux/rfkill.h
@@ -452,6 +459,7 @@ include/uapi/linux/xattr.h
 include/xen/balloon.h
 include/xen/interface/hvm/start_info.h
 include/xen/xen.h
+lib/crypto/x86/sha256.h
 net/core/dev.h
 net/core/net-sysfs.h
 net/core/sock_destructor.h

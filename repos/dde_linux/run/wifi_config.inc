@@ -25,6 +25,13 @@ proc wifi_verbose { } {
 	return true
 }
 
+proc wifi_debug { } {
+	if {![info exists ::env(GENODE_WIFI_DEBUG)]} {
+		return false
+	}
+	return true
+}
+
 #
 # wifi-driver config generator (supporting a network list)
 #
@@ -43,29 +50,26 @@ proc wifi_verbose { } {
 #   </inline>}
 #
 
-set wifi_verbose false
-
 proc wifi_config { scan_interval update_quality_interval rfkill networks } {
-	global wifi_verbose
 
-	set    config "<wifi_config"
-	append config " verbose=\"[wifi_verbose]\""
-	append config " scan_interval=\"$scan_interval\""
-	append config " update_quality_interval=\"$update_quality_interval\""
-	append config " rfkill=\"$rfkill\""
-	append config ">\n"
+	set    ident  "      |"
+	set    config "$ident + wifi_config\n"
+	append config "$ident   | verbose: [wifi_verbose]\n"
+	if {[wifi_debug]} {
+		append config "$ident   | log_level: debug\n"
+	}
+	append config "$ident   | scan_interval:           $scan_interval\n"
+	append config "$ident   | update_quality_interval: $update_quality_interval\n"
+	append config "$ident   | rfkill:                  $rfkill\n"
 	foreach n $networks {
 		if {[lindex $n 4] == "yes"} {
-			append config " <explicit_scan ssid=\"[lindex $n 0]\"/>\n"
+			append config "$ident   + explicit_scan | ssid: [lindex $n 0]\n"
 		}
-		append config "  <network"
-		append config " ssid=\"[lindex $n 0]\""
-		append config " protection=\"[lindex $n 1]\""
-		append config " passphrase=\"[lindex $n 2]\""
-		append config "/>\n"
+		append config "$ident   + network\n"
+		append config "$ident     | ssid:       [lindex $n 0]\n"
+		append config "$ident     | protection: [lindex $n 1]\n"
+		append config "$ident     | passphrase: [lindex $n 2]\n"
 	}
-	append config "</wifi_config>\n"
 
 	return $config
 }
-

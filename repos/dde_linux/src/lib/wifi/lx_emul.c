@@ -78,7 +78,7 @@ struct vfsmount * kern_mount(struct file_system_type * type)
 }
 
 
-struct inode * new_inode_pseudo(struct super_block * sb)
+struct inode * alloc_inode(struct super_block * sb)
 {
 	const struct super_operations *ops = sb->s_op;
 	struct inode *inode;
@@ -281,11 +281,7 @@ size_t _copy_from_iter(void * addr, size_t bytes, struct iov_iter * i)
 		return 0;
 
 	kdata = (char*)(addr);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
-	iov   = i->iov;
-#else
 	iov   = i->__iov;
-#endif
 
 	len = bytes;
 	while (len > 0) {
@@ -319,11 +315,7 @@ size_t _copy_to_iter(const void * addr, size_t bytes, struct iov_iter * i)
 		return 0;
 
 	kdata = (char*)(addr);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
-	iov   = i->iov;
-#else
 	iov   = i->__iov;
-#endif
 
 	len = bytes;
 	while (len > 0) {
@@ -367,22 +359,12 @@ u32 prandom_u32(void)
 #include <linux/version.h>
 #include <linux/gfp.h>
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
-void *page_frag_alloc_align(struct page_frag_cache *nc,
-                            unsigned int fragsz, gfp_t gfp_mask,
-                            unsigned int align_mask)
-#else
 void *__page_frag_alloc_align(struct page_frag_cache *nc,
                             unsigned int fragsz, gfp_t gfp_mask,
                             unsigned int align_mask)
-#endif
 {
 	unsigned int const order = fragsz / PAGE_SIZE;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(5,12,0)
 	struct page *page = __alloc_pages(gfp_mask, order, 0, NULL);
-#else
-	struct page *page = __alloc_pages(gfp_mask, order, 0);
-#endif
 
 	if (!page)
 		return NULL;
@@ -482,13 +464,8 @@ void rfkill_init(void)
 {
 	pid_t pid =
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,3,0)
-		kernel_thread(rfkill_task_function, NULL,
-		                    CLONE_FS | CLONE_FILES);
-#else
 		kernel_thread(rfkill_task_function, NULL, "rfkill_task",
 		                    CLONE_FS | CLONE_FILES);
-#endif
 
 	rfkill_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
 }
@@ -504,3 +481,7 @@ void *dmam_alloc_attrs(struct device *dev, size_t size, dma_addr_t *dma_handle,
 
 
 unsigned long __FIXADDR_TOP = 0xfffff000;
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,16,0)
+DEFINE_MUTEX(rps_default_mask_mutex);
+#endif

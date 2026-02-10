@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-07-13
+ * \date   2026-02-10
  */
 
 #include <lx_emul.h>
@@ -55,14 +55,6 @@ void __scm_destroy(struct scm_cookie * scm)
 #include <net/scm.h>
 
 int __scm_send(struct socket * sock,struct msghdr * msg,struct scm_cookie * p)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -228,7 +220,7 @@ void bpf_prog_destroy(struct bpf_prog * fp)
 
 #include <linux/filter.h>
 
-void bpf_warn_invalid_xdp_action(struct net_device * dev,struct bpf_prog * prog,u32 act)
+void bpf_warn_invalid_xdp_action(const struct net_device * dev,const struct bpf_prog * prog,u32 act)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -298,6 +290,38 @@ const struct cpumask * cpu_clustergroup_mask(int cpu)
 }
 
 
+#include <linux/cpu_rmap.h>
+
+int cpu_rmap_add(struct cpu_rmap * rmap,void * obj)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cpu_rmap.h>
+
+void cpu_rmap_get(struct cpu_rmap * rmap)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cpu_rmap.h>
+
+int cpu_rmap_put(struct cpu_rmap * rmap)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cpu_rmap.h>
+
+int cpu_rmap_update(struct cpu_rmap * rmap,u16 index,const struct cpumask * affinity)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/cpumask.h>
 
 unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
@@ -330,14 +354,6 @@ int dev_ioctl(struct net * net,unsigned int cmd,struct ifreq * ifr,void __user *
 }
 
 
-#include <linux/property.h>
-
-int device_create_managed_software_node(struct device * dev,const struct property_entry * properties,const struct software_node * parent)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/gpio.h>
 
 int devm_gpio_request_one(struct device * dev,unsigned gpio,unsigned long flags,const char * label)
@@ -349,6 +365,14 @@ int devm_gpio_request_one(struct device * dev,unsigned gpio,unsigned long flags,
 #include <net/dst.h>
 
 void dst_release(struct dst_entry * dst)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -553,7 +577,7 @@ int gpiod_get_raw_value(const struct gpio_desc * desc)
 
 #include <linux/gpio/consumer.h>
 
-void gpiod_set_raw_value(struct gpio_desc * desc,int value)
+int gpiod_set_raw_value(struct gpio_desc * desc,int value)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -650,7 +674,23 @@ void iov_iter_revert(struct iov_iter * i,size_t unroll)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+void irq_work_sync(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -670,6 +710,21 @@ int is_vmalloc_or_module_addr(const void * x)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+extern bool iwl_add_mcc_to_tas_block_list(u16 * list,u8 * size,u16 mcc);
+bool iwl_add_mcc_to_tas_block_list(u16 * list,u8 * size,u16 mcc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern s8 iwl_average_neg_dbm(const u8 * neg_dbm_values,u8 len);
+s8 iwl_average_neg_dbm(const u8 * neg_dbm_values,u8 len)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
 
 #include <linux/kobject.h>
 
@@ -729,17 +784,9 @@ int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 unsigned long loops_per_jiffy;
 
 
-#include <linux/preempt.h>
+#include <linux/mman.h>
 
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
+void mm_compute_batch(int overcommit_policy)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -779,6 +826,11 @@ void note_interrupt(struct irq_desc * desc,irqreturn_t action_ret)
 }
 
 
+#include <linux/printk.h>
+
+int oops_in_progress;	/* If set, an oops, panic(), BUG() or die() is in progress */
+
+
 #include <linux/proc_fs.h>
 
 int open_related_ns(struct ns_common * ns,struct ns_common * (* get_ns)(struct ns_common * ns))
@@ -802,6 +854,30 @@ int pci_assign_resource(struct pci_dev * dev,int resno)
 
 #include <linux/pci.h>
 
+struct pci_dev * pci_get_slot(struct pci_bus * bus,unsigned int devfn)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+const struct cpumask * pci_irq_get_affinity(struct pci_dev * dev,int nr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+int pci_reset_function(struct pci_dev * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
 void pci_stop_and_remove_bus_device(struct pci_dev * dev)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -816,9 +892,17 @@ int pci_write_config_word(const struct pci_dev * dev,int where,u16 val)
 }
 
 
+#include <linux/percpu_counter.h>
+
+void percpu_counter_sync(struct percpu_counter * fbc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/pid.h>
 
-int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret)
+int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret_file)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -842,6 +926,14 @@ void printk_legacy_allow_panic_sync(void)
 
 #include <linux/sysctl.h>
 
+int proc_dointvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
 int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -856,9 +948,9 @@ int proc_douintvec(const struct ctl_table * table,int write,void * buffer,size_t
 }
 
 
-#include <linux/proc_ns.h>
+#include <linux/sysctl.h>
 
-void proc_free_inum(unsigned int inum)
+int proc_doulongvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -955,14 +1047,6 @@ void reuseport_update_incoming_cpu(struct sock * sk,int val)
 }
 
 
-#include <net/scm.h>
-
-void scm_detach_fds(struct msghdr * msg,struct scm_cookie * scm)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/seq_file.h>
 
 struct hlist_node * seq_hlist_next_rcu(void * v,struct hlist_head * head,loff_t * ppos)
@@ -1044,38 +1128,6 @@ void set_rq_online(struct rq * rq)
 #include <linux/smp.h>
 
 unsigned int setup_max_cpus;
-
-
-#include <crypto/sha2.h>
-
-void sha224_final(struct sha256_state * sctx,u8 * out)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <crypto/sha2.h>
-
-void sha256_final(struct sha256_state * sctx,u8 * out)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <crypto/sha2.h>
-
-void sha256_update(struct sha256_state * sctx,const u8 * data,unsigned int len)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched/debug.h>
-
-void show_state_filter(unsigned int state_filter)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/fs.h>
@@ -1222,6 +1274,14 @@ const int sysctl_vals[] = {};
 
 #include <linux/sysfs.h>
 
+struct kernfs_node * sysfs_break_active_protection(struct kobject * kobj,const struct attribute * attr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysfs.h>
+
 int sysfs_rename_dir_ns(struct kobject * kobj,const char * new_name,const void * new_ns)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -1231,6 +1291,14 @@ int sysfs_rename_dir_ns(struct kobject * kobj,const char * new_name,const void *
 #include <linux/sysfs.h>
 
 int sysfs_rename_link_ns(struct kobject * kobj,struct kobject * targ,const char * old,const char * new,const void * new_ns)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysfs.h>
+
+void sysfs_unbreak_active_protection(struct kernfs_node * kn)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1298,7 +1366,7 @@ struct page * vmalloc_to_page(const void * vmalloc_addr)
 
 #include <linux/filter.h>
 
-int xdp_do_generic_redirect(struct net_device * dev,struct sk_buff * skb,struct xdp_buff * xdp,struct bpf_prog * xdp_prog)
+int xdp_do_generic_redirect(struct net_device * dev,struct sk_buff * skb,struct xdp_buff * xdp,const struct bpf_prog * xdp_prog)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1310,3 +1378,4 @@ u32 xdp_master_redirect(struct xdp_buff * xdp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+

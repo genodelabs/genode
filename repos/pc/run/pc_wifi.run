@@ -1,10 +1,3 @@
-#
-# Set to true in case the driver needs to be debugged to
-# pull in the locally build binaries rather than the ones
-# from the depot.
-#
-set debug_driver false
-
 source ${genode_dir}/repos/dde_linux/run/wifi_config.inc
 
 #
@@ -17,26 +10,26 @@ assert {[have_spec x86]}
 #
 
 create_boot_directory
-import_from_depot [depot_user]/pkg/pc_wifi \
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/acpi \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/init \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/pc_rtc \
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/platform \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/vfs_jitterentropy \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/pkg/pc_wifi \
                   [depot_user]/raw/pc_wifi_firmware
 
-set build_components {
-	core init timer
-	app/pci_decode
-	driver/acpi
-	driver/platform
-	driver/rtc
-	server/report_rom
-	server/dynamic_rom
-	server/nic_router
-	test/lwip/http_srv
-	lib/vfs_lwip
-}
 
-append_if $debug_driver build_components {
+set build_components { test/lwip/http_srv }
+
+append_if [wifi_debug] build_components {
 	driver/wifi
 	lib/pc_wifi
-	lib/vfs_jitterentropy
 }
 
 build $build_components
@@ -46,224 +39,195 @@ build $build_components
 #
 
 append config {
-<config verbose="yes" prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
+config | verbose: yes | prio_levels: 2
 
-	<start name="report_rom" caps="70">
-		<provides>
-			<service name="ROM" />
-			<service name="Report" />
-		</provides>
-		<config verbose="yes">
-			<policy label="pci_decode -> system" report="acpi -> acpi"/>
-			<policy label="platform -> devices"  report="pci_decode -> devices"/>
-		</config>
-		<route>
-			<service name="LOG"> <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="ROM"> <parent/> </service>
-		</route>
-	</start>
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="acpi" caps="250" ram="6M">
-		<route>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-		</route>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="pci_decode" caps="350" ram="2M">
-		<route>
-			<service name="Report">
-				<child name="report_rom"/> </service>
-			<service name="ROM" label="system">
-				<child name="report_rom"/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="platform" caps="100" ram="2M" managing_system="yes">
-		<provides> <service name="Platform"/> </provides>
-		<route>
-			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="IRQ">     <parent/> </service>
-			<service name="IO_MEM">  <parent/> </service>
-			<service name="IO_PORT"> <parent/> </service>
-			<service name="ROM">     <parent/> </service>
-			<service name="PD">      <parent/> </service>
-			<service name="CPU">     <parent/> </service>
-			<service name="LOG">     <parent/> </service>
-		</route>
-		<config>
-			<policy label_prefix="wifi" msix="false" info="yes">
-				<pci class="WIFI"/>
-			</policy>
-		</config>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="pc_rtc">
-		<provides> <service name="Rtc"/> </provides>
-	</start>
++ start report_rom | caps: 70
+  + provides
+    + service ROM
+    + service Report
+  + config | verbose: yes
+    + policy | label:  pci_decode -> system | report: acpi -> acpi
+    + policy | label:  platform -> devices  | report: pci_decode -> devices
+  + route
+    + service CPU | + parent
+    + service LOG | + parent
+    + service PD  | + parent
+    + service ROM | + parent
 
-	<start name="test-lwip_httpsrv" ram="128M">
-		<config>
-			<libc stdout="/dev/null" stderr="/dev/log" socket="/socket"/>
-			<vfs>
-				<dir name="dev"> <log/> <null/> </dir>
-				<dir name="socket"> <lwip dhcp="yes"/> </dir>
-			</vfs>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start acpi | caps: 250 | ram: 6M
+  + route
+    + service Report | + child report_rom
+    + service CPU    | + parent
+    + service IO_MEM | + parent
+    + service LOG    | + parent
+    + service PD     | + parent
+    + service RM     | + parent
+    + service ROM    | + parent
 
-	<start name="state_report_rom" ram="2M">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no"/>
-	</start>
++ start pci_decode | caps: 350 | ram: 2M
+  + route
+    + service ROM    | label: system | + child report_rom
+    + service Report                 | + child report_rom
+    + service CPU                    | + parent
+    + service IO_MEM                 | + parent
+    + service LOG                    | + parent
+    + service PD                     | + parent
+    + service RM                     | + parent
+    + service ROM                    | + parent
 
-	<start name="accesspoints_report_rom" ram="2M">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no"/>
-	</start>
++ start platform | caps: 100 | ram: 2M | managing_system: yes
+  + provides | + service Platform
+  + config
+    + policy | label_prefix: wifi | msix: false | info: yes
+      + pci | class: WIFI
+  + route
+    + service ROM     | label: devices | + child report_rom
+    + service Timer                    | + child timer
+    + service CPU                      | + parent
+    + service IO_MEM                   | + parent
+    + service IO_PORT                  | + parent
+    + service IRQ                      | + parent
+    + service LOG                      | + parent
+    + service PD                       | + parent
+    + service ROM                      | + parent
 
-	<start name="config_rom" ram="4M">
-		<binary name="dynamic_rom"/>
-		<provides><service name="ROM"/></provides>
-		<config verbose="yes">
-			<rom name="wifi_config">
-				<inline description="disconnect">
++ start pc_rtc
+  + provides | + service Rtc
+
++ start test-lwip_httpsrv | ram: 128M
+  + config
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + null
+  |   + dir socket | + lwip | dhcp: yes
+  | + libc | stdout: /dev/null | stderr: /dev/log | socket: /socket
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
+
++ start state_report_rom | ram: 2M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+
++ start accesspoints_report_rom | ram: 2M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+
++ start config_rom | ram: 4M
+  + binary dynamic_rom
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom wifi_config
+      + inline | description: disconnect
 } [wifi_config 5 10 no {}] {
-				</inline>
-				<sleep milliseconds="15000"/>
-				<inline description="connect">
+      + sleep | milliseconds: 15000
+      + inline | description: connect
 } [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] no"]] {
-				</inline>
-				<sleep milliseconds="60000"/>
-				<inline description="rfkill block">
+      + sleep | milliseconds: 60000
+      + inline | description: rfkill block
 } [wifi_config 5 10 yes [list "[wifi_ssid] [wifi_wpa] [wifi_psk] no"]] {
-				</inline>
-				<sleep milliseconds="30000"/>
-				<inline description="rfkill unblock">
+      + sleep | milliseconds: 30000
 } [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] no"]] {
-				</inline>
-				<sleep milliseconds="30000"/>
-			</rom>
-		</config>
-	</start>
+      + sleep | milliseconds: 30000
 
-	<start name="nic_router" caps="150" ram="8M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose="no" verbose_domain_state="yes" dhcp_discover_timeout_sec="10" dhcp_request_timeout_sec="6">
++ start nic_router | caps: 150 | ram: 8M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose:                   no
+           | verbose_domain_state:      yes
+           | dhcp_discover_timeout_sec: 10
+           | dhcp_request_timeout_sec:  6
+    + policy | label_prefix: test-lwip_httpsrv | domain: downlink
+    + policy | label_prefix: wifi              | domain: uplink
+    + domain uplink
+      | verbose_packets:     no
+      | verbose_packet_drop: no
+      | icmp_echo_server:    yes
+      + nat | domain: downlink | tcp-ports: 16384
+      + tcp-forward | port: 443 | domain: downlink | to: 10.0.3.2
+      + tcp-forward | port: 80  | domain: downlink | to: 10.0.3.2
+    + domain downlink
+      | verbose_packets:     no
+      | verbose_packet_drop: no
+      | interface:           10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
 
-			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
-			<policy label_prefix="wifi"              domain="uplink"/>
++ start devices_report_rom | ram: 1200K
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-			<domain name="uplink" verbose_packets="no" verbose_packet_drop="no" icmp_echo_server="yes">
-
-				<nat domain="downlink" tcp-ports="16384"/>
-				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
-				<tcp-forward port="80"  domain="downlink" to="10.0.3.2"/>
-
-			</domain>
-
-			<domain name="downlink" verbose_packets="no" verbose_packet_drop="no" interface="10.0.3.1/24">
-
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
-
-			</domain>
-
-		</config>
-	</start>
-
-	<start name="devices_report_rom" ram="1200K">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
-
-	<start name="wifi" caps="260" ram="32M" priority="-1">
-		<config ld_verbose="yes">
-			<report mac_address="true"/>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/urandom"/>
-			<vfs>
-				<dir name="dev"> <log/> <null/> <rtc/>
-					<jitterentropy name="random"/>
-					<jitterentropy name="urandom"/>
-				</dir>
-				<dir name="firmware">
-					<tar name="wifi_firmware.tar"/>
-				</dir>
-			</vfs>
-		</config>
-		<route>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<service name="Rtc"> <any-child/> </service>
-			<service name="Report" label="accesspoints"> <child name="accesspoints_report_rom"/> </service>
-			<service name="Report" label="state"> <child name="state_report_rom"/> </service>
-			<service name="Report" label="devices"> <child name="devices_report_rom"/> </service>
-			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
-			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
-			<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>
-}
++ start wifi | caps: 270 | ram: 32M | priority: -1
+  + config | ld_verbose: yes
+  | + report | mac_address: true
+  | + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc | rng: /dev/urandom
+  | + vfs
+  |   + dir dev
+  |     + jitterentropy random
+  |     + jitterentropy urandom
+  |     + log
+  |     + null
+  |     + rtc
+  |   + dir firmware | + tar wifi_firmware.tar
+  + route
+    + service ROM    | label: wifi_config       | + child config_rom
+    + service ROM    | label: wifi.lib.so       | + parent | label: pc_wifi.lib.so
+    + service ROM    | label: wifi_firmware.tar | + parent | label: pc_wifi_firmware.tar
+    + service Report | label: accesspoints      | + child accesspoints_report_rom
+    + service Report | label: devices           | + child devices_report_rom
+    + service Report | label: state             | + child state_report_rom
+    + service Uplink                            | + child nic_router
+    + service Rtc                               | + child pc_rtc
+    + any-service
+      + parent
+      + any-child
+-}
 
 install_config $config
 
 #
-# Provide dummy 'wifi.lib.so' shared-object for
-# boot-module assembly
+# Provide dummy 'wifi.lib.so' shared-object for boot-module
+# assembly in case the driver needs to be debugged. The locally
+# build binaries are pulled in rather than the ones from the
+# depot.
 #
-if {$debug_driver} {
+if {[wifi_debug]} {
 catch {exec rm bin/wifi.lib.so}
 exec echo dummy > bin/wifi.lib.so
 }
 
-
-#
-# Boot modules
-#
-
 build_boot_image [build_artifacts]
 
 run_genode_until forever
-
-# vi: set ft=tcl :
