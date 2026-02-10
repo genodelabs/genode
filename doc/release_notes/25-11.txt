@@ -27,7 +27,7 @@ individual developer comfortably using the Goa SDK for scratching an own itch
 and publishing the result for others as a courtesy, important infrastructure
 components and libraries deserve the shared responsibility of multiple
 stakeholders. The meeting place for such concerted efforts is the
-[https://github.com/genodelabs/genode-world - Genode-World] repository.
+[https://codeberg.org/genodelabs/genode-world - Genode-World] repository.
 However, until now, this place was impeded by the mandatory use of Genode's
 build system, which was not an ideal fit because it was designed for building
 and integrating whole systems rather than developing and testing individual

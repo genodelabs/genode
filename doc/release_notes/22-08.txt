@@ -580,7 +580,7 @@ entails two parts. The first part is the low-level driver code called Lima
 that normally resides in the Linux kernel. This component provides a GPU
 session interface. We transplanted the driver code to a dedicated Genode
 component, which is hosted at the
-[https://github.com/genodelabs/genode-allwinner - genode-allwinner] repository.
+[https://codeberg.org/genodelabs/genode-allwinner - genode-allwinner] repository.
 The second part is the user-level Mesa3D driver stack - hosted at the libports
 repository - that is linked local to the application and uses the GPU session
 to access the GPU.
@@ -597,7 +597,7 @@ SD-card driver for the PinePhone
 
 In anticipation of running Sculpt OS on the PinePhone, we ported the Linux
 SD/MMC-card driver to Genode. The driver - hosted at the
-[https://github.com/genodelabs/genode-allwinner - genode-allwinner] repository -
+[https://codeberg.org/genodelabs/genode-allwinner - genode-allwinner] repository -
 was successfully tested with the PinePhone and Pine-A64LTS V1.2 board. For the
 moment, only SD cards (no eMMC) are supported.
 The provided _a64_sd_card_drv.run_ script illustrates the integration and use
@@ -752,7 +752,7 @@ With this release, Genode gains support for accessing USB smart-card devices
 via PKCS#11. This is achieved through a port of the OpenSC PKCS#11 tool that is
 now available as package for the Sculpt OS. A quick look into the features and
 integration of the tool is possible using the new _pkcs11_tool_ run script
-hosted in the [https://github.com/genodelabs/genode-world - genode-world]
+hosted in the [https://codeberg.org/genodelabs/genode-world - genode-world]
 repository. For a more detailed guide to the tool, you may read the
 corresponding Genodians article.
 

@@ -471,7 +471,7 @@ memory ranges. With the structural changes to the platform driver, the support
 for dma_guard devices is simply added by implementing specific 'Io_mmu' and
 'Io_mmu_factory' objects. You can find the code in the _dma_guard.h_ within
 the
-[https://github.com/genodelabs/genode-zynq/blob/master/src/drivers/platform/zynq/dma_guard.h - genode-zynq repo].
+[https://codeberg.org/genodelabs/genode-zynq/src/tag/23.05/src/drivers/platform/zynq/dma_guard.h - genode-zynq repo].
 
 For the PC version of the platform driver, we implemented a _kernel_iommu_
 device that still uses device PDs to pass IOMMU configuration to the NOVA

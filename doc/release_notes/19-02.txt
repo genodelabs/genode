@@ -692,7 +692,7 @@ The background story behind the tool is covered by a dedicated
 Growing use of the Genode-World repository
 ==========================================
 
-The [https://github.com/genodelabs/genode-world - Genode-World] repository
+The [https://codeberg.org/genodelabs/genode-world - Genode-World] repository
 contains software that is not strictly part of the official Genode OS
 framework but rather supplemental. In particular, it contains ports of
 3rd-party software to Genode. The pool of ported software is steadily growing,

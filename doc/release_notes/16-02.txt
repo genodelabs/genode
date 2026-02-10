@@ -425,7 +425,7 @@ from Genode. The attempt to integrate the growing pool of such diverse
 software into the main repository does not scale.
 
 For this reason, we introduce the new
-[https://github.com/genodelabs/genode-world - Genode World] repository, which
+[https://codeberg.org/genodelabs/genode-world - Genode World] repository, which
 is the designated place for hosting ported applications, libraries, and games.
 
 To use it, you first need to obtain a clone of Genode:
@@ -434,7 +434,7 @@ To use it, you first need to obtain a clone of Genode:
 
 Now, clone the _genode-world.git_ repository to _genode/repos/world:_
 
-! git clone https://github.com/genodelabs/genode-world.git genode/repos/world
+! git clone https://codeberg.org/genodelabs/genode-world.git genode/repos/world
 
 By placing the _world_ repository under the _repos/_ directory, Genode's tools
 will automatically incorporate the ports provided by the _world_ repository.

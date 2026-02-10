@@ -906,7 +906,7 @@ Migration of ported software to Genode-World
 In the previous releases, we continuously relieved the Genode main repository
 from features that receive no continuous maintenance. Rather than dropping
 such features, they find a new home at the
-[https://github.com/genodelabs/genode-world - Genode-World] repository.
+[https://codeberg.org/genodelabs/genode-world - Genode-World] repository.
 We foster this distinction to avoid wrong expectations. Whereas the code of
 the Genode main repository is subjected to rigid quality assurance at Genode
 Labs, the content of the World repository is tested and maintained in a rather

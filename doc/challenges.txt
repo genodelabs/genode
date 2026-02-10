@@ -26,7 +26,7 @@ Applications and library infrastructure
 
 :Goa SDK running on Sculpt OS:
 
-  Genode's [https://github.com/genodelabs/goa - Goa SDK] is currently used
+  Genode's [https://codeberg.org/genodelabs/goa - Goa SDK] is currently used
   in Linux-based development environments, facilitating cross-compilation
   to Genode. The goal of this project is the ability to use Goa directly on
   Sculpt OS without the need for a Linux VM. This entails a number of
@@ -71,7 +71,7 @@ Applications and library infrastructure
 
 :Ports of popular software:
 
-  The [https://github.com/genodelabs/goa - Goa SDK] streamlines the process
+  The [https://codeberg.org/genodelabs/goa - Goa SDK] streamlines the process
   of developing, porting, packaging, and publishing software for Genode,
   and Sculpt OS in particular.
   Thanks to the C runtime, the flexible per-component VFS, the standard

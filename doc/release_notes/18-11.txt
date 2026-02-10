@@ -821,7 +821,7 @@ for this release, we stopped short of enabling the compiler by default because
 some stability issues remain.
 
 Please note: OpenJDK has been moved from Genode's base system to the
-[https://github.com/genodelabs/genode-world Genode-world] repository and is
+[https://codeberg.org/genodelabs/genode-world Genode-world] repository and is
 now also available as a Genode package.
 
 

@@ -850,7 +850,7 @@ Python 3
 ========
 
 Thanks to the work of Johannes Schlatow, Python 3 has become available at the
-[https://github.com/genodelabs/genode-world - Genode-world] repository. It
+[https://codeberg.org/genodelabs/genode-world - Genode-world] repository. It
 supersedes Genode's original Python 2 port, which is scheduled for removal now.
 
 The Python 3 port is accompanied with the _python3.run_ script for a quick

@@ -648,7 +648,7 @@ covered in a dedicated article.
 [image pinephone_telephony]
 
 The image above illustrates a simple system exemplified by the
-[https://github.com/genodelabs/genode-allwinner/blob/master/run/modem_pinephone.run - modem_pinephone.run]
+[https://codeberg.org/genodelabs/genode-allwinner/src/commit/61b25979c/run/modem_pinephone.run - modem_pinephone.run]
 script. It allows a terminal emulator on a host machine connected to the
 serial connector of the PinePhone to interact with the command interface of
 the modem, e.g., allowing the user to unlock the SIM card via the 'AT+CPIN'
@@ -695,8 +695,8 @@ Inter-communication between SCP and ARM
 ---------------------------------------
 
 To enable a tight interplay of Genode with the SCP, we introduce a new
-[https://github.com/genodelabs/genode-allwinner/tree/master/include/scp_session - interface] and
-[https://github.com/genodelabs/genode-allwinner/tree/master/src/drivers/scp/a64 - driver]
+[https://codeberg.org/genodelabs/genode-allwinner/src/commit/61b25979c/include/scp_session - interface] and
+[https://codeberg.org/genodelabs/genode-allwinner/src/commit/61b25979c/src/drivers/scp/a64 - driver]
 for supplying and invoking custom functionality to the SCP at runtime.
 The new "Scp" service allows clients to supply snippets of Forth code for
 execution at the SCP and retrieve the result. Both the program and the result
@@ -704,7 +704,7 @@ are constrained to 1000 bytes. Hence, the loading of larger programs may need
 multiple subsequent 'Scp::Connection::execute' calls.
 
 As illustrated by the example
-[https://github.com/genodelabs/genode-allwinner/blob/master/run/a64_scp_drv.run - a64_scp_drv.run]
+[https://codeberg.org/genodelabs/genode-allwinner/src/commit/61b25979c/run/a64_scp_drv.run - a64_scp_drv.run]
 script, the mechanism supports multiple clients. Since the SCP's state is
 global, however, all clients are expected to behave cooperatively. Given the
 SCP's ultimate power, SCP clients must be fully trusted anyway.
@@ -727,7 +727,7 @@ It reports all PCI devices found behind the PCI Express host controller(s)
 detected. In contrast to the PCI decoder, it has to initialize the PCI Express
 host controller first, and needs device resources from the platform driver to
 do so before. The component resides in the
-[https://github.com/genodelabs/genode-imx - genode-imx]
+[https://codeberg.org/genodelabs/genode-imx - genode-imx]
 repository and is called _imx8mq_pci_host_drv_.
 
 
@@ -741,7 +741,7 @@ Second, we applied our new DDE Linux approach in order to port the SD-card
 driver.
 
 The platform driver for the Xilinx Zynq is now available in the
-[https://github.com/genodelabs/genode-zynq - genode-zynq] repository as
+[https://codeberg.org/genodelabs/genode-zynq - genode-zynq] repository as
 _src/zynq_platform_drv_. The default devices ROMs are provided by the
 _raw/<board>-devices_ archives. In addition to the generic driver, it features
 the readout of clock frequencies. You can use _zynq_clocks.run_ to dump the

@@ -620,7 +620,7 @@ To balance the act in between retaining hardware support not necessarily used
 by the core-team, and having thoroughly tested, recommended hardware on the
 other hand, we decided to continuously move support for hardware that is no
 longer tested regularly to the
-[https://github.com/genodelabs/genode-world - Genode-World] repository.
+[https://codeberg.org/genodelabs/genode-world - Genode-World] repository.
 
 We started this process by migrating the OMAP4 and Exynos support. The support
 for Odroid X2 was eventually dropped. Support for Odroid XU, Arndale board,

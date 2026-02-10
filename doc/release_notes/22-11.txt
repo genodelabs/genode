@@ -126,7 +126,7 @@ configurability of the four FPGA clocks ("fpga0" to "fpga3") to the Zynq
 platform driver. Moreover, we added four equally named reset domains.
 
 All changes are found in the
-[https://github.com/genodelabs/genode-zynq - genode-zynq]
+[https://codeberg.org/genodelabs/genode-zynq - genode-zynq]
 repository.
 
 
@@ -652,7 +652,7 @@ with streaming PCM audio data to/from the ARM application processor. It allows
 audio applications hosted in the user-defined runtime of Sculpt OS to record
 and play audio via Genode's audio-in and audio-out session interfaces.
 The combination of both drivers can be exercised via the
-[https://github.com/genodelabs/genode-allwinner/blob/master/run/audio_pinephone.run - audio_pinephone.run]
+[https://codeberg.org/genodelabs/genode-allwinner/src/tag/22.11/run/audio_pinephone.run - audio_pinephone.run]
 script.
 
 
@@ -684,7 +684,7 @@ several low-level aspects of the PinePhone hardware such as:
 
 Besides being integrated in Sculpt OS, the driver can be exercised in
 isolation using the
-[https://github.com/genodelabs/genode-allwinner/blob/master/run/power_pinephone.run - power_pinephone.run]
+[https://codeberg.org/genodelabs/genode-allwinner/src/tag/22.11/run/power_pinephone.run - power_pinephone.run]
 script.
 
 
@@ -706,7 +706,7 @@ display. Default is "true". The 'rotate' attribute specifies if the capture
 image data is rotated counter-clockwise and flipped. Default is 'true'.
 
 The integration of the driver is exemplified by the
-[https://github.com/genodelabs/genode-allwinner/blob/master/run/camera_pinephone.run - camera_pinephone.run] script.
+[https://codeberg.org/genodelabs/genode-allwinner/src/tag/22.11/run/camera_pinephone.run - camera_pinephone.run] script.
 The test scenario displays the camera image on the framebuffer. It repeatedly
 switches between front and rear camera.
 

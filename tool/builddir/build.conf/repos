@@ -58,7 +58,7 @@ REPOSITORIES += $(GENODE_DIR)/repos/demo
 #
 # Please follow the instructions provided at:
 #
-#   https://github.com/genodelabs/genode-world
+#   https://codeberg.org/genodelabs/genode-world
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/world
 

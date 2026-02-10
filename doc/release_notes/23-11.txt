@@ -501,7 +501,7 @@ We decided to port the [https://linphone.org - Linphone-SDK], the console
 client in particular, to Genode because it seems to be a time-tested solution
 on a range of OSes. Furthermore, it uses the [https://cmake.org - cmake]
 build-system, which makes it the ideal candidate for stressing
-[https://github.com/genodelabs/goa - Goa] with a reasonably complex project.
+[https://codeberg.org/genodelabs/goa - Goa] with a reasonably complex project.
 Using Goa itself turned out to be straight-forward and by re-using the already
 existing back ends for POSIX-like systems, e.g. OSS for handling audio via the
 mediastreamer library, we only had to tweak the build-system in very few

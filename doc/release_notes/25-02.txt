@@ -257,7 +257,7 @@ were common. Usually, once the initial rush of motivation drops, such on-off
 efforts tend to become neglected, which happened to happen also for the 2019
 Qemu attempt. So the approach was condemned to fail in the long run.
 
-Since then, the [https://github.com/genodelabs/goa - Goa] tool entered the
+Since then, the [https://codeberg.org/genodelabs/goa - Goa] tool entered the
 picture and evolved over the years to the point where it became tempting to
 give a Qemu port a second try. The approach of Goa to reuse the unmodified
 build infrastructure of the 3rd-party software as closely as possible induced

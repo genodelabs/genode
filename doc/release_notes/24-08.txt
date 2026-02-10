@@ -273,7 +273,7 @@ necessity for it anymore, we mark the old driver as well as the 'Gpio' session
 interface as deprecated.
 
 Finally, we moved all remaining i.MX specific parts out of Genode's main
-repository into the [https://github.com/genodelabs/genode-imx - genode-imx]
+repository into the [https://codeberg.org/genodelabs/genode-imx - genode-imx]
 repository to be consistent with our recent approach of vendor-specific
 external repositories.
 
@@ -376,7 +376,7 @@ Debugging
 
 After the addition of on-target debugging on Sculpt OS in
 [https://genode.org/documentation/release-notes/24.05#On-target_debugging_using_the_GNU_debugger__GDB_ - Genode 24.05],
-it was about time to equip [https://github.com/genodelabs/goa - Goa] with
+it was about time to equip [https://codeberg.org/genodelabs/goa - Goa] with
 debugging support as well. For this purpose, the tool received an optional
 '--debug' command-line switch, which instructs Goa to consider
 [https://genode.org/documentation/release-notes/23.11#Debug_information_for_depot_binaries - dbg archives]

@@ -932,7 +932,7 @@ a package manager with local versions.
 
 :ROM fallback at the Genode-World repository:
 
-  [https://github.com/genodelabs/genode-world/tree/master/src/server/rom_fallback]
+  [https://codeberg.org/genodelabs/genode-world/src/commit/a578c3946e/src/server/rom_fallback]
 
 When using the framework as a primary operating system, there is a need to
 view log information both in real-time and retrospectively without the aid of
@@ -943,7 +943,7 @@ storage.
 
 :LOG-tee at the Genode-World repository:
 
-  [https://github.com/genodelabs/genode-world/tree/master/src/server/log_tee]
+  [https://codeberg.org/genodelabs/genode-world/src/commit/a578c3946e/src/server/log_tee]
 
 Users occasionally need to remap keys and buttons. While traditional operating
 systems provide such facilities with very broad granularity, the _input-remap_
@@ -952,7 +952,7 @@ and client.
 
 :Input remapper at the Genode-World repository:
 
-  [https://github.com/genodelabs/genode-world/tree/master/src/server/input_remap]
+  [https://codeberg.org/genodelabs/genode-world/src/commit/a578c3946e/src/server/input_remap]
 
 When emulating gaming hardware, there is often a need to resize original
 display hardware to modern outputs. This is typically implemented in emulation
@@ -963,7 +963,7 @@ to a general and reusable component.
 
 :Framebuffer upscaler at the Genode-World repository:
 
-  [https://github.com/genodelabs/genode-world/tree/master/src/server/fb_upscale]
+  [https://codeberg.org/genodelabs/genode-world/src/commit/a578c3946e/src/server/fb_upscale]
 
 Thanks to Emery Hemingway for contributing the components described!
 
@@ -978,7 +978,7 @@ The current release introduces _diffutils_ and _less_ to the Genode's runtime
 environment for Unix software (called Noux).
 
 Furthermore, the libraries _libxml2_ and _mbed TLS_ were added to the
-[https://github.com/genodelabs/genode-world - Genode-world] repository. Thanks
+[https://codeberg.org/genodelabs/genode-world - Genode-world] repository. Thanks
 to Menno Valkema for the initial port of mbed TLS!
 
 

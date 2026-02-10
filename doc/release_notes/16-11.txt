@@ -635,7 +635,7 @@ Time-based password generation
 
 A time-based one-time password authentication client that adheres to the
 Google Authenticator standard has been introduced into the
-[https://github.com/genodelabs/genode-world - world repository].
+[https://codeberg.org/genodelabs/genode-world - world repository].
 
 Single use, time-based passwords are commonly used as an additional
 authentication step for web-based services. In this scheme, a user generates
