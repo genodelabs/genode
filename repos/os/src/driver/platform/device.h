@@ -26,6 +26,7 @@
 #include <device_owner.h>
 #include <io_mmu.h>
 #include <irq_controller.h>
+#include <kernel_io_mmu.h>
 #include <power.h>
 #include <reserved_memory_handler.h>
 #include <reset.h>
@@ -510,8 +511,10 @@ class Driver::Device_model : public Device_owner
 
 		Registry<Dma_allocator> _dma_allocators { };
 
+		bool const _kernel_controls_io_mmu {};
+		Constructible<Kernel_io_mmu> _kernel_io_mmu {};
+
 		bool _io_mmu_present { false };
-		bool _kernel_io_mmu  { false };
 
 		Device::Name const _kernel_io_name { "kernel_io_mmu" };
 
@@ -535,7 +538,7 @@ class Driver::Device_model : public Device_owner
 		             bool             kernel_io_mmu)
 		:
 			_env(env), _heap(heap), _reporter(reporter),
-			_kernel_io_mmu(kernel_io_mmu)
+			_kernel_controls_io_mmu(kernel_io_mmu)
 		{ }
 
 		~Device_model()
@@ -566,14 +569,19 @@ class Driver::Device_model : public Device_owner
 		void with_io_mmu(Device::Name const &name, auto const &fn)
 		{
 			for_each_io_mmu([&] (auto &io_mmu) {
-				if (io_mmu.name() == name) fn(io_mmu); });
+				if (_kernel_io_mmu.constructed() ||
+				    io_mmu.name() == name) fn(io_mmu); });
 		}
 
-		void with_kernel_io_mmu(auto const &fn)
+		void with_io_mmu(Device const &dev, auto const &fn)
 		{
-			if (_kernel_io_mmu)
-				with_io_mmu(_kernel_io_name,
-				            [&] (auto &io_mmu) { fn(io_mmu); });
+			bool found = false;
+			dev.for_each_io_mmu([&] (auto const &im) {
+				if (found)
+					return;
+				found = true;
+				with_io_mmu(im.name, fn);
+			}, [] () { /* ignore */ });
 		}
 
 		void with_irq_controller(Device::Name const &name, auto const &fn)
@@ -589,6 +597,8 @@ class Driver::Device_model : public Device_owner
 		bool dma_remapping() const { return _io_mmu_present; }
 
 		Registry<Dma_allocator> & dma_allocators() { return _dma_allocators; }
+
+		void finalize_devices_preparation();
 
 
 		/******************

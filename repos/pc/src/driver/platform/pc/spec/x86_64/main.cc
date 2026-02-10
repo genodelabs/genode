@@ -55,8 +55,7 @@ struct Driver::Main
 		_handle_config();
 		_system_update();
 
-		devices()._acquire_irq_controller();
-		devices()._acquire_io_mmus();
+		devices().finalize_devices_preparation();
 		_common.announce_service();
 	}
 };

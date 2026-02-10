@@ -30,6 +30,7 @@ struct Driver::Main
 	{
 		_config_rom.sigh(_config_handler);
 		_handle_config();
+		_common.devices().finalize_devices_preparation();
 		_common.announce_service();
 	}
 };

@@ -442,6 +442,13 @@ Driver::Device::~Device()
 
 void Driver::Device_model::_acquire_io_mmus()
 {
+	/*
+	 * If the decision was made to delegate IOMMU control to the kernel
+	 * keep that decision
+	 */
+	if (_kernel_io_mmu.constructed())
+		return;
+
 	auto init_default_mappings = [&] (auto &io_mmu) {
 		for_each([&] (auto const &device) {
 			device.with_io_mmu(io_mmu.name(), [&] (auto const &) {
@@ -494,17 +501,21 @@ void Driver::Device_model::_acquire_io_mmus()
 	if (device_present && !mpu_present)
 		_enable_dma_remapping();
 
-	bool kernel_iommu_present { false };
+	bool io_mmu_avail = false;
 	_io_mmus.for_each([&] (auto &io_mmu) {
 		io_mmu.default_mappings_complete();
-
-		if (io_mmu.name() == _kernel_io_name)
-			kernel_iommu_present = true;
+		io_mmu_avail = true;
 	});
 
-	/* if kernel implements iommu, instantiate Kernel_io_mmu */
-	if (_kernel_io_mmu && !kernel_iommu_present)
-		new (_heap) Kernel_io_mmu(_env, _io_mmus, _kernel_io_name);
+	/*
+	 * If there is was no IOMMU detected, it doesn't mean there is no at all,
+	 * potentially we just do not support it, but the kernel might do so
+	 * (e.g. Nova on AMD platform), in that case use the kernel interface if
+	 * available.
+	 */
+	if (!io_mmu_avail)
+		_kernel_io_mmu.conditional(_kernel_controls_io_mmu, _env,
+		                           _io_mmus, Device::Name { "kernel_io_mmu" });
 }
 
 
@@ -647,7 +658,11 @@ void Driver::Device_model::update(Node const &node,
 			device.update(_heap, node, reserved_mem_handler);
 		}
 	);
+}
 
+
+void Driver::Device_model::finalize_devices_preparation()
+{
 	_detect_shared_interrupts();
 
 	/*
@@ -660,7 +675,6 @@ void Driver::Device_model::update(Node const &node,
 	_acquire_irq_controller();
 	_acquire_io_mmus();
 }
-
 
 void Driver::Device_model::disable_device(Device const &device)
 {

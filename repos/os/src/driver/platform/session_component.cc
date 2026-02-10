@@ -25,36 +25,28 @@ Genode::Capability<Platform::Device_interface>
 Session_component::_acquire(Device &device)
 {
 	/**
-	 * add IOMMU domains if they don't exist yet
+	 * add IOMMU domain if doesn't exist yet
 	 *
 	 * note: must be done before device.acquire and Device_component construction
 	 *       because both may access the domain registry
 	 */
-	device.for_each_io_mmu([&] (Device::Io_mmu const &io_mmu) {
-		_domain_registry.with_domain(io_mmu.name,
+	_devices.with_io_mmu(device, [&] (auto &io_mmu) {
+		_domain_registry.with_domain(io_mmu.name(),
 			[&] (Io_mmu::Domain &) { },
 			[&] () {
-				_devices.for_each_io_mmu([&] (auto &io_mmu_dev) {
-					if (io_mmu_dev.name() == io_mmu.name) {
-						if (io_mmu_dev.mpu() && _dma_allocator.remapping())
-							error("Unable to create domain for MPU device ",
-							      io_mmu_dev.name(), " for an IOMMU-enabled session.");
-						else
-							new (heap()) Io_mmu_domain(_domain_registry,
-							                           io_mmu_dev,
-							                           heap(),
-							                           _env_ram,
-							                           _dma_allocator.buffer_registry(),
-							                           _ram_quota_guard(),
-							                           _cap_quota_guard());
-					}
-				});
-			}
-		);},
-
-		/* empty list fn */
-		[&] () { }
-	);
+				if (io_mmu.mpu() && _dma_allocator.remapping())
+					error("Unable to create domain for MPU device ",
+					      io_mmu.name(), " for an IOMMU-enabled session.");
+				else
+					new (heap()) Io_mmu_domain(_domain_registry,
+					                           io_mmu,
+					                           heap(),
+					                           _env_ram,
+					                           _dma_allocator.buffer_registry(),
+					                           _ram_quota_guard(),
+					                           _cap_quota_guard());
+			});
+	});
 
 	Device_component * dc = new (heap())
 		Device_component(_device_registry, _env, *this, _devices, device);
@@ -455,18 +447,6 @@ Session_component::Session_component(Env                          &env,
 		throw Out_of_caps();
 	if (!_ram_quota_guard().try_withdraw(Ram_quota{5*1024}))
 		throw Out_of_ram();
-
-	/**
-	 * Fallback, in case there is no IOMMU present but the kernel implements it,
-	 * is to let every device use the kernel IOMMU implicitly.
-	 * We therefore construct a corresponding domain object at session
-	 * construction.
-	 */
-	_devices.with_kernel_io_mmu([&] (auto &io_mmu) {
-		_domain_registry.default_domain(io_mmu, heap(), _env_ram,
-		                                _dma_allocator.buffer_registry(),
-		                                _ram_quota_guard(),
-		                                _cap_quota_guard()); });
 
 	/*
 	 * Iterate matching devices and reserve reserved memory regions at DMA
