@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2026-02-10
  */
 
 #include <lx_emul.h>
@@ -44,6 +44,14 @@ void __printk_deferred_enter(void)
 #include <linux/printk.h>
 
 void __printk_deferred_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -97,9 +105,9 @@ noinstr void ct_irq_exit(void)
 }
 
 
-#include <asm-generic/softirq_stack.h>
+#include <linux/mmdebug.h>
 
-void do_softirq_own_stack(void)
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -264,7 +272,7 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irqdomain.h>
 
-void irq_set_default_host(struct irq_domain * domain)
+void irq_set_default_domain(struct irq_domain * domain)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -273,6 +281,14 @@ void irq_set_default_host(struct irq_domain * domain)
 #include <linux/irqnr.h>
 
 struct irq_desc * irq_to_desc(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+bool irq_work_queue(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -335,7 +351,7 @@ const struct fwnode_operations of_fwnode_ops;
 
 #include <linux/of.h>
 
-const char * of_prop_next_string(struct property * prop,const char * cur)
+const char * of_prop_next_string(const struct property * prop,const char * cur)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -404,6 +420,14 @@ void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,voi
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
+
+
+#include <linux/rcupdate.h>
+
+void synchronize_rcu(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/clockchips.h>

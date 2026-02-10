@@ -3,6 +3,7 @@ arch/arm64/lib/memcmp.S
 arch/arm64/lib/strchr.S
 arch/arm64/lib/strcmp.S
 arch/arm64/lib/strlen.S
+arch/arm64/lib/strncmp.S
 kernel/kthread.c
 kernel/locking/mutex.c
 kernel/locking/osq_lock.c
@@ -16,6 +17,7 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
+kernel/time/sleep_timeout.c
 kernel/time/tick-broadcast-hrtimer.c
 kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
