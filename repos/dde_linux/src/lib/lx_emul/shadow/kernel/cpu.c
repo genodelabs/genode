@@ -54,3 +54,13 @@ EXPORT_SYMBOL(cpu_all_bits);
  */
 void auxiliary_bus_init(void) __attribute__((weak));
 void auxiliary_bus_init(void) { }
+
+
+/*
+ * Provide this init function as a weak symbol so that
+ * drivers including 'drivers/base/faux.c' in their
+ * source list can override it but all other drivers are
+ * indifferent to its existence.
+ */
+void faux_bus_init(void) __attribute__((weak));
+void faux_bus_init(void) { }
