@@ -62,8 +62,6 @@ class Driver::Session_component
 		Heap                     &heap();
 		Io_mmu_domain_registry   &domain_registry();
 
-		void enable_dma_remapping() { _dma_allocator.enable_remapping(); }
-
 		bool matches(Device const &) const;
 
 		Ram_quota_guard & ram_quota_guard() { return _ram_quota_guard(); }
@@ -118,6 +116,8 @@ class Driver::Session_component
 		Device_capability _acquire(Device &device);
 		void              _release_device(Device_component &dc);
 		void              _free_dma_buffer(Dma_buffer &buf);
+
+		bool _dma_remapable() const;
 
 		/*
 		 * Noncopyable

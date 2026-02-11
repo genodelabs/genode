@@ -49,7 +49,7 @@ struct Driver::Dma_buffer : Registry<Dma_buffer>::Element
 };
 
 
-class Driver::Dma_allocator : Registry<Dma_allocator>::Element
+class Driver::Dma_allocator
 {
 	public:
 
@@ -60,7 +60,6 @@ class Driver::Dma_allocator : Registry<Dma_allocator>::Element
 		friend class Dma_buffer;
 
 		Allocator           &_md_alloc;
-		bool                 _remapping;
 		bool const           _use_guard_page { true };
 		Allocator_avl        _dma_alloc { &_md_alloc };
 		Registry<Dma_buffer> _registry  { };
@@ -70,18 +69,17 @@ class Driver::Dma_allocator : Registry<Dma_allocator>::Element
 
 	public:
 
-		void enable_remapping() { _remapping = true; }
-		bool remapping()        { return _remapping; }
-
 		bool reserve(addr_t phys_addr, size_t size);
 		void unreserve(addr_t phys_addr, size_t size);
 
-		Dma_buffer & alloc_buffer(Ram_dataspace_capability cap, addr_t phys_addr, size_t size);
+		Dma_buffer & alloc_buffer(Ram_dataspace_capability cap,
+		                          addr_t phys_addr, size_t size,
+		                          bool const remapable);
 
 		Registry<Dma_buffer>       & buffer_registry()       { return _registry; }
 		Registry<Dma_buffer> const & buffer_registry() const { return _registry; }
 
-		Dma_allocator(Allocator &, Registry<Dma_allocator> &, bool const);
+		Dma_allocator(Allocator &);
 };
 
 #endif /* _SRC__DRIVER__PLATFORM__DMA_ALLOCATOR_H */

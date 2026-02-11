@@ -21,12 +21,12 @@ using namespace Driver;
 
 addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
                                       size_t const size,
-                                      bool   const force_phys_addr)
+                                      bool   const remapable)
 {
 	/*
 	 * 1:1 mapping (allocate at specified range from DMA memory allocator)
 	 */
-	if (force_phys_addr || !_remapping) {
+	if (!remapable) {
 		return _dma_alloc.alloc_addr(size, phys_addr).convert<addr_t>(
 			[&] (Range_allocator::Allocation &a) -> addr_t {
 				a.deallocate = false;
@@ -79,7 +79,7 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 
 bool Dma_allocator::reserve(addr_t phys_addr, size_t size)
 {
-	return _alloc_dma_addr(phys_addr, size, true) == phys_addr;
+	return _alloc_dma_addr(phys_addr, size, false) == phys_addr;
 }
 
 
@@ -88,9 +88,10 @@ void Dma_allocator::unreserve(addr_t phys_addr, size_t) { _free_dma_addr(phys_ad
 
 Dma_buffer & Dma_allocator::alloc_buffer(Ram_dataspace_capability cap,
                                          addr_t                   phys_addr,
-                                         size_t                   size)
+                                         size_t                   size,
+                                         bool const               remapable)
 {
-	addr_t dma_addr = _alloc_dma_addr(phys_addr, size, false);
+	addr_t dma_addr = _alloc_dma_addr(phys_addr, size, remapable);
 
 	if (!dma_addr)
 		throw Out_of_virtual_memory();
@@ -114,12 +115,9 @@ void Dma_allocator::_free_dma_addr(addr_t dma_addr)
 }
 
 
-Dma_allocator::Dma_allocator(Allocator               &md_alloc,
-                             Registry<Dma_allocator> &registry,
-                             bool const               remapping)
+Dma_allocator::Dma_allocator(Allocator &md_alloc)
 :
-	Registry<Dma_allocator>::Element(registry, *this),
-	_md_alloc(md_alloc), _remapping(remapping)
+	_md_alloc(md_alloc)
 {
 	/* 0x1000 - 4GB */
 	enum { DMA_SIZE = 0xffffe000 };

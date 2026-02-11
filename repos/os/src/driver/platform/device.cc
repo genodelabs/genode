@@ -490,17 +490,6 @@ void Driver::Device_model::_acquire_io_mmus()
 
 	});
 
-	/* iterate IOMMU devices and determine address translation mode */
-	bool mpu_present    { false };
-	bool device_present { false };
-	_io_mmus.for_each([&] (auto const &io_mmu) {
-		if (io_mmu.mpu()) mpu_present    = true;
-		else              device_present = true;
-	});
-
-	if (device_present && !mpu_present)
-		_enable_dma_remapping();
-
 	bool io_mmu_avail = false;
 	_io_mmus.for_each([&] (auto &io_mmu) {
 		io_mmu.default_mappings_complete();
@@ -590,23 +579,6 @@ void Driver::Device_model::_detect_shared_interrupts()
 			if (sirq.number() == i) found = true; });
 		if (!found) new (_heap) Shared_interrupt(_shared_irqs, _env, i);
 	}
-}
-
-
-void Driver::Device_model::_enable_dma_remapping()
-{
-	if (_io_mmu_present)
-		return;
-
-	_io_mmu_present = true;
-
-	/**
-	 * IOMMU devices may appear after the first DMA allocators have been
-	 * created. We therefore need to propagate this to the already
-	 * created ones.
-	 */
-	_dma_allocators.for_each([&] (auto &alloc) {
-		alloc.enable_remapping(); });
 }
 
 

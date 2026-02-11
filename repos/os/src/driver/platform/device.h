@@ -509,19 +509,12 @@ class Driver::Device_model : public Device_owner
 		Registry<Irq_controller>         _irq_controllers { };
 		Registry<Irq_controller_factory> _irq_controller_factories { };
 
-		Registry<Dma_allocator> _dma_allocators { };
-
 		bool const _kernel_controls_io_mmu {};
 		Constructible<Kernel_io_mmu> _kernel_io_mmu {};
-
-		bool _io_mmu_present { false };
-
-		Device::Name const _kernel_io_name { "kernel_io_mmu" };
 
 		void _acquire_io_mmus();
 		void _acquire_irq_controller();
 		void _detect_shared_interrupts();
-		void _enable_dma_remapping();
 
 		friend class Main;
 
@@ -593,10 +586,6 @@ class Driver::Device_model : public Device_owner
 		Clocks & clocks() { return _clocks; };
 		Resets & resets() { return _resets; };
 		Powers & powers() { return _powers; };
-
-		bool dma_remapping() const { return _io_mmu_present; }
-
-		Registry<Dma_allocator> & dma_allocators() { return _dma_allocators; }
 
 		void finalize_devices_preparation();
 

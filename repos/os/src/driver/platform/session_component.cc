@@ -34,17 +34,13 @@ Session_component::_acquire(Device &device)
 		_domain_registry.with_domain(io_mmu.name(),
 			[&] (Io_mmu::Domain &) { },
 			[&] () {
-				if (io_mmu.mpu() && _dma_allocator.remapping())
-					error("Unable to create domain for MPU device ",
-					      io_mmu.name(), " for an IOMMU-enabled session.");
-				else
-					new (heap()) Io_mmu_domain(_domain_registry,
-					                           io_mmu,
-					                           heap(),
-					                           _env_ram,
-					                           _dma_allocator.buffer_registry(),
-					                           _ram_quota_guard(),
-					                           _cap_quota_guard());
+				new (heap()) Io_mmu_domain(_domain_registry,
+				                           io_mmu,
+				                           heap(),
+				                           _env_ram,
+				                           _dma_allocator.buffer_registry(),
+				                           _ram_quota_guard(),
+				                           _cap_quota_guard());
 			});
 	});
 
@@ -90,6 +86,25 @@ void Session_component::_free_dma_buffer(Dma_buffer &buf)
 
 	destroy(heap(), &buf);
 	_env_ram.free(cap);
+}
+
+
+bool Session_component::_dma_remapable() const
+{
+	/* iterate IOMMU devices and determine address translation mode */
+	bool mpu_present   { false };
+	bool iommu_present { false };
+
+	_devices.for_each([&] (Device const &dev) {
+		if (!matches(dev)) return;
+
+		_devices.with_io_mmu(dev.name(), [&] (auto const &io_mmu) {
+			if (io_mmu.mpu()) mpu_present   = true;
+			else              iommu_present = true;
+		});
+	});
+
+	return iommu_present && !mpu_present;
 }
 
 
@@ -380,7 +395,8 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 	try {
 		Dma_buffer &buf = _dma_allocator.alloc_buffer(guard.ram_cap,
 		                                              _env.pd().dma_addr(guard.ram_cap),
-		                                              _env.pd().ram_size(guard.ram_cap));
+		                                              _env.pd().ram_size(guard.ram_cap),
+		                                              _dma_remapable());
 		guard.buf = &buf;
 
 		_domain_registry.for_each_domain([&] (Io_mmu::Domain &domain) {
@@ -432,7 +448,7 @@ Session_component::Session_component(Env                          &env,
 	Dynamic_rom_session::Producer("devices"),
 	_env(env), _config(config), _devices(devices),
 	_info(info), _version(version),
-	_dma_allocator(_md_alloc, devices.dma_allocators(), devices.dma_remapping())
+	_dma_allocator(_md_alloc)
 {
 	/*
 	 * FIXME: As the ROM session does not propagate Out_of_*
