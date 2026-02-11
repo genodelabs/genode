@@ -67,7 +67,6 @@ class Driver::Session_component
 		Ram_quota_guard & ram_quota_guard() { return _ram_quota_guard(); }
 		Cap_quota_guard & cap_quota_guard() { return _cap_quota_guard(); }
 
-		void update_io_mmu_devices();
 		void update_policy(bool info, Policy_version version);
 		void update_devices_rom();
 

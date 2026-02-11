@@ -449,6 +449,10 @@ void Driver::Device_model::_acquire_io_mmus()
 	auto init_default_mappings = [&] (auto &io_mmu) {
 		for_each([&] (auto const &device) {
 			device.with_io_mmu(io_mmu.name(), [&] (auto const &) {
+
+				if (device.owned())
+					error("IOMMU detected for device already in use!");
+
 				bool has_reserved_mem = false;
 				device.for_each_reserved_memory([&] (unsigned,
 				                                     Io_mmu::Range range) {

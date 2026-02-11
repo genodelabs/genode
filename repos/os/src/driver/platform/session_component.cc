@@ -129,59 +129,10 @@ bool Session_component::matches(Device const &dev) const
 };
 
 
-void Session_component::update_io_mmu_devices()
-{
-	_devices.for_each_io_mmu([&] (auto &io_mmu) {
-
-		/* determine whether IOMMU is used by any owned/acquire device */
-		bool used_by_owned_device = false;
-		_devices.for_each([&] (Device const &dev) {
-			if (!dev.owner(*this))
-				return;
-
-			if (used_by_owned_device)
-				return;
-
-			dev.with_io_mmu(io_mmu.name(), [&] (auto const &) {
-				used_by_owned_device = true; });
-		});
-
-		/* synchronise with IOMMU domains */
-		bool domain_exists = false;
-		_domain_registry.for_each([&] (Io_mmu_domain &wrapper) {
-			if (io_mmu.domain_owner(wrapper.domain)) {
-				domain_exists = true;
-
-				/* remove domain if not used by any owned device */
-				if (!used_by_owned_device)
-					destroy(heap(), &wrapper);
-			}
-		});
-
-		/**
-		 * If an IOMMU is used but there is no domain (because the IOMMU
-		 * device was just added), we need to create (i.e. allocate) a domain for
-		 * it. However, since we are in context of a ROM update at this point,
-		 * we are not able to propagate any Out_of_ram exception to the client.
-		 * Since this is supposedly a very rare and not even practical corner-case,
-		 * we print a warning instead.
-		 */
-		if (used_by_owned_device && !domain_exists) {
-			warning("Unable to configure DMA ranges properly because ",
-			        "IO MMU'", io_mmu.name(),
-			        "' was added to an already acquired device.");
-		}
-
-	});
-}
-
-
 void Session_component::update_policy(bool info, Policy_version version)
 {
 	_info    = info;
 	_version = version;
-
-	update_io_mmu_devices();
 
 	enum Device_state { AWAY, CHANGED, UNCHANGED };
 
