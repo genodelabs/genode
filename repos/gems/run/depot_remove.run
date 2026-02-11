@@ -27,48 +27,48 @@ if { [have_cmd_switch --autopilot] } {
 }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="report_rom" ram="100M">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
++ start timer
+  + provides
+    + service Timer
 
-	<start name="lx_fs" ld="no" ram="100M">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<policy label_prefix="depot_remove ->" root="/depot" writeable="yes"/>
-		</config>
-	</start>
++ start report_rom | ram: 100M
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-	<start name="depot_remove" ram="2M">
-		<route>
-			<service name="ROM" label="config"> <parent label="depot_remove_config"/> </service>
-			<service name="File_system"> <child name="lx_fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start lx_fs | ld: no | ram: 100M
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: depot_remove -> | root: /depot | writeable: yes
 
-</config>}
++ start depot_remove | ram: 2M
+  + route
+    + service ROM | label: config | + parent | label: depot_remove_config
+    + service File_system         | + child lx_fs
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 exec mkdir [run_dir]/genode/depot
 exec tar xvf [run_dir]/genode/depot.tar -C [run_dir]/genode/depot
@@ -228,17 +228,20 @@ proc check_depot_state { context } {
 	return 0
 }
 
+set end_of_report ".*   -.*\n"
+
 puts "\n--------------- TEST 1 --- Delete nano3d"
 
 set context [mark_pkg_for_deletion [build_depot_context] "nano3d"]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
-	<remove user="} [depot_user] {" pkg="nano3d"/>
-	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>}
+config | arch: } [depot_spec] { | report: yes
++ remove | user: } [depot_user] { | pkg: nano3d
++ vfs | + dir depot | + fs
+-
+}
 
-run_genode_until ".*</removed_archives>" 10
+run_genode_until $end_of_report 10
 
 if { [check_depot_state $context] } {
 	puts " TEST 1 --- Delete nano3d -- ERROR"
@@ -251,12 +254,13 @@ puts "\n--------------- TEST 2 --- Delete non existing archive"
 set context [build_depot_context]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
-	<remove user="} [depot_user] {" pkg="nano3d"/>
-	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>}
+config | arch: } [depot_spec] { | report: yes
++ remove | user: } [depot_user] { | pkg: nano3d
++ vfs | + dir depot | + fs
+-
+}
 
-run_genode_until ".*<removed_archives/>" 10
+run_genode_until $end_of_report 10
 
 if { [check_depot_state $context] } {
 	puts " TEST 2 --- Delete non existing archive -- ERROR"
@@ -270,12 +274,13 @@ puts "\n--------------- TEST 3 --- Delete a PKG archive with deps to keep"
 set context [mark_pkg_for_deletion [build_depot_context] "fonts_fs"]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
-	<remove user="} [depot_user] {" pkg="fonts_fs"/>
-	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>}
+config | arch: } [depot_spec] { | report: yes
++ remove | user: } [depot_user] { | pkg: fonts_fs
++ vfs | + dir depot | + fs
+-
+}
 
-run_genode_until ".*</removed_archives>" 10
+run_genode_until $end_of_report 10
 
 if { [check_depot_state $context] } {
 	puts " TEST 3 --- Delete a PKG archive with deps to keep --- ERROR"
@@ -291,15 +296,15 @@ set context [mark_pkg_to_keep $context "themed_decorator"]
 set context [mark_pkg_to_keep $context "chroot"]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
-	<remove-all>
-		<keep user="} [depot_user] {" pkg="themed_decorator"/>
-		<keep user="} [depot_user] {" pkg="chroot"/>
-	</remove-all>
-	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>}
+config | arch: } [depot_spec] { | report: yes
++ remove-all
+  + keep | user: } [depot_user] { | pkg: themed_decorator
+  + keep | user: } [depot_user] { | pkg: chroot
++ vfs | + dir depot | + fs
+-
+}
 
-run_genode_until ".*</removed_archives>" 10
+run_genode_until $end_of_report 10
 
 if { [check_depot_state $context] } {
 	puts " TEST 4 --- Remove all, keep themed_decorator and chroot PKGS --- ERROR"
@@ -313,12 +318,13 @@ puts "\n--------------- TEST 5 --- Remove all --- SUCCESS"
 set context [mark_all_for_deletion [build_depot_context]]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
-	<remove-all/>
-	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
-</config>}
+config | arch: } [depot_spec] { | report: yes
++ remove-all
++ vfs | + dir depot | + fs
+-
+}
 
-run_genode_until ".*</removed_archives>" 10
+run_genode_until $end_of_report 10
 
 if { [check_depot_state $context] } {
 	puts " TEST 5 --- Remove all --- ERROR"

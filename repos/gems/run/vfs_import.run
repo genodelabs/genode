@@ -16,104 +16,83 @@ import_from_depot \
 	[depot_user]/src/posix \
 
 install_config {
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-		</parent-provides>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
 
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="200" ram="2M"/>
++ default-route | + any-service | + parent
 
-		<start name="timer">
-			<provides><service name="Timer"/></provides>
-		</start>
++ default | caps: 200 | ram: 2M
 
-		<start name="vfs" ram="4M">
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs>
-					<ram/>
-					<tar name="coreutils.tar" />
-				</vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
++ start timer
+  + provides | + service Timer
 
-		<start name="vfs_rom" ram="10M">
-			<binary name="fs_rom"/>
-			<provides> <service name="ROM"/> </provides>
-			<config/>
-			<route>
-				<service name="File_system"> <child name="vfs"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start vfs | ram: 4M
+  + provides | + service File_system
+  + config
+    + vfs
+      + ram
+      + tar coreutils.tar
+    + default-policy | root: / | writeable: yes
 
-		<start name="test" caps="500" ram="1G">
-			<binary name="sequence"/>
-			<config>
-				<start name="/bin/true" caps="500">
-					<config>
-						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
-						<vfs>
-							<dir name="fs"> <fs/> </dir>
-							<dir name="dev"> <log/> <null/> </dir>
-							<ram/>
-							<import overwrite="yes">
-								<dir name="fs">
-									<symlink name="link" target="test"/>
-									<inline name="test">Hello, this is Genode!</inline>
-								</dir>
-							</import>
-						</vfs>
-					</config>
-				</start>
-				<start name="/bin/true" caps="500">
-					<config>
-						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
-						<vfs>
-							<dir name="fs"> <fs/> </dir>
-							<dir name="dev"> <log/> <null/> </dir>
-							<ram/>
-							<import overwrite="yes">
-								<dir name="fs">
-									<symlink name="link" target="test"/>
-									<inline name="test">Hello world!</inline>
-								</dir>
-							</import>
-						</vfs>
-					</config>
-				</start>
-				<start name="/bin/cat" caps="500">
-					<config>
-						<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-						      rtc="/dev/null"/>
-						<vfs>
-							<dir name="fs"> <fs writeable="no"/> </dir>
-							<dir name="dev"> <log/> <null/> </dir>
-						</vfs>
-						<arg value="cat"/>
-						<arg value="/fs/link"/>
-					</config>
-				</start>
-			</config>
-			<route>
-				<service name="File_system"> <child name="vfs"/> </service>
-				<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-				<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
++ start vfs_rom | ram: 10M
+  + binary fs_rom
+  + provides | + service ROM
+  + config
+  + route
+    + service File_system | + child vfs
+    + any-service         | + parent
+
++ start test | caps: 500 | ram: 1G
+  + binary sequence
+  + config
+  | + start /bin/true | caps: 500
+  |   + config
+  |     + libc | stdin: /dev/null | stdout: /dev/log | stderr: /dev/log
+  |     + vfs
+  |       + dir fs  | + fs
+  |       + dir dev | + log
+  |                 | + null
+  |       + ram
+  |       + import | overwrite: yes
+  |         + dir fs
+  |           + symlink link | target: test
+  |           + inline test | : Hello, this is Genode!
+  | + start /bin/true | caps: 500
+  |   + config
+  |     + libc | stdin: /dev/null | stdout: /dev/log | stderr: /dev/log
+  |     + vfs
+  |       + dir fs  | + fs
+  |       + dir dev | + log
+  |                 | + null
+  |       + ram
+  |       + import | overwrite: yes
+  |         + dir fs
+  |           + symlink link | target: test
+  |           + inline test | : Hello world!
+  | + start /bin/cat | caps: 500
+  |   + config
+  |     + libc | stdin: /dev/null | stdout: /dev/log | stderr: /dev/log | rtc: /dev/null
+  |     + vfs
+  |       + dir fs  | + fs | writeable: no
+  |       + dir dev | + log
+  |                 | + null
+  |     + arg cat | : /fs/link
+  + route
+    + service File_system                 | + child vfs
+    + service ROM | label_suffix: .lib.so | + parent
+    + service ROM | label_prefix: /bin    | + child vfs_rom
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build_boot_image [build_artifacts]

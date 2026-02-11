@@ -189,7 +189,7 @@ proc single_test_module_routes { } {
 	set result ""
 	foreach module $test_modules {
 		append result {
-			<service name="ROM" label_last="} $module {"> <parent/> </service>}
+		    + service ROM | label_last: } $module { | + parent}
 	}
 	return $result
 }
@@ -205,10 +205,11 @@ proc test_pkgs_start_nodes { } {
 	foreach test_pkg $test_pkgs {
 		if {[skip_test $test_pkg]} {
 			append result {
-				<start name="} $test_pkg {" skip="true"/>}
+			  | + start } $test_pkg { | skip: yes }
 		} else {
+			set pkg "[depot_user]/pkg/$test_pkg/[_current_depot_archive_version pkg $test_pkg]"
 			append result {
-				<start name="} $test_pkg {" pkg="} [depot_user] {/pkg/} $test_pkg {/} [_current_depot_archive_version pkg $test_pkg] {"/>}
+			  | + start } $test_pkg { | pkg: } $pkg
 		}
 	}
 	return $result
@@ -289,145 +290,135 @@ proc prepare_to_run_genode { } {
 	puts "Depot archive has a size of $depot_tar_size bytes \
 	      ($depot_tar_wo_src_size bytes without sources)"
 
+	set quoted_previous_results {}
+	foreach line [split $previous_results "\n"] {
+		append quoted_previous_results "\n  |   : $line" }
+	append quoted_previous_results "\n  |"
+
 	#
 	# Install the root-init config
 	#
 	append config {
-	<config prio_levels="2">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="TRACE"/>
-		</parent-provides>
+		config | prio_levels: 2
+		+ parent-provides
+		  + service ROM
+		  + service IRQ
+		  + service IO_PORT
+		  + service IO_MEM
+		  + service PD
+		  + service RM
+		  + service CPU
+		  + service LOG
+		  + service TRACE
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="200" ram="2M"/>
+		+ default-route
+		  + any-service
+		    + parent
+		    + any-child
 
-		<start name="timer" priority="0">
-			<provides> <service name="Timer"/> </provides>
-		</start>
+		+ default | caps: 200 | ram: 2M
 
-		<start name="report_rom" priority="-1" ram="2M">
-			<binary name="report_rom"/>
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config verbose="no">
-				<policy label="depot_autopilot -> blueprint" report="depot_query -> blueprint"/>
-				<policy label="depot_autopilot -> state"     report="dynamic -> state"/>
-				<policy label="depot_query -> query"         report="depot_autopilot -> query"/>
-				<policy label="dynamic -> config"            report="depot_autopilot -> init.config"/>
-			</config>
-		</start>
+		+ start timer | priority: 0
+		  + provides | + service Timer
 
-		<start name="vfs" priority="-1" ram="16M">
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs>
-					<dir name="depot"> <tar name="depot.tar"/> </dir>
-					<dir name="gcov_data"> <ram/> </dir>
-				</vfs>
-				<policy label_prefix="depot_query -> depot"             root="/depot" />
-				<policy label_prefix="fs_rom ->"                        root="/depot" />
-				<policy label_prefix="dynamic -> gcov -> gcov -> depot" root="/depot" />
-				<policy label_suffix=" -> gcov_data -> /"               root="/gcov_data" writeable="yes" />
-			</config>
-		</start>
+		+ start report_rom | priority: -1 | ram: 2M
+		  + binary report_rom
+		  + provides
+		    + service Report
+		    + service ROM
+		  + config | verbose: no
+		    + policy | label:  depot_autopilot -> blueprint | report: depot_query -> blueprint
+		    + policy | label:  depot_autopilot -> state     | report: dynamic -> state
+		    + policy | label:  depot_query -> query         | report: depot_autopilot -> query
+		    + policy | label:  dynamic -> config            | report: depot_autopilot -> init.config
+		+ start vfs | priority: -1 | ram: 16M
+		  + provides | + service File_system
+		  + config
+		    + vfs
+		      + dir depot     | + tar depot.tar
+		      + dir gcov_data | + ram
+		    + policy | label_prefix: depot_query -> depot             | root: /depot
+		    + policy | label_prefix: fs_rom ->                        | root: /depot
+		    + policy | label_prefix: dynamic -> gcov -> gcov -> depot | root: /depot
+		    + policy | label_suffix: -> gcov_data -> /                | root: /gcov_data
+		                                                              | writeable: yes
+		+ start fs_rom | priority: -1 | caps: 300 | ram: 32M
+		  + provides | + service ROM
+		+ start depot_query | priority: -1 | ram: 3M
+		  + config | query: rom
+		    + vfs | + dir depot | + fs | label: depot -> /
+		  + route
+		    + service ROM | label: query | + child report_rom
+		    + any-service
+		      + parent
+		      + any-child
 
-		<start name="fs_rom" priority="-1" caps="300" ram="32M">
-			<provides> <service name="ROM"/> </provides>
-		</start>
+		+ start depot_autopilot | priority: -1 | ram: 8M
+		  + provides | + service LOG
+		  + config | repeat: } $test_repeat { | arch: } [depot_spec] {
+		  |        | blueprint_buffer: 750K | children_label_prefix: dynamic
+		  | + static
+		  |   + report
+		  |   + parent-provides
+		  |     + service ROM
+		  |     + service CPU
+		  |     + service PD
+		  |     + service LOG
+		  |     + service RM
+		  |     + service Timer
+		  |     + service TRACE
+		  |     + service File_system
+		  | + common_routes
+		  |   } [single_test_module_routes] {
+		  |   + service ROM | label_last: ld.lib.so                | + parent
+		  |   + service ROM | label_last: init                     | + parent
+		  |   + service CPU                                        | + parent
+		  |   + service PD                                         | + parent
+		  |   + service LOG                                        | + parent
+		  |   + service Timer                                      | + parent
+		  |   + service RM                                         | + parent
+		  |   + service TRACE                                      | + parent
+		  |   + service File_system | label: gcov -> depot -> /    | + parent
+		  |   + service File_system | label_suffix: gcov_data -> / | + parent
+		  | + previous-results
+		  |                    time_sec:  } [expr ($previous_time_ms + 999) / 1000] {
+		  |                    succeeded: } $previous_succeeded {
+		  |                    skipped:   } $previous_skipped {
+		  |                    failed:    } $previous_failed {
+		  |} "$quoted_previous_results" [test_pkgs_start_nodes] {
+		  |
+		  + route
+		    + service PD  | unscoped_label: depot_autopilot | + parent
+		    + service CPU | unscoped_label: depot_autopilot | + parent
+		    + service LOG | unscoped_label: depot_autopilot | + parent | label: test
+		    + service ROM | unscoped_label: depot_autopilot | + parent
+		    + service ROM | unscoped_label: ld.lib.so       | + parent
+		    + service ROM | label: blueprint                | + child report_rom
+		    + service ROM | label: state                    | + child report_rom
+		    + service Report | label: query                 | + child report_rom
+		    + service Report | label: init.config           | + child report_rom
+		    + service Timer | label:                        | + child timer
 
-		<start name="depot_query" priority="-1" ram="3M">
-			<config query="rom">
-				<vfs> <dir name="depot"> <fs label="depot -> /"/> </dir> </vfs>
-			</config>
-			<route>
-				<service name="ROM" label="query"> <child name="report_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+		+ start dynamic | caps: 8000 | ram: 286M | priority: -1
+		  + binary init
+		  + route
+		    } [single_test_module_routes] {
+		    + service ROM | label_last: ld.lib.so   | + parent
+		    + service ROM | label_last: init        | + parent
+		    + service ROM | label: config           | + child report_rom
+		    + service ROM                           | + child fs_rom
+		    + service LOG | unscoped_label: dynamic | + parent
+		    + service LOG                           | + child depot_autopilot
+		    + service Timer                         | + child timer
+		    + any-service
+		      + parent
+		      + any-child
+		-
+	}
 
-		<start name="depot_autopilot" priority="-1" ram="8M">
-			<provides> <service name="LOG"/> </provides>
-			<config repeat="} $test_repeat {" arch="} [depot_spec] {"
-			        blueprint_buffer="750K"
-			        children_label_prefix="dynamic">
-				<static>
-					<report/>
-					<parent-provides>
-						<service name="ROM"/>
-						<service name="CPU"/>
-						<service name="PD"/>
-						<service name="LOG"/>
-						<service name="RM"/>
-						<service name="Timer"/>
-						<service name="TRACE"/>
-						<service name="File_system"/>
-					</parent-provides>
-				</static>
-				<common_routes>
+	# strip tabs used for indentation
+	set config [string map {"\t" ""} $config]
 
-					} [single_test_module_routes] {
-
-					<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-					<service name="ROM" label_last="init">      <parent/> </service>
-					<service name="CPU">                        <parent/> </service>
-					<service name="PD">                         <parent/> </service>
-					<service name="LOG">                        <parent/> </service>
-					<service name="Timer">                      <parent/> </service>
-					<service name="RM">                         <parent/> </service>
-					<service name="TRACE">                      <parent/> </service>
-					<service name="File_system" label="gcov -> depot -> /">    <parent/> </service>
-					<service name="File_system" label_suffix="gcov_data -> /"> <parent/> </service>
-				</common_routes>
-
-				<previous-results time_sec="} [expr ($previous_time_ms + 999) / 1000] {"
-				                  succeeded="} $previous_succeeded {"
-				                  skipped="} $previous_skipped {"
-				                  failed="} $previous_failed {">} [string map {\" .}  $previous_results] {</previous-results>
-
-				} [test_pkgs_start_nodes] {
-
-			</config>
-			<route>
-				<service name="PD"     unscoped_label="depot_autopilot"> <parent/>                  </service>
-				<service name="CPU"    unscoped_label="depot_autopilot"> <parent/>                  </service>
-				<service name="LOG"    unscoped_label="depot_autopilot"> <parent label="test"/>                  </service>
-				<service name="ROM"    unscoped_label="depot_autopilot"> <parent/>                  </service>
-				<service name="ROM"    unscoped_label="ld.lib.so">       <parent/>                  </service>
-				<service name="ROM"    label="blueprint">                <child name="report_rom"/> </service>
-				<service name="ROM"    label="state">                    <child name="report_rom"/> </service>
-				<service name="Report" label="query">                    <child name="report_rom"/> </service>
-				<service name="Report" label="init.config">              <child name="report_rom"/> </service>
-				<service name="Timer"  label="">                         <child name="timer"/>      </service>
-			</route>
-		</start>
-
-		<start name="dynamic" caps="8000" ram="286M" priority="-1">
-			<binary name="init"/>
-			<route>
-
-				} [single_test_module_routes] {
-
-				<service name="ROM" label_last="ld.lib.so">   <parent/>                       </service>
-				<service name="ROM" label_last="init">        <parent/>                       </service>
-				<service name="ROM" label="config">           <child name="report_rom"/>      </service>
-				<service name="ROM">                          <child name="fs_rom"/>          </service>
-				<service name="LOG" unscoped_label="dynamic"> <parent/>                       </service>
-				<service name="LOG">                          <child name="depot_autopilot"/> </service>
-				<service name="Timer">                        <child name="timer"/>           </service>
-				<any-service>                                 <parent/> <any-child/>          </any-service>
-			</route>
-		</start>
-
-	</config>}
 	install_config $config
 
 

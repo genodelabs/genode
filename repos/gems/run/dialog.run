@@ -13,93 +13,88 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_import
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="PD"/>
-		<service name="CPU"/>
-		<service name="ROM"/>
-		<service name="RM"/>
-		<service name="LOG"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-	</parent-provides>
+config
++ parent-provides
+  + service PD
+  + service CPU
+  + service ROM
+  + service RM
+  + service LOG
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="report_rom">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<policy label="text_area.1 -> hover" report="nitpicker -> hover"/>
-			<policy label="text_area.2 -> clipboard" report="text_area.2 -> clipboard"/>
-		</config>
-	</start>
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+    + policy | label: text_area.1 -> hover     | report: nitpicker -> hover
+    + policy | label: text_area.2 -> clipboard | report: text_area.2 -> clipboard
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
-			<report hover="yes"/>
-			<background color="#123456"/>
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="3" content="client" label="no" hover="always" />
-			<domain name="second" layer="2" xpos="200" ypos="300" content="client" label="no" hover="always" />
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + report | hover: yes
+    + background | color: #123456
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 3 | content: client | label: no | hover: always
+    + domain second  | layer: 2 | content: client | label: no | hover: always
+                     | xpos: 200 | ypos: 300
+    + policy | label_prefix: pointer     | domain: pointer
+    + policy | label_prefix: text_area.2 | domain: second
+    + default-policy                     | domain: default
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<policy label_prefix="text_area.2" domain="second"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start fonts_fs | caps: 300 | ram: 8M
+  + binary vfs
+  + provides | + service File_system
+  + route
+    + service ROM | label: config | + parent | label: fonts_fs.config
+    + any-service                 | + parent
 
-	<start name="fonts_fs" caps="300" ram="8M">
-		<binary name="vfs"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="fonts_fs.config"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-		<provides> <service name="File_system"/> </provides>
-	</start>
-
-	<start name="test-dialog" caps="1000" ram="8M">
-		<config/>
-		<route>
-			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>}
++ start test-dialog | caps: 1000 | ram: 8M
+  + config
+  + route
+    + service ROM | label: hover | + child report_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"test-dialog -> \"/>"
+puts $fd "focus | label: test-dialog ->\n-"
 close $fd
 
 build { test/dialog app/menu_view lib/dialog }

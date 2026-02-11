@@ -8,65 +8,62 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/test-terminal_echo
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-		</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_PORT
+  + service IO_MEM
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-		<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-		<start name="timer">
-			<provides><service name="Timer"/></provides>
-		</start>
++ start timer
+  + provides | + service Timer
 
-		<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="Capture"> <child name="nitpicker"/> </service>
-				<service name="Event">   <child name="nitpicker"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-		<start name="nitpicker" ram="4M">
-			<provides>
-				<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-			</provides>
-			<config focus="rom">
-				<capture/> <event/>
-				<domain name="default" layer="2" content="client" label="no" hover="always"/>
-				<default-policy domain="default"/>
-			</config>
-		</start>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + domain default | layer: 2 | content: client | label: no | hover: always
+    + default-policy | domain: default
 
-		<start name="terminal" caps="110" ram="6M">
-			<provides><service name="Terminal"/></provides>
-			<route>
-				<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
-				<service name="Gui"> <child name="nitpicker" label="terminal"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start terminal | caps: 110 | ram: 6M
+  + provides | + service Terminal
+  + route
+    + service ROM | label: config | + parent          | label: terminal.config
+    + service Gui                 | + child nitpicker | label: terminal
+    + any-service
+      + parent
+      + any-child
 
-		<start name="test-terminal_echo"/>
-	</config>
++ start test-terminal_echo
+-
 }
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"terminal\" domain=\"default\"/>"
+puts $fd "focus | label: terminal | domain: default\n-"
 close $fd
 
 build { server/terminal }

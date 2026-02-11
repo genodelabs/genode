@@ -4,10 +4,6 @@
 # \date   2011-09-08
 #
 
-#
-# TODO: Add support for Linux via user-level networking (using the
-#       tun/tap proxy driver at os/src/driver/nic/linux)
-#
 assert {![have_spec linux]}
 
 create_boot_directory
@@ -25,87 +21,70 @@ import_from_depot [depot_user]/src/[base_src] \
 build { server/tcp_terminal }
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="drivers" caps="1000" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes">
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-			<policy label_prefix="tcp_terminal" domain="downlink"/>
-			<policy label_prefix="drivers"      domain="uplink"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-			<domain name="uplink">
++ default | caps: 100 | ram: 1M
 
-				<nat domain="downlink"
-				     tcp-ports="16384"
-				     udp-ports="16384"
-				     icmp-ids="16384"/>
++ start timer
+  + provides | + service Timer
 
-				<tcp-forward port="8888" domain="downlink" to="10.0.3.2"/>
++ start drivers | caps: 1000 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
 
-			</domain>
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: tcp_terminal | domain: downlink
+    + policy | label_prefix: drivers      | domain: uplink
+    + domain uplink
+      + nat | domain: downlink | tcp-ports: 16384 | udp-ports: 16384 | icmp-ids: 16384
+:     + tcp-forward | port: 8888 | domain: downlink | to: 10.0.3.2
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
+        + dns-server | ip: 8.8.8.8
+        + dns-server | ip: 1.1.1.1
+      + tcp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + udp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + icmp | dst: 0.0.0.0/0 | domain: uplink
 
-			<domain name="downlink" interface="10.0.3.1/24">
++ start tcp_terminal | caps: 200 | ram: 8M
+  + provides | + service Terminal
+  + config
+  | + policy | label_prefix: test-terminal_echo | port: 8888
+  | + vfs
+  |   + dir dev    | + log
+  |   + dir socket | + lwip | dhcp: yes
+  |   + dir pipe   | + pipe
+  | + libc | stdout: /dev/log | socket: /socket | pipe: /pipe
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2">
-					<dns-server ip="8.8.8.8"/>
-					<dns-server ip="1.1.1.1"/>
-				</dhcp-server>
-
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
-				<icmp dst="0.0.0.0/0" domain="uplink"/>
-
-			</domain>
-
-		</config>
-	</start>
-	<start name="tcp_terminal" caps="200" ram="8M">
-		<provides> <service name="Terminal"/> </provides>
-		<config>
-			<policy label_prefix="test-terminal_echo" port="8888"/>
-			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<dir name="socket"> <lwip dhcp="yes"/> </dir>
-				<dir name="pipe"> <pipe/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" socket="/socket" pipe="/pipe"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="test-terminal_echo"/>
-</config>
++ start test-terminal_echo
+-
 }
 
 build_boot_image [build_artifacts]

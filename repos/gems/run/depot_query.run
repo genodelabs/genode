@@ -15,119 +15,103 @@ proc query_pkg {} {
 	return test-fs_report/[_current_depot_archive_version pkg test-fs_report] }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="2M"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default | caps: 200 | ram: 2M
 
-	<start name="report_rom">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
-			<policy label="depot_query -> query"      report="depot_deploy -> query"/>
-			<policy label="dynamic -> config"         report="depot_deploy -> init.config"/>
-		</config>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="vfs" ram="4M">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<tar name="depot.tar"/>
-				<dir name="badguy">
-					<dir name="pkg">
-						<dir name="invalid">
-							<dir name="current">
-								<inline name="archives"/>
-								<inline name="runtime">
-									<runtime ram="1M" caps="100" binary="chroot">
-										<content>
-											<rom label="chroot"/>
-										</content>
-									</runtime>
-								</inline>
-							</dir>
-						</dir>
-					</dir>
-				</dir>
-			</vfs>
-			<policy label_prefix="depot_query -> depot ->" root="/" />
-			<policy label_prefix="fs_rom ->"               root="/" />
-		</config>
-	</start>
++ start report_rom
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+    + policy | label:  depot_deploy -> blueprint | report: depot_query -> blueprint
+    + policy | label:  depot_query -> query      | report: depot_deploy -> query
+    + policy | label:  dynamic -> config         | report: depot_deploy -> init.config
 
-	<start name="fs_rom" ram="5M">
-		<provides> <service name="ROM"/> </provides>
-	</start>
++ start vfs | ram: 4M
+  + provides | + service File_system
+  + config
+    + vfs
+    | + tar depot.tar
+    | + dir badguy
+    |   + dir pkg
+    |     + dir invalid
+    |       + dir current
+    |         + inline archives
+    |         + inline runtime
+    |           + runtime | ram: 1M | caps: 100 | binary: chroot
+    |             + content
+    |               + rom | label: chroot
+    + policy | label_prefix: depot_query -> depot -> | root: /
+    + policy | label_prefix: fs_rom ->               | root: /
 
-	<start name="depot_query" ram="2M">
-		<config query="rom">
-			<vfs> <dir name="depot"> <fs label="depot -> /"/> </dir> </vfs>
-		</config>
-		<route>
-			<service name="ROM" label="query"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start fs_rom | ram: 5M
+  + provides
+    + service ROM
++ start depot_query | ram: 2M
+  + config | query: rom
+    + vfs | + dir depot | + fs | label: depot -> /
+  + route
+    + service ROM | label: query | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="depot_deploy">
-		<config arch="} [depot_spec] {">
-			<static>
-				<parent-provides>
-					<service name="ROM"/>
-					<service name="CPU"/>
-					<service name="PD"/>
-					<service name="LOG"/>
-					<service name="Timer"/>
-				</parent-provides>
-			</static>
-			<common_routes>
-				<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-				<service name="ROM" label_last="init">      <parent/> </service>
-				<service name="CPU">   <parent/> </service>
-				<service name="PD">    <parent/> </service>
-				<service name="LOG">   <parent/> </service>
-				<service name="Timer"> <parent/> </service>
-			</common_routes>
-			<start name="invalid" pkg="badguy/pkg/invalid/current"/>
-			<start name="test" pkg="} [depot_user] {/pkg/} [query_pkg] {"/>
-		</config>
-		<route>
-			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start depot_deploy
+  + config | arch: } [depot_spec] {
+  | + static
+  |   + parent-provides
+  |     + service ROM
+  |     + service CPU
+  |     + service PD
+  |     + service LOG
+  |     + service Timer
+  | + common_routes
+  |   + service ROM | label_last: ld.lib.so | + parent
+  |   + service ROM | label_last: init      | + parent
+  |   + service CPU                         | + parent
+  |   + service PD                          | + parent
+  |   + service LOG                         | + parent
+  |   + service Timer                       | + parent
+  | + start invalid | pkg: badguy/pkg/invalid/current
+  | + start test | pkg: } [depot_user] {/pkg/} [query_pkg] {
+  + route
+    + service ROM | label: blueprint | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="dynamic" caps="8000" ram="64M">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label_last="init">      <parent/> </service>
-			<service name="ROM" label="config"> <child name="report_rom"/> </service>
-			<service name="ROM">   <child name="fs_rom"/> </service>
-			<service name="Timer"> <child name="timer"/>  </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>}
++ start dynamic | caps: 8000 | ram: 64M
+  + binary init
+  + route
+    + service ROM | label_last: ld.lib.so | + parent
+    + service ROM | label_last: init      | + parent
+    + service ROM | label: config         | + child report_rom
+    + service ROM                         | + child fs_rom
+    + service Timer                       | + child timer
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build_boot_image [build_artifacts]
 

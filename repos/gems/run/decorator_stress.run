@@ -13,89 +13,82 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/zlib
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="nitpicker" caps="200">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
-			<domain name="" layer="2" content="client" label="no" />
-			<default-policy domain=""/>
-			<report pointer="yes" />
-		</config>
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start nitpicker | caps: 200
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + domain default | layer: 2 | content: client | label: no
+    + default-policy | domain: default
+    + report | pointer: yes
+  + route
+    + service Report | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="report_rom" ram="2M">
-		<provides> <service name="ROM" />
-		           <service name="Report" /> </provides>
-		<config>
-			<policy label="decorator -> pointer"
-			       report="nitpicker -> pointer"/>
-			<policy label="decorator -> window_layout"
-			       report="test-decorator_stress -> window_layout"/>
-		</config>
-	</start>
++ start report_rom | ram: 2M
+  + provides
+    + service ROM
+    + service Report
+  + config
+    + policy | label: decorator -> pointer       | report: nitpicker -> pointer
+    + policy | label: decorator -> window_layout | report: test-decorator_stress -> window_layout
 
-	<start name="test-decorator_stress" ram="2M">
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start test-decorator_stress | ram: 2M
+  + config | + libc
+  + route
+    + service Report | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="decorator" caps="200" ram="8M">
-		<config>
-			<default-policy/>
-		</config>
-		<route>
-			<service name="ROM" label="pointer">
-				<child name="report_rom" /> </service>
-			<service name="ROM" label="window_layout">
-				<child name="report_rom" /> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start decorator | caps: 200 | ram: 8M
+  + config | + default-policy
+  + route
+    + service ROM | label: pointer       | + child report_rom
+    + service ROM | label: window_layout | + child report_rom
+    + service Report                     | + child report_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
 
-build { app/decorator test/decorator_stress }
+build { lib/libc app/decorator test/decorator_stress }
 
 build_boot_image [build_artifacts]
 

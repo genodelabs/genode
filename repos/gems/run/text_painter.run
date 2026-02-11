@@ -10,87 +10,78 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/raw/ttf-bitstream-vera-minimal
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
-			<domain name="default" layer="2" content="client" label="no"
-			        hover="always" width="1024" height="768"/>
-			<default-policy domain="default"/>
-		</config>
-		<route> <any-service> <parent/> <any-child/> </any-service> </route>
-	</start>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + domain default | layer: 2 | content: client | label: no | hover: always
+                     | width: 1024 | height: 768
+    + default-policy | domain: default
 
-	<start name="gui_fb" ram="4M">
-		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-		<config/>
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start gui_fb | ram: 4M
+  + provides
+    + service Framebuffer
+    + service Input
+  + config
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="font_vfs" ram="4M">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<rom name="VeraMono.ttf"/>
-				<dir name="fonts">
-					<ttf name="regular" path="/VeraMono.ttf" size_px="48" cache="128K"/>
-				</dir>
-			</vfs>
-			<default-policy root="/fonts" />
-		</config>
-	</start>
++ start font_vfs | ram: 4M
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + vfs
+      + rom VeraMono.ttf
+      + dir fonts | + ttf regular | path: /VeraMono.ttf | size_px: 48 | cache: 128K
+    + default-policy | root: /fonts
 
-	<start name="test-text_painter" ram="2M">
-		<config>
-			<vfs> <dir name="fonts"> <fs/> </dir> </vfs>
-		</config>
-	</start>
-
-</config>}
++ start test-text_painter | ram: 2M
+  + config
+    + vfs | + dir fonts | + fs
+-
+}
 
 build { server/vfs test/text_painter lib/vfs_ttf }
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"gui_fb -> \" domain=\"default\"/>"
+puts $fd "focus | label: gui_fb ->\n-"
 close $fd
 
 build_boot_image [build_artifacts]

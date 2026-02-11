@@ -29,154 +29,136 @@ proc jitter_ms { } {
 }
 
 install_config {
-<config prio_levels="4">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="LOG"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="TRACE"/>
-	</parent-provides>
+config | prio_levels: 4
++ parent-provides
+  + service ROM
+  + service CPU
+  + service PD
+  + service RM
+  + service LOG
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service TRACE
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="report_rom" ram="2M" priority="-1">
-		<provides> <service name="ROM"/> <service name="Report"/> </provides>
-		<config>
-		</config>
-	</start>
++ start report_rom | ram: 2M | priority: -1
+  + provides
+    + service ROM
+    + service Report
+  + config
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes" priority="-1">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes | priority: -1
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="nitpicker" ram="4M" priority="-2">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="3" content="client" label="no" hover="always" />
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start nitpicker | ram: 4M | priority: -2
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 3 | content: client | label: no | hover: always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
 
-	<start name="pointer" priority="-1"/>
++ start pointer | priority: -1
 
-	<start name="fonts_fs" caps="300" ram="8M" priority="-1">
-		<binary name="vfs"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="fonts_fs.config"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-		<provides> <service name="File_system"/> </provides>
-	</start>
++ start fonts_fs | caps: 300 | ram: 8M | priority: -1
+  + binary vfs
+  + provides | + service File_system
+  + route
+    + service ROM | label: config | + parent | label: fonts_fs.config
+    + any-service                 | + parent
 
-	<start name="mixer" ram="2M">
-		<binary name="record_play_mixer"/>
-		<provides> <service name="Record"/> <service name="Play"/> </provides>
-		<config jitter_ms="} [jitter_ms] {" record_period_ms="} [record_period_ms] {">
++ start mixer | ram: 2M
+  + binary record_play_mixer
+  + provides
+    + service Record
+    + service Play
+  + config | jitter_ms: } [jitter_ms] { | record_period_ms: } [record_period_ms] {
+    + mix left   | + play | label_suffix: left
+    + mix right  | + play | label_suffix: right
+    + mix lefty  | + signal left  | volume: 0.7
+                 | + signal right | volume: 0.3
+    + mix righty | + signal left  | volume: 0.3
+                 | + signal right | volume: 0.7
+    + policy | label_suffix: left   | record: left
+    + policy | label_suffix: lefty  | record: lefty
+    + policy | label_suffix: righty | record: righty
+    + policy | label_suffix: right  | record: right
 
-			<mix name="left">  <play label_suffix="left"/>  </mix>
-			<mix name="right"> <play label_suffix="right"/> </mix>
-			<mix name="lefty">
-				<signal name="left"  volume="0.7"/>
-				<signal name="right" volume="0.3"/>
-			</mix>
-			<mix name="righty">
-				<signal name="left"  volume="0.3"/>
-				<signal name="right" volume="0.7"/>
-			</mix>
++ start waveform_config | ram: 2M | priority: -2
+  + binary dynamic_rom
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom config
+      + inline
+      | + config | period_ms: } [play_period_ms] {
+      |   + play | label: left  | wave: sine   | hz:  1000 | sample_rate_hz: 44100
+      |   + play | label: right | wave: square | hz:  1000 | sample_rate_hz: 33333
+      + sleep | milliseconds: 2000
+      + inline
+      | + config | period_ms: } [play_period_ms] {
+      |   + play | label: left  | wave: sine   | hz: 10000 | sample_rate_hz: 44100
+      |   + play | label: right | wave: square | hz: 10000 | sample_rate_hz: 33333
+      + sleep | milliseconds: 2000
+      + inline
+      | + config | period_ms: } [play_period_ms] {
+      |   + play | label: left  | wave: sine   | hz:     0 | sample_rate_hz: 44100
+      |   + play | label: right | wave: square | hz:     0 | sample_rate_hz: 33333
+      + sleep | milliseconds: 2000
 
-			<policy label_suffix="left"   record="left"/>
-			<policy label_suffix="lefty"  record="lefty"/>
-			<policy label_suffix="righty" record="righty"/>
-			<policy label_suffix="right"  record="right"/>
-		</config>
-	</start>
++ start waveform_player | priority: 0
+  + route
+    + service ROM | label: config | + child waveform_config
+    + any-service
+      + parent
+      + any-child
 
-	<start name="waveform_config" ram="2M" priority="-2">
-		<binary name="dynamic_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<rom name="config">
-				<inline>
-					<config period_ms="} [play_period_ms] {">
-						<play label="left"  wave="sine"   hz="1000" sample_rate_hz="44100"/>
-						<play label="right" wave="square" hz="1000" sample_rate_hz="33333"/>
-					</config>
-				</inline>
-				<sleep milliseconds="2000" />
-				<inline>
-					<config period_ms="} [play_period_ms] {">
-						<play label="left"  wave="sine"   hz="10000" sample_rate_hz="44100"/>
-						<play label="right" wave="square" hz="10000" sample_rate_hz="33333"/>
-					</config>
-				</inline>
-				<sleep milliseconds="2000" />
-				<inline>
-					<config period_ms="} [play_period_ms] {">
-						<play label="left"  wave="sine"   hz="0" sample_rate_hz="44100"/>
-						<play label="right" wave="square" hz="0" sample_rate_hz="33333"/>
-					</config>
-				</inline>
-				<sleep milliseconds="2000" />
-			</rom>
-		</config>
-	</start>
++ start record_rom | ram: 8M | priority: 0
+  + provides | + service ROM
+  + config | period_ms: } [record_period_ms] { | sample_rate_hz: 44100
+    + record | label: left
+    + record | label: lefty
+    + record | label: righty
+    + record | label: right
 
-	<start name="waveform_player" priority="0">
-		<route>
-			<service name="ROM" label="config"> <child name="waveform_config"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="record_rom" ram="8M" priority="0">
-		<provides> <service name="ROM"/> </provides>
-		<config period_ms="} [record_period_ms] {" sample_rate_hz="44100">
-			<record label="left"/>
-			<record label="lefty"/>
-			<record label="righty"/>
-			<record label="right"/>
-		</config>
-	</start>
-
-	<start name="rom_osci" ram="8M" priority="-1">
-		<config width="640" height="480" xpos="200" ypos="100" fps="20" v_scale="0.15" phase_lock="yes">
-			<channel label="left"   color="#ff6633" v_pos="0.2"/>
-			<channel label="lefty"  color="#cc7777" v_pos="0.4"/>
-			<channel label="righty" color="#9988bb" v_pos="0.6"/>
-			<channel label="right"  color="#6699ff" v_pos="0.8"/>
-		</config>
-		<route>
-			<service name="ROM" label="recording"> <child name="record_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>}
++ start rom_osci | ram: 8M | priority: -1
+  + config | width: 640 | height: 480 | xpos: 200 | ypos: 100
+  |
+  |   fps:        20
+  |   v_scale:    0.15
+  |   phase_lock: yes
+  |
+  | + channel | label: left   | color: #ff6633 | v_pos: 0.2
+  | + channel | label: lefty  | color: #cc7777 | v_pos: 0.4
+  | + channel | label: righty | color: #9988bb | v_pos: 0.6
+  | + channel | label: right  | color: #6699ff | v_pos: 0.8
+  + route
+    + service ROM | label: recording | + child record_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build_boot_image [build_artifacts]
 
