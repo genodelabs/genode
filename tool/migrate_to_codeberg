@@ -9,25 +9,6 @@ proc git { args } {
 	return [exec -ignorestderr git {*}$args]
 }
 
-proc user_confirmation { msg default_yes } {
-	set options "\[Y/n/a(bort)]"
-	if { !$default_yes } {
-		set options "\[y/N/a(bort)]"
-	}
-
-	stty erase ^H
-	set timeout -1
-	send_user "$msg $options: "
-	set choice [expect_user {
-		-re {[nN]\n} { expr 0 }
-		-re {[yY]\n} { expr 1 }
-		-re {a\n}    { exit 0 }
-		-re \n       { expr $default_yes }
-	}]
-
-	return $choice
-}
-
 set paths [lmap p $argv { file normalize $p }]
 foreach path $paths {
 	if {![file isdirectory $path]} {
@@ -36,69 +17,33 @@ foreach path $paths {
 	cd $path
 
 	try {
-		set result [git remote -v | grep -e github\.com\[:/\]genodelabs]
+		set result [git remote -v | grep -e github\.com\[:/\]genodelabs/genode-]
 		set remotes [lsort -unique [lmap line [split $result \n] { lindex $line 0 }]]
 	} trap CHILDSTATUS { } { continue
 	} on error { msg }     { error $msg $::errorInfo }
 
-	set remotes_with_url ""
+	puts "\nIn $path,\nsome git remotes refer to repositories that"
+	puts "migrated from GitHub to Codeberg. Furthermore, the 'master'"
+	puts "branch has been renamed to 'main'. Note that the"
+	puts "repositories at GitHub will no longer receive updates."
+	puts "To update the repository URL and branch name, please execute"
+	puts "the following commands:\n"
+	puts "  cd $path"
+	puts "  git branch -m master main"
+	puts "  git branch --unset-upstream main"
+
 	foreach remote $remotes {
 		set url       [git remote get-url $remote]
 		set repo_name [lindex [split $url /] end]
 
-		if {[auto_execok curl] != ""} {
-			set cmd "curl -s -f"
-		} elseif {[auto_execok wget] != ""} {
-			set cmd "wget -q -O -"
+		if {[regexp "^https" $url]} {
+			puts "  git remote set-url $remote https://codeberg.org/genodelabs/$repo_name"
 		} else {
-			puts "\nOne or more repositories refer to github.com/genodelabs,"
-			puts "which is currently migrated to Codeberg. All your local"
-			puts "clones can be adapted automatically once they become available"
-			puts "at codeberg.org/genodelabs. Please install either wget or"
-			puts "curl to enable this.\n"
-			exit 1
+			puts "  git remote set-url $remote ssh://git@codeberg.org/genodelabs/$repo_name"
 		}
-
-		try {
-			exec {*}$cmd https://codeberg.org/genodelabs/$repo_name > /dev/null
-			lappend remotes_with_url $remote $url
-		} trap CHILDSTATUS { } { continue
-		} on error { msg }     { error $msg $::errorInfo }
+		puts "  git branch -rd $remote/master"
 	}
 
-	if {[llength $remotes_with_url] == 0} { continue }
-
-	puts "\nIn $path,\nthe following git remotes refer to repositories that"
-	puts "migrated from GitHub to Codeberg. Furthermore, the 'master'"
-	puts "branch has been renamed to 'main'. Note that the"
-	puts "repositories at GitHub will no longer receive updates:\n"
-	foreach { remote url } $remotes_with_url {
-		puts "  $remote $url" }
-
-	if {![user_confirmation "\nUpdate URLs and rename master branch" 1]} { continue }
-
-	set updated_remotes ""
-	foreach { remote url } $remotes_with_url {
-		set name [lindex [split $url /] end]
-		catch {
-			git remote set-url $remote \
-						ssh://git@codeberg.org/genodelabs/$name \
-						git@github.com 2> /dev/null
-			lappend updated_remotes $remote
-		}
-		catch {
-			git remote set-url $remote \
-						https://codeberg.org/genodelabs/$name \
-						https://github.com/genodelabs/$name 2> /dev/null
-			lappend updated_remotes $remote
-		}
-	}
-
-	puts "Updated URL of git remotes: [join $updated_remotes ,]"
-
-	git branch -m master main
-	git branch --unset-upstream main
-	foreach remote $updated_remotes {
-		git branch -rd $remote/master
-	}
+	puts ""
 }
+
