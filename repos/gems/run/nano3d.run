@@ -9,102 +9,85 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/nitpicker
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="nitpicker">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
++ start timer
+  + provides | + service Timer
 
-			<domain name="default" layer="2" content="client" label="no"/>
-			<domain name="nano3d"  layer="1" content="client" label="no" origin="pointer"/>
++ start nitpicker
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + domain default | layer: 2 | content: client | label: no
+    + domain nano3d  | layer: 1 | content: client | label: no | origin: pointer
+    + policy | label_prefix: nano3d | domain: nano3d
+    + default-policy                | domain: default
 
-			<policy label_prefix="nano3d" domain="nano3d"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start backdrop | caps: 130 | ram: 20M
+  + config
+  | + libc
+  | + vfs
+  |   + rom genode_logo.png
+  |   + rom grid.png
+  | + fill | color: #122334
+  | + image | png: grid.png        | tiled: yes           | alpha: 200
+  | + image | png: genode_logo.png | anchor: bottom_right | alpha: 150
+  + route
+    + service Gui | + child nitpicker | label: backdrop
+    + any-service
+      + parent
+      + any-child
 
-	<start name="backdrop" caps="130" ram="20M">
-		<config>
-			<libc/>
-			<vfs>
-				<rom name="genode_logo.png"/>
-				<rom name="grid.png"/>
-			</vfs>
-			<fill color="#122334" />
-			<image png="grid.png"        tiled="yes" alpha="200" />
-			<image png="genode_logo.png" anchor="bottom_right" alpha="150"/>
-		</config>
-		<route>
-			<service name="Gui"> <child name="nitpicker" label="backdrop" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom nano3d.config
+      + inline | description: initial state  | + config | painter: textures
+      + sleep  | milliseconds: 1000
+      + inline | description: RGBA shading   | + config | painter: shaded
+      + sleep  | milliseconds: 1000
+      + inline | description: switch to cube | + config | painter: shaded   | shape: cube
+      + sleep  | milliseconds: 1000
+      + inline | description: texturing      | + config | painter: textured | shape: cube
+      + sleep  | milliseconds: 1000
 
-	<start name="dynamic_rom" ram="4M">
-		<provides><service name="ROM"/></provides>
-		<config verbose="yes">
-			<rom name="nano3d.config">
-				<inline description="initial state">
-					<config painter="textures"/>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="RGBA shading">
-					<config painter="shaded"/>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="switch to cube">
-					<config painter="shaded" shape="cube" />
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="texturing">
-					<config painter="textured" shape="cube" />
-				</inline>
-				<sleep milliseconds="1000" />
-			</rom>
-		</config>
-	</start>
-
-	<start name="nano3d" ram="8M">
-		<route>
-			<service name="ROM" label="config">
-				<child name="dynamic_rom" label="nano3d.config"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start nano3d | ram: 8M
+  + route
+    + service ROM | label: config | + child dynamic_rom | label: nano3d.config
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build { app/nano3d }
 

@@ -11,176 +11,139 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/zlib
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="LOG"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service CPU
+  + service PD
+  + service RM
+  + service LOG
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="report_rom" ram="2M">
-		<provides> <service name="ROM" />
-		           <service name="Report" /> </provides>
-		<config>
-			<policy label="decorator -> pointer" report="nitpicker -> pointer"/>
-		</config>
-	</start>
++ start report_rom | ram: 2M
+  + provides
+    + service ROM
+    + service Report
+  + config
+    + policy | label: decorator -> pointer | report: nitpicker -> pointer
 
-	<start name="nitpicker">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
-			<report pointer="yes" />
-			<domain name="default" layer="2" content="client" label="no"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start nitpicker
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + report | pointer: yes
+    + domain default | layer: 2 | content: client | label: no
+    + default-policy | domain: default
 
-	<start name="dynamic_rom" ram="4M">
-		<provides><service name="ROM"/></provides>
-		<config verbose="yes">
-			<rom name="window_layout">
-				<inline description="initial state" />
-				<sleep milliseconds="500" />
-				<inline description="open window 1">
-					<window_layout>
-						<boundary width="1024" height="768">
-							<window id="1" title="Genode Toolchain"
-							        xpos="100" ypos="50" width="200" height="200"
-							        focused="yes" />
-						</boundary>
-					</window_layout>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="open window 2 behind window 1">
-					<window_layout>
-						<boundary width="1024" height="768">
-							<window id="1" title="Genode Toolchain"
-							        xpos="100" ypos="50" width="200" height="200"
-							        focused="yes" />
-							<window id="2" title="Arora (2)"
-							        xpos="170" ypos="150" width="300" height="200" />
-						</boundary>
-					</window_layout>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="open window 3 in front">
-					<window_layout>
-						<boundary width="1024" height="768">
-							<window id="3" title="Launchpad"
-							        xpos="210" ypos="250" width="400" height="200" />
-							<window id="1" title="Genode Toolchain"
-							        xpos="100" ypos="50" width="200" height="200"
-							        focused="yes" />
-							<window id="2" title="Arora (2)"
-							        xpos="170" ypos="150" width="300" height="200" />
-						</boundary>
-					</window_layout>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="bring window 1 to front">
-					<window_layout>
-						<boundary width="1024" height="768">
-							<window id="1" title="Genode Toolchain"
-							        xpos="100" ypos="50" width="200" height="200"
-							        focused="yes" />
-							<window id="3" title="Launchpad"
-							        xpos="210" ypos="250" width="400" height="200" />
-							<window id="2" title="Arora (2)"
-							        xpos="170" ypos="150" width="300" height="200" />
-						</boundary>
-					</window_layout>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="change title of window 1">
-					<window_layout>
-						<boundary width="1024" height="768">
-							<window id="1" title="Genode Toolchain (running)"
-							        xpos="100" ypos="50" width="200" height="200"
-							        focused="yes" />
-							<window id="3" title="Launchpad"
-							        xpos="210" ypos="250" width="400" height="200" />
-							<window id="2" title="Arora (2)"
-							        xpos="170" ypos="150" width="300" height="200" />
-						</boundary>
-					</window_layout>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="change focus to window 3">
-					<window_layout>
-						<boundary width="1024" height="768">
-							<window id="1" title="Genode Toolchain (running)"
-							        xpos="100" ypos="50" width="200" height="200" />
-							<window id="3" title="Launchpad"
-							        xpos="210" ypos="250" width="400" height="200"
-							        focused="yes" />
-							<window id="2" title="Arora (2)"
-							        xpos="170" ypos="150" width="300" height="200" />
-						</boundary>
-					</window_layout>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="move window 3">
-					<window_layout>
-						<boundary width="1024" height="768">
-							<window id="1" title="Genode Toolchain"
-							        xpos="100" ypos="50" width="200" height="200" />
-							<window id="3" title="Launchpad"
-							        xpos="310" ypos="300" width="500" height="300"
-							        focused="yes" />
-							<window id="2" title="Arora (2)"
-							        xpos="170" ypos="150" width="300" height="200" />
-						</boundary>
-					</window_layout>
-				</inline>
-				<sleep milliseconds="1000" />
-				<empty />
-				<sleep milliseconds="1000" />
-			</rom>
-		</config>
-	</start>
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom window_layout
+      + inline | description: initial state
+      + sleep | milliseconds: 500
+      + inline | description: open window 1
+      | + window_layout
+      |   + boundary | width: 1024 | height: 768
+      |     + window | id: 1 | title: Genode Toolchain | focused: yes
+      |              | xpos: 100 | ypos:  50 | width: 200 | height: 200
+      + sleep | milliseconds: 1000
+      + inline | description: open window 2 behind window 1
+      | + window_layout
+      |   + boundary | width: 1024 | height: 768
+      |     + window | id: 1 | title: Genode Toolchain | focused: yes
+      |              | xpos: 100 | ypos:  50 | width: 200 | height: 200
+      |     + window | id: 2 | title: Arora (2)
+      |              | xpos: 170 | ypos: 150 | width: 300 | height: 200
+      + sleep | milliseconds: 1000
+      + inline | description: open window 3 in front
+      | + window_layout
+      |   + boundary | width: 1024 | height: 768
+      |     + window | id: 3 | title: Launchpad
+      |              | xpos: 210 | ypos: 250 | width: 400 | height: 200
+      |     + window | id: 1 | title: Genode Toolchain | focused: yes
+      |              | xpos: 100 | ypos:  50 | width: 200 | height: 200
+      |     + window | id: 2 | title:  Arora (2)
+      |              | xpos: 170 | ypos: 150 | width: 300 | height: 200
+      + sleep | milliseconds: 1000
+      + inline | description: bring window 1 to front
+      | + window_layout
+      |   + boundary | width: 1024 | height: 768
+      |     + window | id: 1 | title: Genode Toolchain | focused: yes
+      |              | xpos: 100 | ypos:  50 | width: 200 | height: 200
+      |     + window | id: 3 | title: Launchpad
+      |              | xpos: 210 | ypos: 250 | width: 400 | height: 200
+      |     + window | id: 2 | title: Arora (2)
+      |              | xpos: 170 | ypos: 150 | width: 300 | height: 200
+      + sleep | milliseconds: 1000
+      + inline | description: change title of window 1
+      | + window_layout
+      |   + boundary | width: 1024 | height: 768
+      |     + window | id: 1 | title: Genode Toolchain (running) | focused: yes
+      |              | xpos: 100 | ypos:  50 | width: 200 | height: 200
+      |     + window | id: 3 | title: Launchpad
+      |              | xpos: 210 | ypos: 250 | width: 400 | height: 200
+      |     + window | id: 2 | title: Arora (2)
+      |              | xpos: 170 | ypos: 150 | width: 300 | height: 200
+      + sleep | milliseconds: 1000
+      + inline | description: change focus to window 3
+      | + window_layout
+      |   + boundary | width: 1024 | height: 768
+      |     + window | id: 1 | title:  Genode Toolchain (running)
+      |              | xpos: 100 | ypos:  50 | width: 200 | height: 200
+      |     + window | id: 3 | title: Launchpad | focused: yes
+      |              | xpos: 210 | ypos: 250 | width: 400 | height: 200
+      |     + window | id: 2 | title: Arora (2)
+      |              | xpos: 170 | ypos: 150 | width: 300 | height: 200
+      + sleep | milliseconds: 1000
+      + inline | description: move window 3
+      | + window_layout
+      |   + boundary | width: 1024 | height: 768
+      |     + window | id: 1 | title: Genode Toolchain
+      |              | xpos: 100 | ypos:  50 | width: 200 | height: 200
+      |     + window | id: 3 | title: Launchpad | focused: yes
+      |              | xpos: 310 | ypos: 300 | width: 500 | height: 300
+      |     + window | id: 2 | title:  Arora (2)
+      |              | xpos: 170 | ypos: 150 | width: 300 | height: 200
+      + sleep | milliseconds: 1000
+      + empty
+      + sleep | milliseconds: 1000
 
-	<start name="decorator" ram="8M">
-		<route>
-			<service name="ROM" label="pointer">
-				<child name="report_rom" />
-			</service>
-			<service name="ROM" label="window_layout">
-				<child name="dynamic_rom" />
-			</service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-		<config> <default-policy/> </config>
-	</start>
-</config>}
++ start decorator | ram: 8M
+  + route
+    + service ROM | label: pointer       | + child report_rom
+    + service ROM | label: window_layout | + child dynamic_rom
+    + any-service
+      + parent
+      + any-child
+  + config
+    + default-policy
+-
+}
 
 build { app/decorator }
 

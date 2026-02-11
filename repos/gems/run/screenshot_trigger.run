@@ -7,78 +7,77 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="report_rom">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
-			<report keystate="yes"/>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="2" content="client" label="no" hover="always"/>
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + report | keystate: yes
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 2 | content: client | label: no | hover:  always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="screenshot_trigger" ram="8M">
-		<binary name="screenshot_trigger"/>
-		<config size="200"/>
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<service name="Event"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start screenshot_trigger | ram: 8M
+  + binary screenshot_trigger
+  + config | size: 200
+  + route
+    + service Gui   | + child nitpicker
+    + service Event | + child nitpicker
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"screenshot_trigger -> \"/>"
+puts $fd "focus | label: screenshot_trigger ->\n-"
 close $fd
 
 build { app/screenshot_trigger }

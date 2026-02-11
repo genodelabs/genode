@@ -26,238 +26,188 @@ create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
-			<background color="#123456"/>
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="3" content="client" label="no" hover="always" />
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + background | color: #123456
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 3 | content: client | label: no | hover:  always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="report_rom">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no">
-			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
-			<policy label="depot_query -> query"      report="depot_deploy -> query"/>
-			<policy label="dynamic -> config"         report="depot_deploy -> init.config"/>
-			<policy label="dynamic -> clipboard"      report="dynamic -> clipboard"/>
-		</config>
-	</start>
++ start report_rom
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label:  depot_deploy -> blueprint | report: depot_query -> blueprint
+    + policy | label:  depot_query -> query      | report: depot_deploy -> query
+    + policy | label:  dynamic -> config         | report: depot_deploy -> init.config
+    + policy | label:  dynamic -> clipboard      | report: dynamic -> clipboard
 
-	<start name="vfs" ram="4M">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs> <tar name="depot.tar"/> </vfs>
-			<policy label_prefix="depot_query -> depot ->" root="/" />
-			<policy label_prefix="fs_rom ->"               root="/" />
-		</config>
-	</start>
++ start vfs | ram: 4M
+  + provides | + service File_system
+  + config
+    + vfs | + tar depot.tar
+    + policy | label_prefix: depot_query -> depot -> | root: /
+    + policy | label_prefix: fs_rom ->               | root: /
 
-	<start name="fs_rom" ram="50M">
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start fs_rom | ram: 50M
+  + provides | + service ROM
+  + route
+    + service File_system | + child vfs
+    + any-service         | + parent
 
-	<start name="depot_query" ram="2M">
-		<config query="rom">
-			<vfs> <dir name="depot"> <fs label="depot -> /"/> </dir> </vfs>
-		</config>
-		<route>
-			<service name="ROM" label="query"> <child name="report_rom"/> </service>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start depot_query | ram: 2M
+  + config | query: rom
+    + vfs | + dir depot | + fs | label: depot -> /
+  + route
+    + service ROM | label: query | + child report_rom
+    + service File_system        | + child vfs
+    + any-service
+      + parent
+      + any-child
 
-	<start name="ram_fs" ram="8M">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs> <ram/> </vfs>
-			<default-policy root="/" writeable="yes"/>
-		</config>
-	</start>
++ start ram_fs | ram: 8M
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + vfs | + ram
+    + default-policy | root: / | writeable: yes
 
-	<start name="depot_deploy">
-		<config arch="} [depot_spec] {">
-			<static>
-				<parent-provides>
-					<service name="ROM"/>
-					<service name="CPU"/>
-					<service name="PD"/>
-					<service name="LOG"/>
-					<service name="Timer"/>
-					<service name="Gui"/>
-					<service name="File_system"/>
-					<service name="Report"/>
-				</parent-provides>
-			</static>
-			<common_routes>
-				<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-				<service name="ROM" label_last="init">      <parent/> </service>
-				<service name="CPU">   <parent/> </service>
-				<service name="PD">    <parent/> </service>
-				<service name="LOG">   <parent/> </service>
-				<service name="Timer"> <parent/> </service>
-			</common_routes>
++ start depot_deploy
+  + config | arch: } [depot_spec] {
+  | + static
+  |   + parent-provides
+  |     + service ROM
+  |     + service CPU
+  |     + service PD
+  |     + service LOG
+  |     + service Timer
+  |     + service Gui
+  |     + service File_system
+  |     + service Report
+  | + common_routes
+  |   + service ROM | label_last: ld.lib.so | + parent
+  |   + service ROM | label_last: init      | + parent
+  |   + service CPU                         | + parent
+  |   + service PD                          | + parent
+  |   + service LOG                         | + parent
+  |   + service Timer                       | + parent
+  |
+  | + start recall_fs | pkg: } [depot_user]/pkg/[current_pkg chroot] {
+  |   + route | + service File_system | + parent
+  |   + config
+  |     + default-policy | path_prefix: /recall | writeable: yes
+  |
+  | + start wm | pkg: } [depot_user]/pkg/[current_pkg wm] {
+  |   + route | + service Gui | + parent
+  |
+  | + start window_layouter | pkg: } [depot_user]/pkg/[current_pkg window_layouter] {
+  |   + route
+  |     + service ROM | label: window_list              | + child wm
+  |     + service ROM | label: focus_request            | + child wm
+  |     + service ROM | label: hover                    | + child wm
+  |     + service ROM | label: decorator_margins        | + child wm
+  |     + service ROM | label: rules                    | + child wm
+  |     + service Report                                | + child wm
+  |     + service Gui                                   | + child wm
+  |     + service File_system | label_prefix: recall -> | + child recall_fs
+  |
+  | + start themed_decorator | pkg: } [depot_user]/pkg/[current_pkg themed_decorator] {
+  |   + route
+  |     + service ROM | label: window_layout | + child wm
+  |     + service ROM | label: pointer       | + child wm
+  |     + service Report                     | + child wm
+  |     + service Gui                        | + child wm
+  |
+  | + start nano3d | pkg: } [depot_user]/pkg/[current_pkg nano3d] {
+  |   + route | + service Gui | + child wm
+  |   + config | shape: cube
+  |
+  | + start fonts_fs | pkg: } [depot_user]/pkg/[current_pkg fonts_fs] {
+  |   + route | + service ROM | label: config | + parent | label: fonts.config
+  |
+  | + start system_shell | pkg: } [depot_user]/pkg/[current_pkg system_shell] {
+  |   + route
+  |     + service Gui                                  | + child wm
+  |     + service File_system | label_prefix: fonts -> | + child fonts_fs
+  |     + service File_system                          | + parent
+  |     + service Report | label: clipboard            | + parent | label: clipboard
+  |     + service ROM | label: clipboard               | + parent | label: clipboard
+  |     + service ROM | label: vimrc                   | + parent | label: vimrc
+  |     + service ROM | label_last: cached_fs_rom      | + parent | label: fs_rom
+  + route
+    + service ROM    | label: blueprint | + child report_rom
+    + service Report | label: query     | + child report_rom
+    + service Report | label: clipboard | + child report_rom
+    + service ROM    | label: clipboard | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-			<start name="recall_fs" pkg="} [depot_user]/pkg/[current_pkg chroot] {">
-				<route>
-					<service name="File_system"> <parent/> </service>
-				</route>
-				<config> <default-policy path_prefix="/recall" writeable="yes"/> </config>
-			</start>
-
-			<start name="wm" pkg="} [depot_user]/pkg/[current_pkg wm] {">
-				<route>
-					<service name="Gui"> <parent/> </service>
-				</route>
-			</start>
-
-			<start name="window_layouter" pkg="} [depot_user]/pkg/[current_pkg window_layouter] {">
-				<route>
-					<service name="ROM" label="window_list">       <child name="wm"/> </service>
-					<service name="ROM" label="focus_request">     <child name="wm"/> </service>
-					<service name="ROM" label="hover">             <child name="wm"/> </service>
-					<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
-					<service name="ROM" label="rules">             <child name="wm"/> </service>
-					<service name="Report">                        <child name="wm"/> </service>
-					<service name="Gui">                           <child name="wm"/> </service>
-					<service name="File_system" label_prefix="recall ->"> <child name="recall_fs"/> </service>
-				</route>
-			</start>
-
-			<start name="themed_decorator" pkg="} [depot_user]/pkg/[current_pkg themed_decorator] {">
-				<route>
-					<service name="ROM"    label="window_layout"> <child name="wm"/> </service>
-					<service name="ROM"    label="pointer">       <child name="wm"/> </service>
-					<service name="Report">                       <child name="wm"/> </service>
-					<service name="Gui">                          <child name="wm"/> </service>
-				</route>
-			</start>
-
-			<start name="backdrop" pkg="} [depot_user]/pkg/[current_pkg sticks_blue_backdrop] {">
-				<route>
-					<service name="Gui"> <parent label="backdrop"/> </service>
-				</route>
-			</start>
-
-<!--
-			<start name="slides" pkg="} [depot_user]/pkg/[current_pkg pdf_view] {">
-				<route>
-					<service name="Gui"> <child name="wm"/> </service>
-				</route>
-			</start>
-			-->
-
-			<start name="nano3d" pkg="} [depot_user]/pkg/[current_pkg nano3d] {">
-				<route>
-					<service name="Gui"> <child name="wm"/> </service>
-				</route>
-				<config shape="cube"/>
-			</start>
-
-			<start name="fonts_fs" pkg="} [depot_user]/pkg/[current_pkg fonts_fs] {">
-				<route>
-					<service name="ROM" label="config"> <parent label="fonts.config"/> </service>
-				</route>
-			</start>
-
-			<start name="system_shell" pkg="} [depot_user]/pkg/[current_pkg system_shell] {">
-				<route>
-					<service name="Gui"> <child name="wm"/> </service>
-					<service name="File_system" label_prefix="fonts ->"> <child name="fonts_fs"/> </service>
-					<service name="File_system"> <parent/> </service>
-					<service name="Report" label="clipboard"> <parent label="clipboard"/> </service>
-					<service name="ROM"    label="clipboard"> <parent label="clipboard"/> </service>
-					<service name="ROM"    label="vimrc">     <parent label="vimrc"/> </service>
-					<service name="ROM" label_last="cached_fs_rom">
-						<parent label="fs_rom"/> </service>
-				</route>
-			</start>
-
-			<!-- vbox, nic_router, acpica -->
-
-		</config>
-		<route>
-			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
-			<service name="Report" label="query"> <child name="report_rom"/> </service>
-			<service name="Report" label="clipboard"> <child name="report_rom"/> </service>
-			<service name="ROM"    label="clipboard"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="dynamic" caps="8000" ram="180M">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label_last="init">      <parent/> </service>
-			<service name="ROM" label_last="shim">      <parent/> </service>
-			<service name="ROM" label="config"> <child name="report_rom"/> </service>
-			<service name="ROM" label_last="fonts.config"> <parent/> </service>
-			<service name="ROM" label_last="vimrc">        <parent/> </service>
-			<service name="ROM" label_last="fs_rom">       <parent/> </service>
-			<service name="ROM">   <child name="fs_rom"/> </service>
-			<service name="Timer"> <child name="timer"/>  </service>
-			<service name="Gui" label_last="backdrop">
-				<child name="nitpicker" label="backdrop"/> </service>
-			<service name="File_system"> <child name="ram_fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>}
++ start dynamic | caps: 8000 | ram: 180M
+  + binary init
+  + route
+    + service ROM | label_last: ld.lib.so    | + parent
+    + service ROM | label_last: init         | + parent
+    + service ROM | label_last: shim         | + parent
+    + service ROM | label: config            | + child report_rom
+    + service ROM | label_last: fonts.config | + parent
+    + service ROM | label_last: vimrc        | + parent
+    + service ROM | label_last: fs_rom       | + parent
+    + service ROM                            | + child fs_rom
+    + service Timer                          | + child timer
+    + service Gui | label_last: backdrop     | + child nitpicker | label: backdrop
+    + service File_system                    | + child ram_fs
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build { app/depot_query app/depot_deploy }
 
@@ -268,7 +218,7 @@ copy_file [genode_dir]/repos/ports/recipes/raw/system_shell/system_shell.config 
 # Pin the nitpicker focus to the window manager by providing a static focus ROM
 #
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"dynamic -> wm -> focus\"/>"
+puts $fd "focus | label: dynamic -> wm -> focus\n-"
 close $fd
 
 # write default vimrc file

@@ -8,112 +8,95 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/demo
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="LOG"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service CPU
+  + service PD
+  + service RM
+  + service LOG
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="nitpicker">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
++ start nitpicker
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 3 | content: client | label: no | focus: click | hover: always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
 
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="3" content="client" label="no" focus="click" hover="always" />
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom gui_fader.config
+      + inline | description: initial state  | + config
+      + sleep  | milliseconds: 500
+      + inline | description: make visible   | + config | alpha: 255
+      + sleep  | milliseconds: 3000
+      + inline | description: reduce alpha   | + config | alpha: 120
+      + sleep  | milliseconds: 3000
+      + inline | description: make invisible | + config | alpha: 0
+      + sleep  | milliseconds: 2000
+      + empty
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start gui_fader | ram: 8M
+  + provides | + service Gui
+  + route
+    + service ROM | label: config | + child dynamic_rom | label: gui_fader.config
+    + service Gui                 | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="dynamic_rom" ram="4M">
-		<provides><service name="ROM"/></provides>
-		<config verbose="yes">
-			<rom name="gui_fader.config">
-				<inline description="initial state">
-					<config />
-				</inline>
-				<sleep milliseconds="500" />
-				<inline description="make visible">
-					<config alpha="255" />
-				</inline>
-				<sleep milliseconds="3000" />
-				<inline description="reduce alpha">
-					<config alpha="120" />
-				</inline>
-				<sleep milliseconds="3000" />
-				<inline description="make invisible">
-					<config alpha="0" />
-				</inline>
-				<sleep milliseconds="2000" />
-				<empty />
-			</rom>
-		</config>
-	</start>
++ start scout | ram: 16M
+  + route
+    + service Gui | + child gui_fader
+    + any-service
+      + parent
+      + any-child
 
-	<start name="gui_fader" ram="8M">
-		<provides><service name="Gui"/></provides>
-		<route>
-			<service name="ROM" label="config">
-				<child name="dynamic_rom" label="gui_fader.config"/>
-			</service>
-			<service name="Gui"> <child name="nitpicker" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="scout" ram="16M">
-		<route>
-			<service name="Gui"> <child name="gui_fader" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="scout2" ram="16M">
-		<binary name="scout" />
-		<route>
-			<service name="Gui"> <child name="nitpicker" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start scout2 | ram: 16M
+  + binary scout
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build { server/gui_fader }
 

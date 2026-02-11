@@ -12,30 +12,22 @@ build { core lib/ld init lib/libc lib/vfs lib/libcrypto test/aes_cbc_4k }
 
 create_boot_directory
 
-append config {
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route> <any-service> <parent/> </any-service> </default-route>
-		<start name="test-aes_cbc_4k" caps="150" ram="3M">
-			<config block_number="} $block_number {" test_rounds="} $test_rounds {">
+install_config {
+config
++ parent-provides
+  + service LOG
+  + service PD
+  + service CPU
+  + service ROM
 
-				<libc stdout="/dev/log" stderr="/dev/log"/>
-				<vfs>
-					<dir name="dev">
-						<log/>
-					</dir>
-				</vfs>
++ default-route | + any-service | + parent
 
-			</config>
-		</start>
-	</config>}
-
-install_config $config
++ start test-aes_cbc_4k | caps: 150 | ram: 3M
+  + config | block_number: } $block_number { | test_rounds: } $test_rounds {
+    + libc | stdout: /dev/log | stderr: /dev/log
+    + vfs | + dir dev | + log
+-
+}
 
 #
 # Use host tools to do same aes_cbc_essiv crypto as Genode test will do

@@ -10,133 +10,114 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="TRACE"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service TRACE
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="nitpicker">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
++ start timer
+  + provides | + service Timer
 
-			<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
-			<domain name="default" layer="2" label="no" content="client" hover="always" />
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start nitpicker
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + domain pointer | layer: 1 | label: no | content: client | origin: pointer
+    + domain default | layer: 2 | label: no | content: client | hover: always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy | domain: default
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="report_rom" ram="4M">
-		<provides>
-			<service name="Report"/>
-			<service name="ROM"/>
-		</provides>
-		<config>
-			<policy label="cpu_load_display -> trace_subjects"
-			        report="trace_subject_reporter -> trace_subjects"/>
-		</config>
-	</start>
++ start report_rom | ram: 4M
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + policy
+             label:  cpu_load_display -> trace_subjects
+             report: trace_subject_reporter -> trace_subjects
 
-	<start name="trace_subject_reporter" ram="6M">
-		<config period_ms="500">
-			<report activity="yes" affinity="yes"/>
-		</config>
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="TRACE"> <parent label=""/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start trace_subject_reporter | ram: 6M
+  + config | period_ms: 500
+    + report | activity: yes | affinity: yes
+  + route
+    + service Report | + child report_rom
+    + service TRACE  | + parent | label:
+    + any-service
+      + parent
+      + any-child
 
-	<start name="cpu_load_display" ram="6M">
-		<route>
-			<service name="ROM" label="trace_subjects"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start cpu_load_display | ram: 6M
+  + route
+    + service ROM | label: trace_subjects | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="dynamic_rom" ram="4M">
-		<provides><service name="ROM"/></provides>
-		<config verbose="yes">
-			<rom name="cpu_burner1.config">
-				<inline description="initial state">
-					<config percent="5"/>
-				</inline>
-				<sleep milliseconds="5000" />
-				<inline description="50%">
-					<config percent="50" />
-				</inline>
-				<sleep milliseconds="5000" />
-			</rom>
-			<rom name="cpu_burner2.config">
-				<inline description="initial state">
-					<config percent="5"/>
-				</inline>
-				<sleep milliseconds="4800" />
-				<inline description="100%">
-					<config percent="70" />
-				</inline>
-				<sleep milliseconds="2700" />
-			</rom>
-		</config>
-	</start>
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom cpu_burner1.config
+      + inline | description: initial state | + config | percent: 5
+      + sleep  | milliseconds: 5000
+      + inline | description: 50%           | + config | percent: 50
+      + sleep  | milliseconds: 5000
+    + rom cpu_burner2.config
+      + inline | description: initial state | + config | percent: 5
+      + sleep  | milliseconds: 4800
+      + inline | description: 100%          | + config | percent: 70
+      + sleep  | milliseconds: 2700
 
-	<start name="cpu_burner.1">
-		<binary name="cpu_burner"/>
-		<route>
-			<service name="ROM" label="config">
-				<child name="dynamic_rom" label="cpu_burner1.config"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start cpu_burner.1
+  + binary cpu_burner
+  + route
+    + service ROM | label: config | + child dynamic_rom | label: cpu_burner1.config
+    + any-service
+      + parent
+      + any-child
 
-	<start name="cpu_burner.2">
-		<binary name="cpu_burner"/>
-		<route>
-			<service name="ROM" label="config">
-				<child name="dynamic_rom" label="cpu_burner2.config"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start cpu_burner.2
+  + binary cpu_burner
+  + route
+    + service ROM | label: config | + child dynamic_rom | label: cpu_burner2.config
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build_boot_image [build_artifacts]
 

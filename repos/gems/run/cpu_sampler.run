@@ -21,41 +21,37 @@ build $build_components
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-			<service name="IRQ"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
-		<start name="timer">
-			<provides>
-				<service name="Timer"/>
-			</provides>
-		</start>
-		<start name="cpu_sampler" ram="4M">
-			<provides>
-				<service name="CPU"/>
-			</provides>
-			<config sample_interval_ms="100" sample_duration_s="1">
-				<policy label="test-cpu_sampler -> ep" />
-			</config>
-		</start>
-		<start name="test-cpu_sampler">
-			<config ld_verbose="yes"/>
-			<route>
-				<service name="CPU"> <child name="cpu_sampler"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-	</config>
+config
++ parent-provides
+  + service CPU
+  + service IO_PORT
+  + service IO_MEM
+  + service IRQ
+  + service LOG
+  + service PD
+  + service ROM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start cpu_sampler | ram: 4M
+  + provides | + service CPU
+  + config | sample_interval_ms: 100 | sample_duration_s: 1
+    + policy | label: test-cpu_sampler -> ep
+
++ start test-cpu_sampler
+  + config | ld_verbose: yes
+  + route
+    + service CPU | + child cpu_sampler
+    + any-service | + parent
+-
 }
 
 #

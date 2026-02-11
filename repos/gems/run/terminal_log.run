@@ -8,81 +8,79 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<service name="Gui"> <child name="nitpicker"/> </service>
-		<service name="Timer">     <child name="timer"/> </service>
-		<service name="Terminal">  <child name="terminal"/> </service>
-		<service name="Platform">  <child name="platform"/> </service>
-		<any-service><parent/></any-service>
-	</default-route>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default caps="100" ram="1M"/>
++ default-route
+  + service Gui      | + child nitpicker
+  + service Timer    | + child timer
+  + service Terminal | + child terminal
+  + service Platform | + child platform
+  + any-service      | + parent
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default | caps: 100 | ram: 1M
++ start timer
+  + provides | + service Timer
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="nitpicker" ram="2M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="2" content="client" label="no" focus="click" hover="always" />
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-		<route> <any-service> <parent/> <any-child/> </any-service> </route>
-	</start>
++ start nitpicker | ram: 2M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + domain pointer  | layer: 1 | content: client | label: no | origin: pointer
+    + domain default  | layer: 2 | content: client | label: no | focus: click | hover: always
+    + domain terminal | layer: 3 | content: client | label: no | width: 300 | height: 300
+    + policy | label_prefix: pointer  | domain: pointer
+    + policy | label_prefix: terminal | domain: terminal
+    + default-policy                  | domain: default
+  + route
+    + any-service
+      + parent
+      + any-child
 
-	<start name="pointer" ram="2M"/>
++ start pointer | ram: 2M
++ start terminal | caps: 110 | ram: 6M
+  + provides | + service Terminal
+  + route
+    + service ROM | label: config | + parent | label: terminal.config
+    + service Gui                 | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="terminal" caps="110" ram="6M">
-		<provides><service name="Terminal"/></provides>
-		<route>
-			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/></any-service>
-		</route>
-	</start>
++ start terminal_log
+  + provides | + service LOG
 
-	<start name="terminal_log">
-		<provides><service name="LOG"/></provides>
-	</start>
-
-	<start name="launchpad" caps="2000" ram="32M">
-		<route>
-			<service name="LOG">       <child name="terminal_log"/> </service>
-			<any-service> <any-child/> <parent/></any-service>
-		</route>
-		<config>
-			<launcher name="testnit" ram_quota="1M" caps="100"/>
-		</config>
-	</start>
-</config>}
++ start launchpad | caps: 2000 | ram: 32M
+  + config
+    + launcher testnit | ram_quota: 1M | caps: 100
+  + route
+    + service LOG | + child terminal_log
+    + any-service
+      + any-child
+      + parent
+-
+}
 
 build { server/terminal_log test/nitpicker }
 

@@ -17,135 +17,124 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
++ start timer
+  + provides | + service Timer
 
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="2" content="client" label="no" hover="always"/>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 2 | content: client | label: no | hover: always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
+    + global-key KEY_SCREEN | label: wm -> wm -> decorator
 
-			<global-key name="KEY_SCREEN" label="wm -> wm -> decorator" />
-		</config>
-	</start>
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start wm | caps: 1000 | ram: 32M
+  + binary init
+  + provides
+    + service Gui
+    + service Report
+    + service ROM
+  + route
+    + service ROM | label: config | + parent | label: wm.config
+    + service Gui                 | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="wm" caps="1000" ram="32M">
-		<binary name="init"/>
-		<provides>
-			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start launchpad | priority: -1 | caps: 1000 | ram: 20M
+  + config
+  | + launcher gui_fb | ram_quota: 7M | caps: 100
+  |   + config | initial_width: 500 | initial_height: 400
+  | + launcher nitpicker | ram_quota: 1M | caps: 100
+  |   + config | request_framebuffer: yes | request_input: yes
+  |     + domain default | layer: 2 | content: client | label: no
+  |                      | hover: always | focus: click
+  |     + default-policy | domain: default
+  | + launcher testnit | ram_quota: 1M | caps: 100
+  + route
+    + any-service
+      + child wm
+      + parent
+      + any-child
 
-	<start name="launchpad" priority="-1" caps="1000" ram="20M">
-		<config>
-			<launcher name="gui_fb" ram_quota="7M" caps="100">
-				<config initial_width="500" initial_height="400" />
-			</launcher>
-			<launcher name="nitpicker" ram_quota="1M" caps="100">
-				<config request_framebuffer="yes" request_input="yes">
-					<domain name="default" layer="2" content="client"
-					        label="no" hover="always" focus="click"/>
-					<default-policy domain="default"/>
-				</config>
-			</launcher>
-			<launcher name="testnit" ram_quota="1M" caps="100"/>
-		</config>
-		<route>
-			<any-service> <child name="wm"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
++ start backdrop | priority: -1 | caps: 120 | ram: 24M
+  + config
+  | + libc
+  | + vfs
+  |   + rom genode_logo.png
+  |   + rom grid.png
+  | + fill | color: #224433
+  | + image | png: grid.png | tiled: yes | alpha: 200
+  | + image | png: genode_logo.png | anchor: bottom_right | alpha:  150
+  |                                | xpos: -20 | ypos: -20
+  + route
+    + any-service
+      + child nitpicker | label: backdrop
+      + parent
+      + any-child
 
-	<start name="backdrop" priority="-1" caps="120" ram="24M">
-		<config>
-			<libc/>
-			<vfs>
-				<rom name="genode_logo.png"/>
-				<rom name="grid.png"/>
-			</vfs>
-			<fill color="#224433" />
-			<image png="grid.png"        tiled="yes" alpha="200" />
-			<image png="genode_logo.png" anchor="bottom_right" alpha="150"
-			                             xpos="-20" ypos="-20" />
-		</config>
-		<route>
-			<any-service> <child name="nitpicker" label="backdrop"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
-
-	<start name="wm_backdrop" priority="-1" caps="120" ram="32M">
-		<binary name="backdrop" />
-		<config>
-			<libc/>
-			<vfs>
-				<rom name="genode_logo.png"/>
-			</vfs>
-			<fill color="#664455" />
-			<image png="genode_logo.png" scale="zoom" alpha="150" />
-			<image png="genode_logo.png" scale="fit" alpha="150" tiled="yes" />
-			<image png="genode_logo.png" />
-		</config>
-		<route>
-			<any-service> <child name="wm"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
-</config>}
++ start wm_backdrop | priority: -1 | caps: 120 | ram: 32M
+  + binary backdrop
+  + config
+  | + libc
+  | + vfs | | + rom genode_logo.png
+  | + fill | color: #664455
+  | + image | png: genode_logo.png | scale: zoom | alpha: 150
+  | + image | png: genode_logo.png | scale: fit  | alpha: 150 | tiled: yes
+  | + image | png: genode_logo.png
+  + route
+    + any-service
+      + child wm
+      + parent
+      + any-child
+-
+}
 
 #
 # Pin the nitpicker focus to the window manager by providing a static focus ROM
 #
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"wm -> focus\"/>"
+puts $fd "focus | label: wm -> focus\n-"
 close $fd
 
 copy_file [genode_dir]/repos/gems/recipes/raw/motif_wm/wm.config             [run_dir]/genode/

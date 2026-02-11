@@ -12,333 +12,223 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/zlib
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="PD"/>
-		<service name="CPU"/>
-		<service name="ROM"/>
-		<service name="RM"/>
-		<service name="LOG"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-	</parent-provides>
+config
++ parent-provides
+  + service PD
+  + service CPU
+  + service ROM
+  + service RM
+  + service LOG
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+    + capture
+    + event
+    + background | color: #123456
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 3 | content: client | label: no | hover: always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
 
-			<background color="#123456"/>
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="3" content="client" label="no" hover="always" />
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start fonts_fs_config_rom | ram: 4M
+  + binary dynamic_rom
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom config
+      + inline | description: small
+      | + config
+      |   + vfs
+      |   | + rom Vera.ttf
+      |   | + rom VeraMono.ttf
+      |   | + dir fonts
+      |   |   + dir title      | + ttf regular | path: /Vera.ttf     | size_px: 18 | cache: 256K
+      |   |   + dir text       | + ttf regular | path: /Vera.ttf     | size_px: 14 | cache: 256K
+      |   |   + dir annotation | + ttf regular | path: /Vera.ttf     | size_px: 11 | cache: 256K
+      |   |   + dir monospace  | + ttf regular | path: /VeraMono.ttf | size_px: 14 | cache: 256K
+      |   + default-policy | root: /fonts
+      + sleep | milliseconds: 1000
+      + inline | description: big
+      | + config
+      |   + vfs
+      |   | + rom Vera.ttf
+      |   | + rom VeraMono.ttf
+      |   | + dir fonts
+      |   |   + dir title      | + ttf regular | path: /Vera.ttf     | size_px: 28 | cache: 256K
+      |   |   + dir text       | + ttf regular | path: /Vera.ttf     | size_px: 24 | cache: 256K
+      |   |   + dir annotation | + ttf regular | path: /Vera.ttf     | size_px: 21 | cache: 256K
+      |   |   + dir monospace  | + ttf regular | path: /VeraMono.ttf | size_px: 24 | cache: 256K
+      |   + default-policy | root: /fonts
+      + sleep | milliseconds: 1000
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom dialog
+      + inline | description: dependency graph
+      | + dialog
+      |   + depgraph
+      |     + frame storage | + label | + text | : Storage
+      |     + frame gui     | + label | + text | : GUI
+      |     + frame usbdev  | + label | + text | : USB Devices
+      |     + button s.ahci1 | dep: storage | + label | + text | : ahci1
+      |     + button s.usb1  | dep: storage | + label | + text | : usb1
+      |     + button s.usb2  | dep: storage | + label | + text | : usb2
+      |     + button s.usb3  | dep: storage | + label | + text | : usb3
+      |     + frame  s.usb2.part           | dep: s.usb2          | + label | + text | : Partition
+      |     + button s.usb2.1              | dep: s.usb2.part     | + label | + text | : 1
+      |     + frame  s.usb2.1.ext2fs       | dep: s.usb2.1        | + label | + text | : Ext2 FS
+      |     + button s.usb2.2              | dep: s.usb2.part     | + label | + text | : 2
+      |     + frame  s.usb2.1.ext2fs.subfs | dep: s.usb2.1.ext2fs | + label | + text | : Sub FS
+      |     + button g.pointer | dep: gui | + label | + text | : pointer
+      |     + button g.overlay | dep: gui | + label | + text | : overlay
+      |     + button g.primary | dep: gui | + label | + text | : primary
+      |     + button g.background     | dep: gui          | + label | + text | : background
+      |     + button g.pointer.new    | dep: g.pointer    | + label | + text | : +
+      |     + button g.overlay.new    | dep: g.overlay    | + label | + text | : +
+      |     + button g.background.new | dep: g.background | + label | + text | : +
+      |     + button u.1-2 | dep: usbdev                | + label | + text | : 1-2
+      |     + button u.1-3 | dep: usbdev                | + label | + text | : 1-3
+      |     + frame vbox   | dep: s.usb2.1.ext2fs.subfs | + label | + text | : VBox5
+      |     + dep | node: vbox | on: g.primary
+      |     + dep | node: vbox | on: s.ahci1
+      |     + dep | node: vbox | on: u.1-3
+      |     + frame fs_view | dep: s.usb2.1.ext2fs.subfs | + label | + text | : FS View
+      |     + dep | node: fs_view | from: g.primary
+      + sleep | milliseconds: 3000
+      + inline | description: dependency graph
+      | + dialog
+      |   + depgraph
+      |     + frame storage | + label | + text | : Storage
+      |     + frame gui     | + label | + text | : GUI
+      |     + frame usbdev  | + label | + text | : USB
+      |     + button s.ahci1      | dep: storage     | + label | + text | : ahci1
+      |     + button s.usb1       | dep: storage     | + label | + text | : usb1
+      |     + button s.usb2       | dep: storage     | + label | + text | : usb2
+      |     + button s.usb3       | dep: storage     | + label | + text | : usb3
+      |     + frame s.usb2.part   | dep: s.usb2      | + label | + text | : Partition
+      |     + button s.usb2.2     | dep: s.usb2.part | + label | + text | : 2
+      |     + button g.pointer    | dep: gui         | + label | + text | : pointer
+      |     + button g.overlay    | dep: gui         | + label | + text | : overlay
+      |     + button g.primary    | dep: gui         | + label | + text | : primary
+      |     + button g.background | dep: gui         | + label | + text | : background
+      |     + button u.1-2        | dep: usbdev      | + label | + text | : 1-2
+      |     + button u.1-3        | dep: usbdev      | + label | + text | : 1-3
+      + sleep | milliseconds: 3000
+      + inline | description: example menu
+      | + dialog
+      |   + frame
+      |     + hbox
+      |       + vbox x
+      |       | + button virtualbox | + label | + text | : VirtualBox
+      |       | + button toolchain | hovered: yes
+      |       |   + label | font: monospace/regular
+      |       |     + text | : Tool chain
+      |       | + button log | hovered: yes | selected: yes
+      |       |   + label | font: title/regular
+      |       |     + text | : Log window
+      |       | + button config | selected: yes
+      |       |   + label | font: annotation/regular
+      |       |     + text | : Configuration Configuration Configuration
+      |       | + hbox
+      |       |   + button x1 | + label | + text | : x1
+      |       |   + button x2 | + label | + text | : x2
+      |       |   + button x3 | + label | + text | : x3
+      |       | + frame
+      |       |   + label | font: annotation/regular
+      |       |     + text | : A single line
+      |       + float | north: yes
+      |         + vbox
+      |           + button virtualbox
+      |             + label | + text | : VirtualBox
+      |           + button toolchain | hovered: yes
+      |             + label | font: monospace/regular | + text | : Tool chain
+      + sleep | milliseconds: 3000
+      + inline | description: example menu
+      | + dialog
+      |   + frame
+      |     + vbox
+      |       + button virtualbox | hovered: yes
+      |         + label | + text | : VirtualBox
+      |       + button config | selected: yes | hovered: yes
+      |         + label | + text | : Configuration
+      + sleep | milliseconds: 3000
 
-	<start name="fonts_fs_config_rom" ram="4M">
-		<binary name="dynamic_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<rom name="config">
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-				<inline description="small">
-					<config>
-						<vfs>
-							<rom name="Vera.ttf"/>
-							<rom name="VeraMono.ttf"/>
-							<dir name="fonts">
-								<dir name="title">
-									<ttf name="regular" path="/Vera.ttf" size_px="18" cache="256K"/>
-								</dir>
-								<dir name="text">
-									<ttf name="regular" path="/Vera.ttf" size_px="14" cache="256K"/>
-								</dir>
-								<dir name="annotation">
-									<ttf name="regular" path="/Vera.ttf" size_px="11" cache="256K"/>
-								</dir>
-								<dir name="monospace">
-									<ttf name="regular" path="/VeraMono.ttf" size_px="14" cache="256K"/>
-								</dir>
-							</dir>
-						</vfs>
++ start fonts_fs | caps: 300 | ram: 8M
+  + binary vfs
+  + provides | + service File_system
+  + route
+    + service ROM | label: config | + child fonts_fs_config_rom
+    + any-service                 | + parent
 
-						<default-policy root="/fonts" />
-					</config>
-				</inline>
-
-				<sleep milliseconds="1000" />
-
-				<inline description="big">
-					<config>
-						<vfs>
-							<rom name="Vera.ttf"/>
-							<rom name="VeraMono.ttf"/>
-							<dir name="fonts">
-								<dir name="title">
-									<ttf name="regular" path="/Vera.ttf" size_px="28" cache="256K"/>
-								</dir>
-								<dir name="text">
-									<ttf name="regular" path="/Vera.ttf" size_px="24" cache="256K"/>
-								</dir>
-								<dir name="annotation">
-									<ttf name="regular" path="/Vera.ttf" size_px="21" cache="256K"/>
-								</dir>
-								<dir name="monospace">
-									<ttf name="regular" path="/VeraMono.ttf" size_px="24" cache="256K"/>
-								</dir>
-							</dir>
-						</vfs>
-
-						<default-policy root="/fonts" />
-					</config>
-				</inline>
-
-				<sleep milliseconds="1000" />
-
-			</rom>
-		</config>
-	</start>
-
-	<start name="dynamic_rom" ram="4M">
-		<provides> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<rom name="dialog">
-
-				<inline description="dependency graph">
-					<dialog>
-						<depgraph>
-							<frame name="storage"> <label> <text>Storage</text>     </label> </frame>
-							<frame name="gui">     <label> <text>GUI</text>         </label> </frame>
-							<frame name="usbdev">  <label> <text>USB Devices</text> </label> </frame>
-
-							<button name="s.ahci1" dep="storage"> <label> <text>ahci1</text> </label> </button>
-							<button name="s.usb1"  dep="storage"> <label> <text>usb1</text>  </label> </button>
-							<button name="s.usb2"  dep="storage"> <label> <text>usb2</text>  </label> </button>
-							<button name="s.usb3"  dep="storage"> <label> <text>usb3</text>  </label> </button>
-
-							<frame  name="s.usb2.part"     dep="s.usb2">      <label> <text>Partition</text> </label> </frame>
-							<button name="s.usb2.1"        dep="s.usb2.part"> <label> <text>1</text>         </label> </button>
-							<frame  name="s.usb2.1.ext2fs" dep="s.usb2.1">    <label> <text>Ext2 FS</text>   </label> </frame>
-							<button name="s.usb2.2"        dep="s.usb2.part"> <label> <text>2</text>         </label> </button>
-
-							<frame name="s.usb2.1.ext2fs.subfs" dep="s.usb2.1.ext2fs"> <label> <text>Sub FS</text> </label> </frame>
-
-							<button name="g.pointer"    dep="gui"> <label> <text>pointer</text>    </label> </button>
-							<button name="g.overlay"    dep="gui"> <label> <text>overlay</text>    </label> </button>
-							<button name="g.primary"    dep="gui"> <label> <text>primary</text>    </label> </button>
-							<button name="g.background" dep="gui"> <label> <text>background</text> </label> </button>
-
-							<button name="g.pointer.new"    dep="g.pointer">    <label> <text>+</text> </label> </button>
-							<button name="g.overlay.new"    dep="g.overlay">    <label> <text>+</text> </label> </button>
-							<button name="g.background.new" dep="g.background"> <label> <text>+</text> </label> </button>
-
-							<button name="u.1-2" dep="usbdev"> <label> <text>1-2</text> </label> </button>
-							<button name="u.1-3" dep="usbdev"> <label> <text>1-3</text> </label> </button>
-
-							<frame name="vbox" dep="s.usb2.1.ext2fs.subfs">
-								<label> <text>VBox5</text> </label>
-							</frame>
-
-							<dep node="vbox" on="g.primary"/>
-							<dep node="vbox" on="s.ahci1"/>
-							<dep node="vbox" on="u.1-3"/>
-
-							<frame name="fs_view" dep="s.usb2.1.ext2fs.subfs">
-								<label> <text>FS View</text> </label>
-							</frame>
-
-							<dep node="fs_view" from="g.primary"/>
-
-						</depgraph>
-					</dialog>
-				</inline>
-
-				<sleep milliseconds="3000" />
-
-				<inline description="dependency graph">
-					<dialog>
-						<depgraph>
-							<frame name="storage"> <label> <text>Storage</text> </label> </frame>
-							<frame name="gui">     <label> <text>GUI</text>     </label> </frame>
-							<frame name="usbdev">  <label> <text>USB</text>     </label> </frame>
-
-							<button name="s.ahci1" dep="storage"> <label> <text>ahci1</text> </label> </button>
-							<button name="s.usb1"  dep="storage"> <label> <text>usb1</text>  </label> </button>
-							<button name="s.usb2"  dep="storage"> <label> <text>usb2</text>  </label> </button>
-							<button name="s.usb3"  dep="storage"> <label> <text>usb3</text>  </label> </button>
-
-							<frame  name="s.usb2.part" dep="s.usb2">      <label> <text>Partition</text> </label> </frame>
-							<button name="s.usb2.2"    dep="s.usb2.part"> <label> <text>2</text>         </label> </button>
-
-							<button name="g.pointer"    dep="gui"> <label> <text>pointer</text>    </label> </button>
-							<button name="g.overlay"    dep="gui"> <label> <text>overlay</text>    </label> </button>
-							<button name="g.primary"    dep="gui"> <label> <text>primary</text>    </label> </button>
-							<button name="g.background" dep="gui"> <label> <text>background</text> </label> </button>
-
-							<button name="u.1-2" dep="usbdev"> <label> <text>1-2</text> </label> </button>
-							<button name="u.1-3" dep="usbdev"> <label> <text>1-3</text> </label> </button>
-
-						</depgraph>
-					</dialog>
-				</inline>
-
-				<sleep milliseconds="3000" />
-
-				<inline description="example menu">
-					<dialog>
-						<frame>
-							<hbox>
-								<vbox name="x">
-									<button name="virtualbox">
-										<label>
-											<text>VirtualBox</text> </label>
-									</button>
-									<button name="toolchain" hovered="yes">
-										<label font="monospace/regular">
-											<text>Tool chain</text> </label>
-									</button>
-									<button name="log" hovered="yes" selected="yes">
-										<label font="title/regular">
-											<text>Log window</text> </label>
-									</button>
-									<button name="config" selected="yes">
-										<label font="annotation/regular">
-											<text>Configuration Configuration Configuration</text> </label>
-									</button>
-									<hbox>
-										<button name="x1"> <label> <text>x1</text> </label> </button>
-										<button name="x2"> <label> <text>x2</text> </label> </button>
-										<button name="x3"> <label> <text>x3</text> </label> </button>
-									</hbox>
-									<frame>
-										<label font="annotation/regular">
-											<text>A single line</text> </label>
-									</frame>
-								</vbox>
-								<float north="yes">
-									<vbox>
-										<button name="virtualbox">
-											<label> <text>VirtualBox</text> </label>
-										</button>
-										<button name="toolchain" hovered="yes">
-											<label font="monospace/regular">
-												<text>Tool chain</text> </label>
-										</button>
-									</vbox>
-								</float>
-							</hbox>
-						</frame>
-					</dialog>
-				</inline>
-
-				<sleep milliseconds="3000" />
-
-				<inline description="example menu">
-					<dialog>
-						<frame>
-							<vbox>
-								<button name="virtualbox" hovered="yes">
-									<label> <text>VirtualBox</text> </label>
-								</button>
-								<button name="config" selected="yes" hovered="yes">
-									<label> <text>Configuration</text> </label>
-								</button>
-							</vbox>
-						</frame>
-					</dialog>
-				</inline>
-
-				<sleep milliseconds="3000" />
-
-			</rom>
-		</config>
-	</start>
-
-	<start name="report_rom">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
-
-	<start name="fonts_fs" caps="300" ram="8M">
-		<binary name="vfs"/>
-		<route>
-			<service name="ROM" label="config"> <child name="fonts_fs_config_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-		<provides> <service name="File_system"/> </provides>
-	</start>
-
-	<start name="menu_view" caps="200" ram="8M">
-		<config>
-			<report hover="yes"/>
-			<libc stderr="/dev/log"/>
-			<vfs>
-				<tar name="menu_view_styles.tar" />
-				<dir name="dev"> <log/> </dir>
-				<dir name="fonts"> <fs label="fonts -> /"/> </dir>
-			</vfs>
-			<dialog name="dialog"       xpos="200" ypos="150"/>
-			<dialog name="fixed_dialog" xpos="400" ypos="50" width="400"/>
-		</config>
-		<route>
-			<service name="ROM"    label="dialog"> <child name="dynamic_rom" /> </service>
-			<service name="Report" label="hover">  <child name="report_rom"/> </service>
-			<service name="File_system" label="fonts -> /"> <child name="fonts_fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>}
++ start menu_view | caps: 200 | ram: 8M
+  + config
+  | + report | hover: yes
+  | + libc | stderr: /dev/log
+  | + vfs
+  |   + tar menu_view_styles.tar
+  |   + dir dev   | + log
+  |   + dir fonts | + fs | label: fonts -> /
+  | + dialog dialog | xpos: 200 | ypos: 150
+  | + dialog fixed_dialog | xpos: 400 | ypos: 50 | width: 400
+  + route
+    + service ROM    | label: dialog          | + child dynamic_rom
+    + service Report | label: hover           | + child report_rom
+    + service File_system | label: fonts -> / | + child fonts_fs
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build { app/menu_view }
 
 set fd [open [run_dir]/genode/fixed_dialog w]
 puts $fd {
-<dialog>
-	<frame>
-		<vbox>
-			<button name="perf" hovered="yes">
-				<label> <text>Performance</text> </label>
-			</button>
-			<button name="battery" selected="yes" hovered="yes">
-				<label> <text>Battery</text> </label>
-			</button>
-		</vbox>
-	</frame>
-</dialog>
+dialog
++ frame
+  + vbox
+    + button perf                    | hovered: yes | + label | + text | : Performance
+    + button battery | selected: yes | hovered: yes | + label | + text | : Battery
+-
 }
 close $fd
 
