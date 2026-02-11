@@ -1,6 +1,7 @@
 #
 # there are no nic driver packages for these targets
 #
+assert {![have_board rpi]}
 assert {![have_board rpi3]}
 assert {![have_board imx53_qsb_tz]}
 

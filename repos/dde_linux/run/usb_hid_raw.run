@@ -39,13 +39,13 @@
 #
 
 assert {![have_board linux]}
+assert {![have_spec arm_v6]}
 
 if {[have_cmd_switch --autopilot]} {
 	assert {![have_include power_on/qemu]} \
 		"Autopilot mode is not supported on this platform."
 
 	assert {[have_board pc]              ||
-	        [have_board rpi]             ||
 	        [have_board imx8q_evk]       ||
 	        [have_board imx6q_sabrelite]} \
 		"Autopilot mode is not supported on this platform."
