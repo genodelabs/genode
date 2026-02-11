@@ -28,7 +28,6 @@
 #include <irq_controller.h>
 #include <kernel_io_mmu.h>
 #include <power.h>
-#include <reserved_memory_handler.h>
 #include <reset.h>
 #include <shared_irq.h>
 
@@ -41,7 +40,6 @@ namespace Driver {
 	struct Device_reporter;
 	struct Device_model;
 	struct Device_owner;
-	struct Reserved_memory_handler;
 }
 
 
@@ -420,7 +418,7 @@ class Driver::Device : private List_model<Device>::Element
 
 		void generate(Generator &, bool) const;
 
-		void update(Allocator &, Node const &, Reserved_memory_handler &);
+		void update(Allocator &, Node const &);
 
 		/**
 		 * List_model::Element
@@ -522,7 +520,7 @@ class Driver::Device_model : public Device_owner
 
 		void report_devices(Generator &) const;
 		void report_iommus(Generator &) const;
-		void update(Node const &node, Reserved_memory_handler &);
+		void update(Node const &node);
 		void device_status_changed();
 
 		Device_model(Env             &env,
@@ -536,8 +534,7 @@ class Driver::Device_model : public Device_owner
 
 		~Device_model()
 		{
-			Reserved_memory_handler dummy { };
-			update(Node(), dummy);
+			update(Node());
 		}
 
 		void for_each(auto const &fn) { _model.for_each(fn); }

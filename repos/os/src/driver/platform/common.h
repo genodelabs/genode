@@ -98,7 +98,7 @@ void Driver::Common::_wait_for_initial_devices()
 void Driver::Common::_handle_devices()
 {
 	_update_devices_rom();
-	_devices.update(_devices_rom.node(), _root);
+	_devices.update(_devices_rom.node());
 	update_report();
 	_root.update_policy();
 }

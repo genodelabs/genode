@@ -58,43 +58,6 @@ void Driver::Root::_upgrade_session(Session_component &sc, const char * args)
 }
 
 
-void Driver::Root::add_range(Device const &dev, Range const &range)
-{
-	_sessions.for_each([&] (Session_component &sc) {
-		if (!sc.matches(dev)) return;
-		sc._dma_allocator.reserve(range.start, range.size);
-	});
-
-	/* add default mapping and enable for corresponding pci device */
-	_devices.for_each_io_mmu([&] (Io_mmu &io_mmu) {
-		dev.with_io_mmu(io_mmu.name(), [&] (auto const &) {
-
-			io_mmu.add_default_range(range, range.start);
-			dev.for_pci_config([&] (Device::Pci_config const &cfg) {
-				io_mmu.enable_default_mappings(
-					{cfg.bus_num, cfg.dev_num, cfg.func_num});
-			});
-
-		});
-	});
-}
-
-
-void Driver::Root::remove_range(Device const &dev, Range const &range)
-{
-	_sessions.for_each([&] (Session_component &sc) {
-		if (!sc.matches(dev)) return;
-		sc._dma_allocator.unreserve(range.start, range.size);
-	});
-
-	/*
-	 * remark: There is no need to remove default mappings since once known
-	 *         default mappings should be preserved. Double-insertion in case
-	 *         mapping are re-added at a later point in time is taken care of.
-	 */
-}
-
-
 Driver::Root::Root(Env                          &env,
                    Sliced_heap                  &sliced_heap,
                    Attached_rom_dataspace const &config,

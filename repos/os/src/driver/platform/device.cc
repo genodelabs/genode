@@ -186,8 +186,7 @@ void Driver::Device::generate(Generator &g, bool info) const
 }
 
 
-void Driver::Device::update(Allocator &alloc, Node const &node,
-                            Reserved_memory_handler &reserved_mem_handler)
+void Driver::Device::update(Allocator &alloc, Node const &node)
 {
 	using Bar = Device::Pci_bar;
 
@@ -393,14 +392,12 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		{
 			addr_t addr = node.attribute_value("address", 0UL);
 			size_t size = node.attribute_value("size",    0UL);
-			reserved_mem_handler.add_range(*this, {addr, size});
 			return *(new (alloc) Reserved_memory({addr, size}));
 		},
 
 		/* destroy */
 		[&] (Reserved_memory &reserved)
 		{
-			reserved_mem_handler.remove_range(*this, reserved.range);
 			destroy(alloc, &reserved);
 		},
 
@@ -602,8 +599,7 @@ void Driver::Device_model::report_iommus(Generator &g) const
 }
 
 
-void Driver::Device_model::update(Node const &node,
-                                  Reserved_memory_handler &reserved_mem_handler)
+void Driver::Device_model::update(Node const &node)
 {
 	_model.update_from_node(node,
 
@@ -619,7 +615,7 @@ void Driver::Device_model::update(Node const &node,
 		/* destroy */
 		[&] (Device &device)
 		{
-			device.update(_heap, Node(), reserved_mem_handler);
+			device.update(_heap, Node());
 			device.release(*this);
 			destroy(_heap, &device);
 		},
@@ -627,7 +623,7 @@ void Driver::Device_model::update(Node const &node,
 		/* update */
 		[&] (Device &device, Node const &node)
 		{
-			device.update(_heap, node, reserved_mem_handler);
+			device.update(_heap, node);
 		}
 	);
 }

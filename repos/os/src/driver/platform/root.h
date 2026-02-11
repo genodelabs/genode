@@ -17,15 +17,13 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/registry.h>
 #include <root/component.h>
-#include <session_component.h>
-#include <reserved_memory_handler.h>
 
 #include <device.h>
+#include <session_component.h>
 
 namespace Driver { class Root; }
 
-class Driver::Root : public Root_component<Session_component>,
-                     public Reserved_memory_handler
+class Driver::Root : public Root_component<Session_component>
 {
 	public:
 
@@ -35,14 +33,6 @@ class Driver::Root : public Root_component<Session_component>,
 		     Device_model                 &devices);
 
 		void update_policy();
-
-
-		/*****************************
-		 ** Reserved_memory_handler **
-		 *****************************/
-
-		void add_range(Device const &, Range const &) override;
-		void remove_range(Device const &, Range const &) override;
 
 	private:
 
