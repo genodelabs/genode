@@ -39,7 +39,7 @@ config
     | + ram
     | + import
     |   + inline config  | + config | + default-policy
-    |   + inline devices | + devices
+    |   + inline devices | + devices | + device dummy
     |
     + policy | label_prefix: fs_report ->     | root: / | writeable: yes
     + policy | label_prefix: report_fs_rom -> | root: /

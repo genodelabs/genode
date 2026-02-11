@@ -49,6 +49,8 @@ class Driver::Common : Device_reporter
 
 		uint64_t _resume_counter { };
 
+		void _update_devices_rom();
+		void _wait_for_initial_devices();
 		void _handle_devices();
 		bool _kernel_io_mmu();
 
@@ -75,9 +77,27 @@ class Driver::Common : Device_reporter
 };
 
 
-void Driver::Common::_handle_devices()
+void Driver::Common::_update_devices_rom()
 {
 	_devices_rom.update();
+}
+
+
+void Driver::Common::_wait_for_initial_devices()
+{
+	Io_signal_handler<Common> handler { _env.ep(), *this,
+	                                    &Common::_update_devices_rom };
+	_devices_rom.sigh(handler);
+	_update_devices_rom();
+
+	while (!_devices_rom.node().num_sub_nodes())
+		_env.ep().wait_and_dispatch_one_io_signal();
+}
+
+
+void Driver::Common::_handle_devices()
+{
+	_update_devices_rom();
 	_devices.update(_devices_rom.node(), _root);
 	update_report();
 	_root.update_policy();
@@ -147,6 +167,8 @@ Driver::Common::Common(Genode::Env                  &env,
 	                                            String<64>("devices"))),
 	_root(_env, _sliced_heap, config_rom, _devices)
 {
+	_wait_for_initial_devices();
+
 	_devices_rom.sigh(_dev_handler);
 	_handle_devices();
 }
