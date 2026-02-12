@@ -31,7 +31,7 @@ struct Main
 	Genode::Attached_rom_dataspace  config    { env, "config" };
 	Net::Vlan                       vlan      { };
 	Genode::Session_label     const nic_label { "uplink" };
-	bool                      const verbose   { config.xml().attribute_value("verbose", false) };
+	bool                      const verbose   { config.node().attribute_value("verbose", false) };
 	Net::Nic                        nic       { env, heap, vlan, verbose,
 	                                            nic_label };
 	Net::Root                       root      { env, nic, heap, verbose, config };
