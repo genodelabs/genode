@@ -17,56 +17,60 @@ proc server_bin { prot } {
 	if {$prot == "udp"}  { return "test-lwip-udp-server" }
 	if {$prot == "http"} { return "test-lwip_httpsrv" } }
 
-proc client_config { name prot ip_addr gateway netmask nic srv_port srv_ip } {
+proc client_start { name prot ip_addr gateway netmask nic srv_port srv_ip } {
 	global nr_of_clients
 	incr nr_of_clients
-	append result {
-		<start name="} $name {" priority="-1" ram="8M">
-			<binary  name="} [client_bin $prot] {" />
-			<route>
-				<service name="Nic"> <child name="} $nic {"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-			<config server_ip="} $srv_ip {" server_port="} $srv_port {">
-				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="socket">
-	}
+
 	if {$ip_addr == "dhcp"} {
-		append result {
-						<lwip dhcp="yes"/>}
+		append vfs_ip {lwip | dhcp: yes}
 	} else {
-		append result {
-						<lwip ip_addr="} $ip_addr {" gateway="} $gateway {" netmask="} $netmask {"/>}
+		append vfs_ip {lwip | ip_addr: } $ip_addr \
+		                  { | gateway: } $gateway \
+		                  { | netmask: } $netmask
 	}
+
 	append result {
-					</dir>
-				</vfs>
-			</config>
-		</start>}
+		+ start } $name { | priority: -1 | ram: 8M
+		  + binary } [client_bin $prot] {
+		  + route
+		  | + service Nic | + child } $nic {
+		  | + any-service
+		  |   + parent
+		  |   + any-child
+		  + config | server_ip: } $srv_ip { | server_port: } $srv_port {
+		    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+		    + vfs
+		      + dir dev    | + log
+		      + dir socket | + } $vfs_ip {
+	}
+
+	# strip tabs used for indentation
+	set result [string map {"\t" ""} $result]
+
 	return $result
 }
 
-proc server_config { name prot ip_addr gateway netmask nic port } {
+proc server_start { name prot ip_addr gateway netmask nic port } {
 	append result {
-		<start name="} $name {" priority="-1" ram="8M">
-			<binary  name="} [server_bin $prot] {" />
-			<route>
-				<service name="Nic"> <child name="} $nic {"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-			<config port="} $port {">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="socket">
-						<lwip ip_addr="} $ip_addr {" gateway="} $gateway {" netmask="} $netmask {"/>
-					</dir>
-				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"
-				      ip_addr="} $ip_addr {" gateway="} $gateway {" netmask="} $netmask {"/>
-			</config>
-		</start>}
+		+ start } $name { | priority: -1 | ram: 8M
+		  + binary } [server_bin $prot] {
+		  + route
+		  | + service Nic | + child } $nic {
+		  | + any-service
+		  |   + parent
+		  |   + any-child
+		  + config | port: } $port {
+		    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+		    + vfs
+		      + dir dev    | + log
+		      + dir socket | + lwip | ip_addr: } $ip_addr {
+		                              gateway: } $gateway {
+		                              netmask: } $netmask {
+	}
+
+	# strip tabs used for indentation
+	set result [string map {"\t" ""} $result]
+
 	return $result
 }
 

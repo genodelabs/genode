@@ -43,88 +43,64 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs
 
 install_config {
-<config verbose="yes" prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | verbose: yes | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1200" ram="32M" managing_system="yes" priority="-1">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes"
-		        dhcp_discover_timeout_sec="1">
++ start timer
+  + provides | + service Timer
 
-			<policy label_prefix="test-lwip_httpsrv" domain="downlink"/>
-			<policy label_prefix="drivers"           domain="uplink"/>
++ start drivers | caps: 1200 | ram: 32M | managing_system: yes | priority: -1
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
 
-			<domain name="uplink">
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes | dhcp_discover_timeout_sec: 1
+    + policy | label_prefix: test-lwip_httpsrv | domain: downlink
+    + policy | label_prefix: drivers           | domain: uplink
+    + domain uplink
+      + nat | domain: downlink | tcp-ports: 16384 | udp-ports: 16384 | icmp-ids: 16384
+      + tcp-forward | port: 443 | domain: downlink | to: 10.0.3.2
+      + tcp-forward | port: 80  | domain: downlink | to: 10.0.3.2
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
+      + tcp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + udp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + icmp | dst: 0.0.0.0/0 | domain: uplink
 
-				<nat domain="downlink"
-				     tcp-ports="16384"
-				     udp-ports="16384"
-				     icmp-ids="16384"/>
-
-				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
-				<tcp-forward port="80"  domain="downlink" to="10.0.3.2"/>
-
-			</domain>
-
-			<domain name="downlink" interface="10.0.3.1/24">
-
-				<dhcp-server ip_first="10.0.3.2"
-				             ip_last="10.0.3.2"
-				             dns_config_from="uplink"/>
-
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
-				<icmp dst="0.0.0.0/0" domain="uplink"/>
-
-			</domain>
-
-		</config>
-	</start>
-
-	<start name="test-lwip_httpsrv" caps="130" ram="8M" priority="-1">
-		<config>
-			<vfs>
-				<dir name="dev">    <log/>             </dir>
-				<dir name="socket"> <lwip dhcp="yes"/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>
++ start test-lwip_httpsrv | caps: 130 | ram: 8M | priority: -1
+  + config
+  | + vfs
+  |   + dir dev    | + log
+  |   + dir socket | + lwip | dhcp: yes
+  | + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build { test/lwip/http_srv }

@@ -9,66 +9,55 @@ build {
 }
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="nic_router" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose="yes" verbose_packets="yes" verbose_domain_state="yes">
-			<policy label_prefix="tap_uplink_client -> "  domain="tap_uplink"/>
-			<policy label_prefix="tap_nic_client -> "     domain="tap_nic"/>
++ default | caps: 100 | ram: 1M
 
-			<domain name="tap_nic">
-			</domain>
++ start timer
+  + provides | + service Timer
 
-			<domain name="tap_uplink">
-			</domain>
-		</config>
-	</start>
++ start nic_router | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose: yes | verbose_packets: yes | verbose_domain_state: yes
+    + policy | label_prefix: tap_uplink_client -> | domain: tap_uplink
+    + policy | label_prefix: tap_nic_client ->    | domain: tap_nic
+    + domain tap_nic
+    + domain tap_uplink
 
-	<start name="tap_uplink_client" ram="8M">
-		<binary name="test-libc_vfs_tap"/>
-		<config>
-			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<tap name="tap0" mac="02:02:00:00:00:20" mode="uplink"/>
-				</dir>
-			</vfs>
-		</config>
-	</start>
++ start tap_uplink_client | ram: 8M
+  + binary test-libc_vfs_tap
+  + config
+    + libc | stdin: /dev/log | stdout: /dev/log | stderr: /dev/log
+    + vfs
+      + dir dev
+        + log
+        + tap tap0 | mac: 02:02:00:00:00:20 | mode: uplink
 
-	<start name="tap_nic_client" ram="8M">
-		<binary name="test-libc_vfs_tap"/>
-		<config>
-			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<tap name="tap0"/>
-				</dir>
-			</vfs>
-		</config>
-	</start>
-</config>
++ start tap_nic_client | ram: 8M
+  + binary test-libc_vfs_tap
+  + config
+    + libc | stdin: /dev/log | stdout: /dev/log | stderr: /dev/log
+    + vfs
+      + dir dev
+        + log
+        + tap tap0
+-
 }
 
 build_boot_image [build_artifacts]

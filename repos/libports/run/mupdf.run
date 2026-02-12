@@ -10,85 +10,81 @@ import_from_depot \
 	[depot_user]/pkg/motif_wm \
 	[depot_user]/src/[base_src] \
 	[depot_user]/src/init \
-	[depot_user]/src/nitpicker \
+	[depot_user]/src/nitpicker
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<service name="Gui"> <child name="wm"/> </service>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + service Gui | + child wm
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
++ start timer
+  + provides | + service Timer
 
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="2" content="client" label="no" hover="always" width="1024" height="768"/>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-	</start>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 2 | content: client | label: no | hover: always
+                                                    width: 1024 | height: 768
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
 
-	<start name="pointer">
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start pointer
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="wm" caps="1000" ram="32M">
-		<binary name="init"/>
-		<provides>
-			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start wm | caps: 1000 | ram: 32M
+  + binary init
+  + provides
+    + service Gui
+    + service Report
+    + service ROM
+  + route
+    + service ROM | label: config | + parent | label: wm.config
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="pdf_view" caps="256" ram="1G">
-		<config>
-			<vfs>
-				<rom name="test.pdf" />
-				<dir name="dev"> <log/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-		</config>
-	</start>
-</config>
++ start pdf_view | caps: 256 | ram: 1G
+  + config
+    + libc | stdout: /dev/log | stderr: /dev/log
+    + vfs
+      + rom test.pdf
+      + dir dev | + log
+-
 }
 
 #
@@ -108,7 +104,7 @@ if {![file exist bin/test.pdf]} {
 # Pin the nitpicker focus to the window manager by providing a static focus ROM
 #
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"wm -> focus\"/>"
+puts $fd "focus | label: wm -> focus\n-"
 close $fd
 
 build_boot_image [list {*}[build_artifacts] test.pdf]

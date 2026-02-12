@@ -8,28 +8,26 @@ build { core init lib/ld lib/libc lib/vfs test/memcpy }
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route> <any-service> <parent/> </any-service> </default-route>
-	<default caps="200"/>
++ default-route | + any-service | + parent
 
-	<start name="test-memcpy" ram="40M">
-		<config>
-			<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-</config>
++ default | caps: 200
+
++ start test-memcpy | ram: 40M
+  + config
+    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+    + vfs
+      + dir dev
+        + log
+        + null
+-
 }
 
 build_boot_image [build_artifacts]

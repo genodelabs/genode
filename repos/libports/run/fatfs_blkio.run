@@ -10,44 +10,40 @@ import_from_depot [depot_user]/src/[base_src] \
 build { test/fatfs_block_io lib/libc lib/vfs }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="128"/>
-	<start name="timer" ram="1M">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="test-fatfs_block_io" ram="10M">
-		<config ld_verbose="true">
-			<libc stdout="/log" stderr="/log"/>
-			<vfs> <log/> </vfs>
-		</config>
-	</start>
-	<start name="vfs_block" ram="4M">
-		<provides><service name="Block"/></provides>
-		<config>
-			<vfs>
-				<ram/>
-				<import>
-					<zero name="block_file" size="1M"/>
-				</import>
-			</vfs>
-			<default-policy file="/block_file" block_size="512"
-			                writeable="yes"/>
-		</config>
-	</start>
-</config>
+config
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 128
+
++ start timer | ram: 1M
+  + provides | + service Timer
+
++ start test-fatfs_block_io | ram: 10M
+  + config | ld_verbose: true
+    + libc | stdout: /log | stderr: /log
+    + vfs | + log
+
++ start vfs_block | ram: 4M
+  + provides | + service Block
+  + config
+    + vfs
+      + ram
+      + import | + zero block_file | size: 1M
+    + default-policy | file: /block_file | block_size: 512 | writeable: yes
+-
 }
 
 set disk_image "bin/test.hda"
