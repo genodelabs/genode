@@ -16,64 +16,63 @@ build $build_components
 create_boot_directory
 
 append config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
+config | verbose: yes
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes" verbose_packets="no" verbose_packet_drop="no">
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-			<default-policy domain="default"/>
-			<domain name="default" interface="10.0.2.1/24">
++ default | caps: 100 | ram: 1M
 
-				<dhcp-server ip_first="10.0.2.2" ip_last="10.0.2.2"/>
-				<udp dst="0.0.0.0/0">
-					<permit-any domain="default"/>
-				</udp>
-				<tcp dst="0.0.0.0/0">
-					<permit-any domain="default"/>
-				</tcp>
++ start timer
+  + provides | + service Timer
 
-			</domain>
-		</config>
-	</start>
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config
+    |      verbose_domain_state: yes
+    |      verbose_packets:      no
+    |      verbose_packet_drop:  no
+    |
+    + default-policy | domain: default
+    + domain default | interface: 10.0.2.1/24
+      + dhcp-server | ip_first: 10.0.2.2 | ip_last: 10.0.2.2
+      + udp | dst: 0.0.0.0/0 | + permit-any | domain: default
+      + tcp | dst: 0.0.0.0/0 | + permit-any | domain: default
 
-	<start name="test-} [ipstack] {_server" caps="200" ram="10M">
-		<config ld_verbose="yes" ip_addr="10.0.2.3" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start test-} [ipstack] {_server | caps: 200 | ram: 10M
+  + config
+  |        ld_verbose: yes
+  |        ip_addr:    10.0.2.3
+  |        netmask:    255.255.255.0
+  |        gateway:    10.0.2.1
+  |        nameserver: 8.8.8.8
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-	<start name="test-} [ipstack] {_client" caps="200" ram="10M">
-		<config ld_verbose="yes" server_ip="10.0.2.3" server_port="80"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>
++ start test-} [ipstack] {_client | caps: 200 | ram: 10M
+  + config | ld_verbose: yes | server_ip: 10.0.2.3 | server_port: 80
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 install_config $config
