@@ -1,0 +1,134 @@
+build {
+	core init lib/ld lib/libc lib/vfs lib/posix lib/libm
+	app/sequence server/vfs test/libc_getgrent
+}
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="128"/>
+
+	<start name="fs" ram="4M">
+		<binary name="vfs"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <log label="log"/> </vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="test" caps="1000" ram="4M">
+		<binary name="sequence"/>
+		<config>
+
+			<start name="root">
+				<binary name="test-libc_getgrent"/>
+				<config>
+					<vfs> <fs/> </vfs>
+					<libc stdout="/log" stderr="/log"/>
+					<arg>test-libc_getgrent</arg>
+					<env name="HOME">/home-from-getenv</env>
+				</config>
+			</start>
+
+			<start name="alice">
+				<binary name="test-libc_getgrent"/>
+				<config>
+					<vfs> <fs/> </vfs>
+					<libc stdout="/log" stderr="/log">
+						<group name="alice" gid="1"/>
+					</libc>
+				</config>
+			</start>
+
+			<start name="bob">
+				<binary name="test-libc_getgrent"/>
+				<config>
+					<vfs> <fs/> </vfs>
+					<libc stdout="/log" stderr="/log">
+						<group name="bob" gid="2"/>
+					</libc>
+				</config>
+			</start>
+
+
+		</config>
+	</start>
+</config>
+}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic "
+
+run_genode_until "child .* exited with exit value 0.*\n" 20
+
+grep_output {\[init -\> fs -\> log\] }
+
+compare_output_to {
+[init -> fs -> log] [getgrent] group:root gid:0
+[init -> fs -> log] [getgrent] NULL
+[init -> fs -> log] [getgrent] NULL
+[init -> fs -> log] [getgrent_r] group:root gid:0
+[init -> fs -> log] [getgrent_r] NULL
+[init -> fs -> log] [getgrent_r] NULL
+[init -> fs -> log] [getgrnam root] group:root gid:0
+[init -> fs -> log] [getgrnam alice] NULL
+[init -> fs -> log] [getgrnam bob] NULL
+[init -> fs -> log] [getgrnam_r root] group:root gid:0
+[init -> fs -> log] [getgwnam_r alice] NULL
+[init -> fs -> log] [getgrnam_r bob] NULL
+[init -> fs -> log] [getgrgid 0] group:root gid:0
+[init -> fs -> log] [getgrgid 1] NULL
+[init -> fs -> log] [getgrgid 2] NULL
+[init -> fs -> log] [getgrgid_r 0] group:root gid:0
+[init -> fs -> log] [getgrgid_r 1] NULL
+[init -> fs -> log] [getgrgid_r 2] NULL
+[init -> fs -> log] [getgrent] group:alice gid:1
+[init -> fs -> log] [getgrent] NULL
+[init -> fs -> log] [getgrent] NULL
+[init -> fs -> log] [getgrent_r] group:alice gid:1
+[init -> fs -> log] [getgrent_r] NULL
+[init -> fs -> log] [getgrent_r] NULL
+[init -> fs -> log] [getgrnam root] NULL
+[init -> fs -> log] [getgrnam alice] group:alice gid:1
+[init -> fs -> log] [getgrnam bob] NULL
+[init -> fs -> log] [getgrnam_r root] NULL
+[init -> fs -> log] [getgwnam_r alice] group:alice gid:1
+[init -> fs -> log] [getgrnam_r bob] NULL
+[init -> fs -> log] [getgrgid 0] NULL
+[init -> fs -> log] [getgrgid 1] group:alice gid:1
+[init -> fs -> log] [getgrgid 2] NULL
+[init -> fs -> log] [getgrgid_r 0] NULL
+[init -> fs -> log] [getgrgid_r 1] group:alice gid:1
+[init -> fs -> log] [getgrgid_r 2] NULL
+[init -> fs -> log] [getgrent] group:bob gid:2
+[init -> fs -> log] [getgrent] NULL
+[init -> fs -> log] [getgrent] NULL
+[init -> fs -> log] [getgrent_r] group:bob gid:2
+[init -> fs -> log] [getgrent_r] NULL
+[init -> fs -> log] [getgrent_r] NULL
+[init -> fs -> log] [getgrnam root] NULL
+[init -> fs -> log] [getgrnam alice] NULL
+[init -> fs -> log] [getgrnam bob] group:bob gid:2
+[init -> fs -> log] [getgrnam_r root] NULL
+[init -> fs -> log] [getgwnam_r alice] NULL
+[init -> fs -> log] [getgrnam_r bob] group:bob gid:2
+[init -> fs -> log] [getgrgid 0] NULL
+[init -> fs -> log] [getgrgid 1] NULL
+[init -> fs -> log] [getgrgid 2] group:bob gid:2
+[init -> fs -> log] [getgrgid_r 0] NULL
+[init -> fs -> log] [getgrgid_r 1] NULL
+[init -> fs -> log] [getgrgid_r 2] group:bob gid:2
+}
