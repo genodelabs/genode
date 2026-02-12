@@ -11,68 +11,57 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/system_rtc-[board]
 
 install_config {
-<config prio_levels="2" verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config | prio_levels: 2 | verbose: yes
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="system_rtc" caps="400" ram="6M" priority="-1">
-		<binary name="init"/>
-		<provides> <service name="Rtc"/> <service name="Report"/> </provides>
-		<route>
-			<service name="ROM" label="config">  <parent label="system_rtc.config"/> </service>
-			<service name="IO_MEM">  <parent/> </service>
-			<service name="IO_PORT"> <parent/> </service>
-			<service name="IRQ">     <parent/> </service>
-			<service name="LOG">     <parent/> </service>
-			<service name="PD">      <parent/> </service>
-			<service name="RM">      <parent/> </service>
-			<service name="CPU">     <parent/> </service>
-			<service name="ROM">     <parent/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-		</route>
-	</start>
++ start system_rtc | caps: 400 | ram: 6M | priority: -1
+  + binary init
+  + provides
+    + service Rtc
+    + service Report
+  + route
+    + service ROM | label: config | + parent | label: system_rtc.config
+    + service Timer               | + child timer
+    + any-service                 | + parent
 
-	<start name="test-system_rtc" priority="-1">
-		<config/>
-		<route>
-			<service name="Report"> <child name="system_rtc"/> </service>
-			<service name="Rtc">    <child name="system_rtc"/> </service>
-			<service name="Timer">  <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start test-system_rtc | priority: -1
+  + config
+  + route
+    + service Report | + child system_rtc
+    + service Rtc    | + child system_rtc
+    + service Timer  | + child timer
+    + any-service    | + parent
 
-	<start name="test-libc_rtc" caps="150" ram="4M">
-		<config>
-			<vfs> <dir name="dev"> <log/> <rtc/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
-		</config>
-		<route>
-			<service name="Rtc"> <child name="system_rtc"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-</config>
++ start test-libc_rtc | caps: 150 | ram: 4M
+  + config
+  | + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + rtc
+  + route
+    + service Rtc   | + child system_rtc
+    + service Timer | + child timer
+    + any-service   | + parent
+-
 }
 
 build { test/system_rtc test/libc_rtc }

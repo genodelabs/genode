@@ -39,57 +39,54 @@ if {[have_cmd_switch --autopilot]} {
 
 create_boot_directory
 
-import_from_depot [depot_user]/src/[base_src]
-import_from_depot [depot_user]/src/init
-import_from_depot [depot_user]/src/libc
-import_from_depot [depot_user]/src/posix
-import_from_depot [depot_user]/src/stdcxx
-import_from_depot [depot_user]/src/vfs
-import_from_depot [depot_user]/src/vfs_pipe \
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/vfs_jitterentropy
 
 build { test/libc_integration }
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="1M"/>
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="test-libc_integration" caps="400" ram="256M" priority="-1">
-		<config>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe"/>
-			<arg value="test-libc_integration"/>
-			<arg value="-wo"/> <arg value="} $config_wo {"/>
-			<arg value="-pw"/> <arg value="} $config_pw {"/>
-			<arg value="-ws"/> <arg value="} $config_ws {"/>
-			<arg value="-ds"/> <arg value="} $config_ds {"/>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<inline name="rtc">2019-08-20 15:01</inline>
-					<jitterentropy name="urandom"/>
-					<dir name="pipe">
-						<pipe/>
-					</dir>
-				</dir>
-			</vfs>
-		</config>
-	</start>
-</config>
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 200 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start test-libc_integration | caps: 400 | ram: 256M | priority: -1
+  + config
+    + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc | pipe: /dev/pipe
+    + arg test-libc_integration
+    + arg -wo | : } $config_wo {
+    + arg -pw | : } $config_pw {
+    + arg -ws | : } $config_ws {
+    + arg -ds | : } $config_ds {
+    + vfs
+      + dir dev
+        + log
+        + inline rtc | : 2019-08-20 15:01
+        + jitterentropy urandom
+        + dir pipe | + pipe
+-
 }
 
 build_boot_image [build_artifacts]

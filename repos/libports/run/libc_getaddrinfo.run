@@ -16,89 +16,68 @@ import_from_depot [depot_user]/src/[base_src] \
 build { test/libc_getaddrinfo }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="128" ram="1M"/>
+config
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1000" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 128 | ram: 1M
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes">
++ start timer
+  + provides | + service Timer
 
-			<policy label_prefix="test-libc_getaddrinfo" domain="downlink"/>
-			<policy label_prefix="drivers"               domain="uplink"/>
++ start drivers | caps: 1000 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
 
-			<domain name="uplink">
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: test-libc_getaddrinfo | domain: downlink
+    + policy | label_prefix: drivers | domain: uplink
+    + domain uplink
+      + nat | domain: downlink | tcp-ports: 16384 | udp-ports: 16384 | icmp-ids: 16384
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
+        + dns-server | ip: 8.8.8.8
+        + dns-server | ip: 1.1.1.1
+      + tcp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + udp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + icmp | dst: 0.0.0.0/0 | domain: uplink
 
-				<nat domain="downlink"
-				     tcp-ports="16384"
-				     udp-ports="16384"
-				     icmp-ids="16384"/>
-
-			</domain>
-
-			<domain name="downlink" interface="10.0.3.1/24">
-
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2">
-					<dns-server ip="8.8.8.8"/>
-					<dns-server ip="1.1.1.1"/>
-				</dhcp-server>
-
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
-				<icmp dst="0.0.0.0/0" domain="uplink"/>
-
-			</domain>
-
-		</config>
-	</start>
-
-	<start name="test-libc_getaddrinfo" caps="256" ram="16M">
-		<config>
-			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<dir name="socket"> <lwip dhcp="yes"/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" socket="/socket"/>
-			<arg value="test-libc_getaddrinfo"/>
-			<arg value="genode.org"/>
-			<arg value="hypervisor.org"/>
-			<arg value="example.com"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>
++ start test-libc_getaddrinfo | caps: 256 | ram: 16M
+  + config
+  | + vfs
+  |   + dir dev    | + log
+  |   + dir socket | + lwip | dhcp: yes
+  | + libc | stdout: /dev/log | socket: /socket
+  | + arg test-libc_getaddrinfo
+  | + arg genode.org
+  | + arg hypervisor.org
+  | + arg example.com
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build_boot_image [build_artifacts]

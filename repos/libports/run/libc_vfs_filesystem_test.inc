@@ -22,7 +22,7 @@ if {[catch { exec which $mkfs_cmd } ]} {
 # Build
 #
 
-set build_components { test/libc_vfs lib/libc lib/vfs test/libc_vfs }
+set build_components { lib/libc lib/vfs test/libc_vfs }
 
 lappend build_components {*}$test_build_components
 
@@ -30,10 +30,10 @@ build $build_components
 
 create_boot_directory
 
-set depot_pkgs " [depot_user]/src/[base_src]
-                 [depot_user]/src/init
-                 [depot_user]/src/vfs_block
-                 [depot_user]/src/vfs_import "
+lappend depot_pkgs [depot_user]/src/[base_src] \
+                   [depot_user]/src/init \
+                   [depot_user]/src/vfs_block \
+                   [depot_user]/src/vfs_import
 
 lappend_if $use_vfs_server depot_pkgs [depot_user]/src/vfs
 
@@ -43,75 +43,79 @@ import_from_depot {*}$depot_pkgs
 # Generate config
 #
 
-set config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="2M"/>
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="test-libc_vfs" caps="200" ram="28M">
-		<config>
-			<iterations value="1"/>}
-append_if [have_include "power_on/qemu"] config {
-			<write-read size="1M" buffer_size="8K"/>}
-append config {
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev"> <log/> </dir>}
-if {$use_vfs_server} {
-	append config "<fs/>"
+proc vfs_server_vfs_fs_node { } {
+	global  test_vfs_config
+	return $test_vfs_config
+}
+
+proc vfs_server_start_node { } { return [join [list {
++ start vfs | caps: 200 | ram: 24M
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: test-libc_vfs | root: / | writeable: yes
+    + vfs
+      + dir dev | + log
+      + } [vfs_server_vfs_fs_node] {
+} ] ""] }
+
+proc test_vfs_fs_node { } { return "fs" }
+
+if {!$use_vfs_server} {
+	proc vfs_server_start_node { } { }
+	proc test_vfs_fs_node { } {
+		global  test_vfs_config
+		return $test_vfs_config
+	}
+}
+
+if {[have_include "power_on/qemu"]} {
+	proc test_command { } { return "write-read | size: 1M | buffer_size: 8K" }
 } else {
-	append config $test_vfs_config
-}
-append config {
-			</vfs>
-		</config>
-	</start>
-
-	<start name="vfs_block" caps="700" ram="80M">
-		<provides><service name="Block"/></provides>
-		<config>
-			<vfs>
-				<ram/>
-				<import>
-					<rom name="test.hda"/>
-				</import>
-			</vfs>
-			<default-policy file="/test.hda" block_size="512"
-			                writeable="yes"/>
-		</config>
-	</start>}
-
-append_if $use_vfs_server config "
-	<start name=\"vfs\" caps=\"200\" ram=\"24M\">
-		<provides><service name=\"File_system\"/></provides>
-		<config>
-			<vfs>
-				<dir name=\"dev\"> <log/> </dir>}
-				$test_vfs_config
-			</vfs>
-			<policy label_prefix=\"test-libc_vfs\" root=\"/\" writeable=\"yes\"/>
-		</config>
-	</start>"
-
-append config {
-</config>
+	proc test_command { } { }
 }
 
-install_config $config
+install_config {
+config | verbose: yes
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 200 | ram: 2M
+
++ start timer
+  + provides | + service Timer
+
++ start test-libc_vfs | caps: 200 | ram: 28M
+  + config
+    + iterations | value: 1
+    + } [test_command] {
+    + libc | stdout: /dev/log | stderr: /dev/log
+    + vfs
+      + dir dev | + log
+      + } [test_vfs_fs_node] {
+
++ start vfs_block | caps: 700 | ram: 80M
+  + provides | + service Block
+  + config
+    + default-policy | file: /test.hda | block_size: 512 | writeable: yes
+    + vfs
+      + ram
+      + import | + rom test.hda
+
+} [vfs_server_start_node] {
+-
+}
 
 #
 # Prepare hard-disk image for test (used in RAM)

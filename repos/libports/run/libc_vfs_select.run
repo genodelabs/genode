@@ -1,72 +1,65 @@
 build {
-	core init timer lib/ld lib/libc lib/posix lib/vfs lib/vfs_pipe lib/stdcxx
+	core init timer lib/ld
+	lib/libc lib/libm lib/posix lib/vfs lib/vfs_pipe lib/stdcxx
 	server/terminal_crosslink server/vfs test/libc_select test/libc_counter
 }
 
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer" ram="2M">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="terminal_crosslink">
-		<provides> <service name="Terminal"/> </provides>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="vfs" ram="12M">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<terminal/>
-				<dir name="pipe"> <pipe/> </dir>
-			</vfs>
-			<default-policy root="/" writeable="yes"/>
-		</config>
-	</start>
++ start timer | ram: 2M
+  + provides | + service Timer
 
-	<start name="test-libc_counter-source" ram="8M">
-		<config>
-			<vfs>
-				<dir name="dev"> <terminal/> <log/> </dir>
-			</vfs>
-			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
-		</config>
-	</start>
++ start terminal_crosslink
+  + provides | + service Terminal
 
-	<start name="test-libc_select" ram="4M">
-		<config>
-			<arg value="test-libc_select"/>
-			<arg value="/dev/log"/>
-			<arg value="/vfs/terminal"/>
-			<!--
-			<arg value=":"/>
-			<arg value="/dev/log"/>
-			-->
-			<vfs>
-				<dir name="dev"> <log/> <null/> <zero/> </dir>
-				<dir name="vfs"> <fs/> </dir>
-			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" pipe="/vfs/pipe"/>
-		</config>
-	</start>
-</config>
++ start vfs | ram: 12M
+  + provides | + service File_system
+  + config
+    + default-policy | root: / | writeable: yes
+    + vfs
+      + terminal
+      + dir pipe | + pipe
+
++ start test-libc_counter-source | ram: 8M
+  + config
+    + libc | stdin: /dev/terminal | stdout: /dev/terminal | stderr: /dev/log
+    + vfs
+      + dir dev
+        + terminal
+        + log
+
++ start test-libc_select | ram: 4M
+  + config
+    + libc | stdin: /dev/null | stdout: /dev/log | stderr: /dev/log | pipe: /vfs/pipe
+    + arg test-libc_select
+    + arg /dev/log
+    + arg /vfs/terminal
+    + vfs
+      + dir vfs | + fs
+      + dir dev
+        + log
+        + null
+        + zero
+-
 }
 
 build_boot_image [build_artifacts]

@@ -1,77 +1,69 @@
 build {
 	core lib/ld init timer
 	lib/vfs lib/vfs_audit server/vfs
-	lib/libc lib/posix test/libc_many_writes
+	lib/libc lib/libm lib/posix test/libc_many_writes
 }
 
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
+config
++ parent-provides
+  + service CPU
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="128" ram="1M"/>
++ default | caps: 128 | ram: 1M
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="ramfs" ram="4M">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<dir name="ram"> <ram/> </dir>
-				<dir name="audit"> <audit path="ram"/> </dir>
-			</vfs>
-			<default-policy root="/audit" writeable="yes"/>
-		</config>
-	</start>
++ start ramfs | ram: 4M
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + vfs
+      + dir ram   | + ram
+      + dir audit | + audit | path: ram
+    + default-policy | root: /audit | writeable: yes
 
-	<start name="fs" ram="4M">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<dir name="fs"> <fs/> </dir>
-				<dir name="audit"> <audit path="fs"/> </dir>
-			</vfs>
-			<default-policy root="/audit" writeable="yes"/>
-		</config>
-		<route>
-			<service name="File_system"> <child name="ramfs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start fs | ram: 4M
+  + binary vfs
+  + provides | + service File_system
+  + config
+  | + vfs
+  |   + dir fs    | + fs
+  |   + dir audit | + audit | path: fs
+  | + default-policy | root: /audit | writeable: yes
+  + route
+    + service File_system | + child ramfs
+    + any-service
+      + parent
+      + any-child
 
-	<start name="test-libc_many_writes" caps="1000" ram="4M">
-		<config>
-			<vfs>
-				<dir name="rw">  <fs/>  </dir>
-				<dir name="dev"> <log/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-			<arg value="test"/>
-		</config>
-		<route>
-			<service name="File_system"> <child name="fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>
++ start test-libc_many_writes | caps: 1000 | ram: 4M
+  + config
+  | + vfs
+  |   + dir rw  | + fs
+  |   + dir dev | + log
+  | + libc | stdout: /dev/log | stderr: /dev/log
+  | + arg test
+  + route
+    + service File_system | + child fs
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build_boot_image [build_artifacts]

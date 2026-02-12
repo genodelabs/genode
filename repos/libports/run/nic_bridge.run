@@ -20,137 +20,117 @@ import_from_depot [depot_user]/src/[base_src] \
 build { test/lwip }
 
 install_config {
-<config generate_xml="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="2M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="nic_router" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes">
++ default | caps: 200 | ram: 2M
 
-			<policy label_prefix="nic_bridge" domain="downlink"/>
++ start timer
+  + provides | + service Timer
 
-			<domain name="downlink" interface="10.0.2.1/24">
++ start nic_router | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: nic_bridge | domain: downlink
+    + domain downlink | interface: 10.0.2.1/24
+      + dhcp-server | ip_first: 10.0.2.100 | ip_last: 10.0.2.200
 
-				<dhcp-server ip_first="10.0.2.100" ip_last="10.0.2.200"/>
++ start nic_bridge | caps: 300 | ram: 24M
+  + provides | + service Nic
+  + config | verbose: yes | mac: 02:02:02:02:42:00
+    + policy | label_prefix: client_1
+    + policy | label_prefix: server_1 | ip_addr: 10.0.2.55
+    + policy | label_prefix: server_2 | ip_addr: 10.0.2.56 | mac: 02:02:02:02:23:00
+    + policy | label_prefix: client_2                      | mac: 02:02:02:02:79:00
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-			</domain>
++ start server_1 | ram: 32M
+  + binary test-lwip_httpsrv
+  + route
+  | + service Nic | + child nic_bridge
+  | + any-service
+  |   + parent
+  |   + any-child
+  + config | port: 80
+    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+    + vfs
+      + dir dev    | + log
+      + dir socket | + lwip | label: lwip | ip_addr: 10.0.2.55
+                                          | netmask: 255.255.255.0
+                                          | gateway: 10.0.2.1
++ start server_2 | ram: 32M
+  + binary test-lwip_httpsrv
+  + route
+  | + service Nic | + child nic_bridge
+  | + any-service
+  |   + parent
+  |   + any-child
+  + config | port: 80
+    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+    + vfs
+      + dir dev    | + log
+      + dir socket | + lxip | label: lxip | ip_addr: 10.0.2.56
+                                          | netmask: 255.255.255.0
+                                          | gateway: 10.0.2.1
++ start client_1 | ram: 32M
+  + binary test-http_clnt
+  + route
+  | + service Nic | + child nic_bridge
+  | + any-service
+  |   + parent
+  |   + any-child
+  + config | server_ip: 10.0.2.55 | server_port: 80
+    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+    + vfs
+      + dir dev    | + log
+      + dir socket | + lwip | dhcp: yes
 
-		</config>
-	</start>
++ start client_2 | ram: 32M
+  + binary test-http_clnt
+  + route
+  | + service Nic | + child nic_bridge
+  | + any-service
+  |   + parent
+  |   + any-child
+  + config | server_ip: 10.0.2.56 | server_port: 80
+    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+    + vfs
+      + dir dev    | + log
+      + dir socket | + lxip | dhcp: yes
 
-	<start name="nic_bridge" caps="300" ram="24M">
-		<provides><service name="Nic"/></provides>
-		<config verbose="yes" mac="02:02:02:02:42:00">
-			<policy label_prefix="client_1"/>
-			<policy label_prefix="server_1" ip_addr="10.0.2.55"/>
-			<policy label_prefix="server_2" ip_addr="10.0.2.56" mac="02:02:02:02:23:00"/>
-			<policy label_prefix="client_2"                     mac="02:02:02:02:79:00"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="server_1" ram="32M">
-		<binary name="test-lwip_httpsrv"/>
-		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-		<config port="80">
-			<vfs>
-				<dir name="socket">
-					<lwip label="lwip" ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
-				</dir>
-				<dir name="dev"> <log/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-
-	<start name="server_2" ram="32M">
-		<binary name="test-lwip_httpsrv"/>
-		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-		<config port="80">
-			<vfs>
-				<dir name="socket">
-					<lxip label="lxip" ip_addr="10.0.2.56" netmask="255.255.255.0" gateway="10.0.2.1"/>
-				</dir>
-				<dir name="dev"> <log/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-
-	<start name="client_1" ram="32M">
-		<binary name="test-http_clnt"/>
-		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-		<config server_ip="10.0.2.55" server_port="80">
-			<vfs>
-				<dir name="socket"> <lwip dhcp="yes"/> </dir>
-				<dir name="dev">    <log/>             </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-
-	<start name="client_2" ram="32M">
-		<binary name="test-http_clnt"/>
-		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-		<config server_ip="10.0.2.56" server_port="80">
-			<vfs>
-				<dir name="socket"> <lxip dhcp="yes"/> </dir>
-				<dir name="dev">    <log/>             </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-
-	<start name="client_3" ram="32M">
-		<binary name="test-http_clnt"/>
-		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-		<config server_ip="10.0.2.56" server_port="80">
-			<vfs>
-				<dir name="socket"> <lwip dhcp="yes"/> </dir>
-				<dir name="dev">    <log/>             </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-		</config>
-	</start>
-</config>}
++ start client_3 | ram: 32M
+  + binary test-http_clnt
+  + route
+  | + service Nic | + child nic_bridge
+  | + any-service
+  |   + parent
+  |   + any-child
+  + config | server_ip: 10.0.2.56 | server_port: 80
+    + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+    + vfs
+      + dir dev    | + log
+      + dir socket | + lwip | dhcp: yes
+-
+}
 
 build_boot_image [build_artifacts]
 

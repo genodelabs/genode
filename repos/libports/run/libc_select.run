@@ -1,69 +1,61 @@
 build {
-	core init timer lib/ld lib/libc lib/vfs lib/posix lib/stdcxx lib/vfs_pipe
+	core init timer lib/ld
+	lib/libc lib/libm lib/vfs lib/posix lib/stdcxx lib/vfs_pipe
 	server/terminal_crosslink test/libc_select test/libc_counter
 }
 
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer" ram="2M">
-		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="terminal_crosslink">
-		<provides> <service name="Terminal"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="test-libc_counter-source" ram="8M">
-		<config>
-			<vfs>
-				<dir name="dev"> <terminal/> <log/> </dir>
-			</vfs>
-			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
-		</config>
-	</start>
-	<start name="test-libc_select" ram="4M">
-		<config>
-			<arg value="test-libc_select"/>
-			<arg value="/dev/log"/>
-			<arg value="/dev/terminal"/>
-			<!--
-			<arg value=":"/>
-			<arg value="/dev/log"/>
-			-->
-			<vfs>
-				<dir name="dev">
-					<log/> <null/> <zero/> <terminal/>
-				</dir>
-				<dir name="pipe"> <pipe/> </dir>
-			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
-		</config>
-	</start>
-</config>
++ default | caps: 100 | ram: 1M
+
++ start timer | ram: 2M
+  + provides | + service Timer
+
++ start terminal_crosslink
+  + provides | + service Terminal
+
++ start test-libc_counter-source | ram: 8M
+  + config
+    + libc | stdin: /dev/terminal | stdout: /dev/terminal | stderr: /dev/log
+    + vfs
+      + dir dev
+        + terminal
+        + log
+
++ start test-libc_select | ram: 4M
+  + config
+    + arg test-libc_select
+    + arg /dev/log
+    + arg /dev/terminal
+    + libc | stdin: /dev/null | stdout: /dev/log | stderr: /dev/log | pipe: /pipe
+    + vfs
+      + dir pipe | + pipe
+      + dir dev
+        + log
+        + null
+        + zero
+        + terminal
+-
 }
 
-build_boot_image {
-	core init timer terminal_crosslink
-	test-libc_counter-source test-libc_select
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so stdcxx.lib.so
-	vfs_pipe.lib.so posix.lib.so
-}
+build_boot_image [build_artifacts]
 
 append qemu_args "  -nographic "
 

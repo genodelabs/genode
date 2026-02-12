@@ -6,66 +6,51 @@ build {
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="128"/>
+config
++ parent-provides
+  + service CPU
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="fs" ram="4M">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs> <log label="log"/> </vfs>
-			<default-policy root="/" writeable="yes"/>
-		</config>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="test" caps="1000" ram="4M">
-		<binary name="sequence"/>
-		<config>
++ default | caps: 128
 
-			<start name="root">
-				<binary name="test-libc_getgrent"/>
-				<config>
-					<vfs> <fs/> </vfs>
-					<libc stdout="/log" stderr="/log"/>
-					<arg>test-libc_getgrent</arg>
-					<env name="HOME">/home-from-getenv</env>
-				</config>
-			</start>
++ start fs | ram: 4M
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + vfs | + log | label: log
+    + default-policy | root: / | writeable: yes
 
-			<start name="alice">
-				<binary name="test-libc_getgrent"/>
-				<config>
-					<vfs> <fs/> </vfs>
-					<libc stdout="/log" stderr="/log">
-						<group name="alice" gid="1"/>
-					</libc>
-				</config>
-			</start>
-
-			<start name="bob">
-				<binary name="test-libc_getgrent"/>
-				<config>
-					<vfs> <fs/> </vfs>
-					<libc stdout="/log" stderr="/log">
-						<group name="bob" gid="2"/>
-					</libc>
-				</config>
-			</start>
-
-
-		</config>
-	</start>
-</config>
++ start test | caps: 1000 | ram: 4M
+  + binary sequence
+  + config
+    + start root
+    | + binary test-libc_getgrent
+    | + config
+    |   + vfs | + fs
+    |   + libc | stdout: /log | stderr: /log
+    |   + arg test-libc_getgrent
+    |   + env HOME | : /home-from-getenv
+    + start alice
+    | + binary test-libc_getgrent
+    | + config
+    |   + vfs | + fs
+    |   + libc | stdout: /log | stderr: /log
+    |     + group alice | gid: 1
+    + start bob
+      + binary test-libc_getgrent
+      + config
+        + vfs | + fs
+        + libc | stdout: /log | stderr: /log
+          + group bob | gid: 2
+-
 }
 
 build_boot_image [build_artifacts]

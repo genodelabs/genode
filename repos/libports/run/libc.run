@@ -3,31 +3,35 @@ build { core init timer lib/ld lib/libc lib/libm lib/vfs lib/posix test/libc }
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="1M"/>
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="test-libc" ram="400M">
-		<config>
-			<vfs> <dir name="dev"> <log/> <inline name="rtc">2019-08-20 15:01</inline> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
-		</config>
-	</start>
-</config>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 200 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start test-libc | ram: 400M
+  + config
+    + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc
+    + vfs
+      + dir dev
+        + log
+        + inline rtc | : 2019-08-20 15:01
+-
 }
 
 build_boot_image [build_artifacts]

@@ -1,9 +1,3 @@
-#
-# \brief  Test of fetchurl
-# \author Emery Hemingway
-# \date   2016-06-05
-#
-
 assert {![have_board rpi3]}
 assert {![have_board imx53_qsb_tz]}
 assert {![have_board rpi]}
@@ -13,7 +7,7 @@ assert {[have_recipe pkg/[drivers_nic_pkg]]} \
 
 if {[have_cmd_switch --autopilot]} {
 	assert {![have_board linux] && ![have_board virt_qemu_riscv]} \
-		"Autopilot mode is not supported on this platform."
+	       "Autopilot mode is not supported on this platform."
 }
 
 #
@@ -27,16 +21,15 @@ if {[have_cmd_switch --autopilot]} {
 #
 
 proc socket_fs_plugin { } {
-	set result "<[ip_stack]"
+	set result "[ip_stack]"
 
 	if {[have_board linux]} {
-		append result { ip_addr="10.0.2.55" netmask="255.255.255.0"}
-		append result { gateway="10.0.2.1" nameserver="1.1.1.1"}
+		append result { | ip_addr: 10.0.2.55 | netmask: 255.255.255.0}
+		append result { | gateway: 10.0.2.1  | nameserver: 1.1.1.1}
 	} else {
-		append result { dhcp="yes"}
+		append result { | dhcp: yes}
 	}
 
-	append result {/>}
 	return $result
 }
 
@@ -59,94 +52,74 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/zlib
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default caps="100" ram="1M"/>
-	<default-route>
-		<service name="Report"> <child name="report_rom"/> </service>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
+config
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default-route
+  + service Report | + child report_rom
+  + any-service
+    + parent
+    + any-child
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes">
++ start timer
+  + provides | + service Timer
 
-			<policy label_prefix="fetchurl" domain="downlink"/>
-			<policy label_prefix="drivers"  domain="uplink"/>
++ start drivers | caps: 1200 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service Uplink              | + child nic_router
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + any-service                 | + parent
 
-			<domain name="uplink">
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: fetchurl | domain: downlink
+    + policy | label_prefix: drivers  | domain: uplink
+    + domain uplink
+      + nat | domain: downlink | tcp-ports: 16384 | udp-ports: 16384 | icmp-ids: 16384
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2 | dns_config_from: uplink
+      + tcp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + udp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + icmp | dst: 0.0.0.0/0 | domain: uplink
 
-				<nat domain="downlink"
-				     tcp-ports="16384"
-				     udp-ports="16384"
-				     icmp-ids="16384"/>
++ start report_rom | ram: 4M
+  + provides
+    + service ROM
+    + service Report
+  + config | verbose: yes
 
-			</domain>
-
-			<domain name="downlink" interface="10.0.3.1/24">
-
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2" dns_config_from="uplink"/>
-
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
-				<icmp dst="0.0.0.0/0" domain="uplink"/>
-
-			</domain>
-
-		</config>
-	</start>
-
-	<start name="report_rom" ram="4M">
-		<provides> <service name="ROM"/> <service name="Report"/> </provides>
-		<config verbose="yes"/>
-	</start>
-
-	<start name="fetchurl" caps="500" ram="32M">
-		<config>
-			<report progress="yes"/>
-			<vfs>
-				<dir name="dev">
-					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
-					<inline name="random">0123456789012345678901234567890123456789</inline>
-				</dir>
-				<dir name="pipe"> <pipe/> </dir>
-				<dir name="socket"> } [socket_fs_plugin] { </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-			      rng="/dev/random" socket="/socket" pipe="/pipe"/>
-			<fetch url="https://genode.org/about/LICENSE" path="/dev/log" retry="3"/>
-		</config>
-	</start>
-</config>
++ start fetchurl | caps: 500 | ram: 32M
+  + config
+    + report | progress: yes
+    + vfs
+    | + dir dev
+    |   + log
+    |   + null
+    |   + inline rtc    | : 2000-01-01 00:00
+    |   + inline random | : 0123456789012345678901234567890123456789
+    | + dir pipe | + pipe
+    | + dir socket | + } [socket_fs_plugin] {
+    + libc | stdout: /dev/log    | stderr: /dev/log | rtc:    /dev/rtc
+    |      | rng:    /dev/random | socket: /socket  | pipe:   /pipe
+    + fetch | url: https://genode.org/about/LICENSE | path: /dev/log | retry: 3
+-
 }
 
-#build            { }
 build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "

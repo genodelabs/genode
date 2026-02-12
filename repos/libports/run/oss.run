@@ -3,7 +3,8 @@ assert {![have_board linux]}
 assert {![have_include power_on/qemu]}
 
 build {
-	core init timer lib/ld lib/libc lib/vfs lib/posix lib/vfs_legacy_oss
+	core init timer lib/ld
+	lib/libc lib/libm lib/vfs lib/posix lib/vfs_legacy_oss
 	driver/acpi driver/audio driver/platform app/pci_decode
 	server/report_rom test/oss
 }
@@ -11,95 +12,85 @@ build {
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="report_rom" ram="2M">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
-			<policy label="pci_decode -> system" report="acpi -> acpi"/>
-			<policy label="platform -> devices"  report="pci_decode -> devices"/>
-		</config>
-	</start>
++ default | caps: 200 | ram: 1M
 
-	<start name="acpi" caps="350" ram="4M">
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="pci_decode" caps="350" ram="2M">
-		<route>
-			<service name="Report">             <child name="report_rom"/> </service>
-			<service name="ROM" label="system"> <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start report_rom | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + policy | label: pci_decode -> system | report: acpi -> acpi
+    + policy | label: platform -> devices  | report: pci_decode -> devices
 
-	<start name="platform" caps="100" managing_system="yes">
-		<provides>
-			<service name="Platform"/>
-		</provides>
-		<route>
-			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-		<config>
-			<policy label="audio -> "> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
-		</config>
-	</start>
++ start acpi | caps: 350 | ram: 4M
+  + route
+    + service Report | + child report_rom
+    + any-service    | + parent
 
-	<start name="audio" ram="8M">
-		<binary name="pci_audio"/>
-		<provides>
-			<service name="Audio_out"/>
-			<service name="Audio_in"/>
-		</provides>
-		<config verbose="yes">
-			<!-- tested on Lenovo x260 -->
-			<mixer field="outputs.master" value="128"/>
-			<mixer field="record.adc-0:1_source" value="mic"/>
-			<mixer field="record.adc-0:1" value="128"/>
-			<mixer field="record.enable" value="on"/>
-		</config>
-	</start>
++ start pci_decode | caps: 350 | ram: 2M
+  + route
+    + service Report              | + child report_rom
+    + service ROM | label: system | + child report_rom
+    + any-service                 | + parent
 
-	<start name="test-oss" ram="10M">
-		<config>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<legacy_oss name="dsp"/>
-				</dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-		</config>
-		<route>
-			<service name="Audio_in"> <child name="audio"/> </service>
-			<service name="Audio_out"> <child name="audio"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>
++ start platform | caps: 100 | managing_system: yes
+  + provides | + service Platform
+  + route
+    + service ROM | label: devices | + child report_rom
+    + service Timer                | + child timer
+    + any-service                  | + parent
+  + config
+    + policy | label: audio ->
+      + pci | class: AUDIO
+      + pci | class: HDAUDIO
+
++ start audio | ram: 8M
+  + binary pci_audio
+  + provides
+    + service Audio_out
+    + service Audio_in
+  + config | verbose: yes
+    .
+    . tested on Lenovo x260
+    .
+    + mixer | field: outputs.master        | value: 128
+    + mixer | field: record.adc-0:1_source | value: mic
+    + mixer | field: record.adc-0:1        | value: 128
+    + mixer | field: record.enable         | value: on
+
++ start test-oss | ram: 10M
+  + config
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + legacy_oss dsp
+  | + libc | stdout: /dev/log | stderr: /dev/log
+  + route
+    + service Audio_in  | + child audio
+    + service Audio_out | + child audio
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build_boot_image [build_artifacts]

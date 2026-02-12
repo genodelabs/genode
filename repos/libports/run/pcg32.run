@@ -1,32 +1,23 @@
-build { core init lib/ld lib/libc lib/vfs lib/posix test/pcg32 }
+build { core init lib/ld lib/libc lib/libm lib/vfs lib/posix test/pcg32 }
 
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200"/>
-	<start name="test-pcg32" ram="4M">
-		<config>
-			<vfs>
-				<dir name="dev"> <log/> </dir>
-			</vfs>
-			<libc stdout="/dev/log"/>
-		</config>
-	</start>
-</config>
+config
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route | + any-service | + parent
+
++ start test-pcg32 | ram: 4M | caps: 200
+  + config
+    + vfs | + dir dev | + log
+    + libc | stdout: /dev/log
+-
 }
 
 build_boot_image [build_artifacts]

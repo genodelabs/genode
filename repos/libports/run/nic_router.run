@@ -30,24 +30,21 @@ create_boot_directory
 # Test 1 utilities
 #
 
-proc test_1_config { } {
-	if {[enable_test_1]} { return "
-		[client_config t1_d1_c1_udp udp 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
-		[client_config t1_d2_c1_udp udp 10.0.99.56 10.0.99.33 255.255.255.0 nic_router  999 10.0.99.55]
-		[server_config t1_d2_s1_udp udp 10.0.99.55 10.0.99.33 255.255.255.0 nic_router  999 ]" }
-}
+proc test_1_start_nodes { } { return "
+[client_start t1_d1_c1_udp udp 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
+[client_start t1_d2_c1_udp udp 10.0.99.56 10.0.99.33 255.255.255.0 nic_router  999 10.0.99.55]
+[server_start t1_d2_s1_udp udp 10.0.99.55 10.0.99.33 255.255.255.0 nic_router  999 ]" }
 
-proc test_1_router_config { } {
-	if {[enable_test_1]} { return {
-		<policy label_prefix="t1_d1" domain="t1_d1" />
-		<policy label_prefix="t1_d2" domain="t1_d2" />
-
-		<domain name="t1_d1" interface="10.0.98.33/24">
-			<udp-forward port="1337" domain="t1_d2" to="10.0.99.55" to_port="999" />
-		</domain>
-
-		<domain name="t1_d2" interface="10.0.99.33/24" />} }
-}
+proc test_1_router_config { } { return {
+  | + policy | label_prefix: t1_d1 | domain: t1_d1
+  | + policy | label_prefix: t1_d2 | domain: t1_d2
+  | + domain t1_d1 | interface: 10.0.98.33/24
+  | | + udp-forward
+  | |               port:    1337
+  | |               domain:  t1_d2
+  | |               to:      10.0.99.55
+  | |               to_port: 999
+  | + domain t1_d2 | interface: 10.0.99.33/24} }
 
 proc test_1_router_uplink_config { } { }
 
@@ -56,318 +53,262 @@ proc test_1_router_uplink_config { } { }
 # Test 2 utilities
 #
 
-proc test_2_config { } {
-	if {[enable_test_2]} { return "
-		[client_config t2_d0_c1_udp udp 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
-		[server_config t2_d1_s1_udp udp 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
-}
+proc test_2_start_nodes { } { return "
+[client_start t2_d0_c1_udp udp 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
+[server_start t2_d1_s1_udp udp 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
 
-proc test_2_router_config { } {
-	if {[enable_test_2]} { return {
-		<policy label_prefix="t2_d1" domain="t2_d1" />
-		<domain name="t2_d1" interface="18.17.16.14/24" />} }
-}
+proc test_2_router_config { } { return {
+  | + policy | label_prefix: t2_d1 | domain: t2_d1
+  | + domain t2_d1 | interface: 18.17.16.14/24} }
 
-proc test_2_router_uplink_config { } {
-	if {[enable_test_2]} { return {
-		<udp-forward port="1" domain="t2_d1" to="18.17.16.15" />} }
-}
+proc test_2_router_uplink_config { } { return {
+  |   + udp-forward | port: 1 | domain: t2_d1 | to: 18.17.16.15} }
 
 
 #
 # Test 3 utilities
 #
 
-proc test_3_config { } {
-	if {[enable_test_3]} { return "
-		[client_config t3_d1_c1_udp udp 217.13.192.2 217.13.192.1 255.255.192.0 nic_router 65535 10.0.2.213]
-		[server_config t3_d0_s1_udp udp 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]" }
-}
+proc test_3_start_nodes { } { return "
+[client_start t3_d1_c1_udp udp 217.13.192.2 217.13.192.1 255.255.192.0 nic_router 65535 10.0.2.213]
+[server_start t3_d0_s1_udp udp 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]" }
 
-proc test_3_router_config { } {
-	if {[enable_test_3]} { return {
-		<policy label_prefix="t3_d1" domain="t3_d1" />
+proc test_3_router_config { } { return {
+  | + policy | label_prefix: t3_d1 | domain: t3_d1
+  | + domain t3_d1 | interface: 217.13.192.1/24
+  |   + ip | dst: 10.0.2.0/24 | domain: uplink} }
 
-		<domain name="t3_d1" interface="217.13.192.1/24">
-			<ip dst="10.0.2.0/24" domain="uplink" />
-		</domain>} }
-}
-
-proc test_3_router_uplink_config { } {
-	if {[enable_test_3]} { return {
-		<ip dst="217.13.192.0/24" domain="t3_d1" />} }
-}
+proc test_3_router_uplink_config { } { return {
+  |   + ip | dst: 217.13.192.0/24 | domain: t3_d1} }
 
 
 #
 # Test 4 utilities
 #
 
-proc test_4_config { } {
-	if {[enable_test_4]} { return "
-		[client_config t4_d0_c1_tcp http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80   10.0.2.55]
-		[server_config t4_d1_s1_tcp http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 2048 ]" }
-}
+proc test_4_start_nodes { } { return "
+[client_start t4_d0_c1_tcp http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80   10.0.2.55]
+[server_start t4_d1_s1_tcp http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 2048 ]" }
 
-proc test_4_router_config { } {
-	if {[enable_test_4]} { return {
-		<policy label_prefix="t4_d1" domain="t4_d1" />
-		<domain name="t4_d1" interface="192.168.1.1/24" />} }
-}
+proc test_4_router_config { } { return {
+  | + policy | label_prefix: t4_d1 | domain: t4_d1
+  | + domain t4_d1 | interface: 192.168.1.1/24} }
 
-proc test_4_router_uplink_config { } {
-	if {[enable_test_4]} { return {
-		<tcp-forward port="80" domain="t4_d1" to="192.168.1.18" to_port="2048" />} }
-}
+proc test_4_router_uplink_config { } { return {
+  |   + tcp-forward
+  |                 port:    80
+  |                 domain:  t4_d1
+  |                 to:      192.168.1.18
+  |                 to_port: 2048} }
 
 #
 # Test 5 utilities
 #
 
-proc test_5_config { } {
-	if {[enable_test_5]} { return "
-		[client_config t5_d0_c1_tcp http 10.0.2.202   10.0.2.1    255.255.255.0 nic_bridge 8080 10.0.2.55]
-		[server_config t5_d1_s1_tcp http 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]" }
-}
+proc test_5_start_nodes { } { return "
+[client_start t5_d0_c1_tcp http 10.0.2.202   10.0.2.1    255.255.255.0 nic_bridge 8080 10.0.2.55]
+[server_start t5_d1_s1_tcp http 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]" }
 
-proc test_5_router_config { } {
-	if {[enable_test_5]} { return {
-		<policy label_prefix="t5_d1" domain="t5_d1" />
-		<domain name="t5_d1" interface="192.168.2.1/24" />} }
-}
+proc test_5_router_config { } { return {
+  | + policy | label_prefix: t5_d1 | domain: t5_d1
+  | + domain t5_d1 | interface: 192.168.2.1/24} }
 
-proc test_5_router_uplink_config { } {
-	if {[enable_test_5]} { return {
-		<tcp-forward port="8080" domain="t5_d1" to="192.168.2.72" />} }
-}
+proc test_5_router_uplink_config { } { return {
+  |   + tcp-forward | port: 8080 | domain: t5_d1 | to: 192.168.2.72} }
 
 
 #
 # Test 6 utilities
 #
 
-proc test_6_config { } {
-	if {[enable_test_6]} { return "
-		[client_config t6_d1_c1_tcp http 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203]
-		[server_config t6_d0_s1_tcp http 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]" }
-}
+proc test_6_start_nodes { } { return "
+[client_start t6_d1_c1_tcp http 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203]
+[server_start t6_d0_s1_tcp http 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]" }
 
-proc test_6_router_config { } {
-	if {[enable_test_6]} { return {
-		<policy label_prefix="t6_d1" domain="t6_d1" />
+proc test_6_router_config { } { return {
+  | + policy | label_prefix: t6_d1 | domain: t6_d1
+  | + domain t6_d1 | interface: 100.200.0.1/24
+  |   + tcp | dst: 10.0.0.0/16 | + permit | port: 2345 | domain: uplink} }
 
-		<domain name="t6_d1" interface="100.200.0.1/24">
-			<tcp dst="10.0.0.0/16">
-				<permit port="2345" domain="uplink" />
-			</tcp>
-		</domain>} }
-}
-
-proc test_6_router_uplink_config { } {
-	if {[enable_test_6]} { return {
-		<nat domain="t6_d1" tcp-ports="6" />} }
-}
+proc test_6_router_uplink_config { } { return {
+  |   + nat | domain: t6_d1 | tcp-ports: 6} }
 
 
 #
 # Test 7 utilities
 #
 
-proc test_7_config { } {
-	if {[enable_test_7]} {
+proc test_7_start_nodes { } {
 
-		append config "
-			[client_config t7_d1_c1_tcp http dhcp         dhcp       dhcp          t7_d1_nic_router 2345 10.13.78.204]
-			[client_config t7_d1_c2_tcp http dhcp         dhcp       dhcp          nic_router       3456 10.13.78.240]
-			[client_config t7_d1_c3_tcp http dhcp         dhcp       dhcp          nic_router       3456 10.13.78.240]
-			[server_config t7_d2_s1_tcp http 10.13.78.204 10.13.78.1 255.255.255.0 nic_router       2345 ]
-			[server_config t7_d2_s2_tcp http 10.13.78.240 10.13.78.1 255.255.255.0 nic_router       3456 ]"
+	append config "
+		[client_start t7_d1_c1_tcp http dhcp         dhcp       dhcp          t7_d1_nic_router 2345 10.13.78.204]
+		[client_start t7_d1_c2_tcp http dhcp         dhcp       dhcp          nic_router       3456 10.13.78.240]
+		[client_start t7_d1_c3_tcp http dhcp         dhcp       dhcp          nic_router       3456 10.13.78.240]
+		[server_start t7_d2_s1_tcp http 10.13.78.204 10.13.78.1 255.255.255.0 nic_router       2345 ]
+		[server_start t7_d2_s2_tcp http 10.13.78.240 10.13.78.1 255.255.255.0 nic_router       3456 ]"
 
-		append config {
-			<start name="t7_d1_nic_router" caps="200" ram="10M" priority="-1">
-				<binary name="nic_router"/>
-				<provides>
-					<service name="Nic"/>
-					<service name="Uplink"/>
-				</provides>
-				<config>
+	append config {
+		+ start t7_d1_nic_router | caps: 200 | ram: 10M | priority: -1
+		  + binary nic_router
+		  + provides
+		  | + service Nic
+		  | + service Uplink
+		  + config
+		  | + policy | label_prefix: t7_d1 | domain: downlink
+		  | + nic-client | domain: uplink
+		  | + domain uplink | + nat | domain: downlink | tcp-ports: 6
+		  | + domain downlink | interface: 100.2.3.1/24
+		  |   + dhcp-server | ip_first: 100.2.3.2
+		  |                 | ip_last:  100.2.3.10
+		  |                 | dns_config_from: uplink
+		  |   + tcp | dst: 10.13.0.0/16 | + permit | port: 2345 | domain: uplink
+		  + route
+		    + service Nic    | + child nic_router
+		    + service Report | + child report_rom
+		    + any-service
+		      + parent
+		      + any-child}
 
-					<policy label_prefix="t7_d1" domain="downlink" />
-					<nic-client                  domain="uplink"   />
+	# strip tabs used for indentation
+	set config [string map {"\t" ""} $config]
 
-					<domain name="uplink">
-						<nat domain="downlink" tcp-ports="6" />
-					</domain>
-
-					<domain name="downlink" interface="100.2.3.1/24">
-						<dhcp-server ip_first="100.2.3.2"
-						             ip_last="100.2.3.10"
-						             dns_config_from="uplink"/>
-
-						<tcp dst="10.13.0.0/16">
-							<permit port="2345" domain="uplink" />
-						</tcp>
-					</domain>
-
-				</config>
-				<route>
-					<service name="Nic"> <child name="nic_router"/> </service>
-					<service name="Report"> <child name="report_rom"/> </service>
-					<any-service> <parent/> <any-child/> </any-service>
-				</route>
-			</start>}
-
-		return $config
-	}
+	return $config
 }
 
-proc test_7_router_config { } {
-	if {[enable_test_7]} { return {
-		<policy label_prefix="t7_d1" domain="t7_d1" />
-		<policy label_prefix="t7_d2" domain="t7_d2" />
-
-		<domain name="t7_d1" interface="100.200.0.1/24">
-			<dhcp-server ip_first="100.200.0.32"
-			             ip_last="100.200.0.64"
-			             ip_lease_time_sec="3600">
-
-				<dns-server ip="8.8.8.8"/>
-
-			</dhcp-server>
-
-			<tcp dst="10.13.0.0/16">
-				<permit port="2345" domain="t7_d2" />
-				<permit port="3456" domain="t7_d2" />
-			</tcp>
-		</domain>
-
-		<domain name="t7_d2" interface="10.13.78.1/24">
-			<nat domain="t7_d1" tcp-ports="18" />
-		</domain>} }
+proc test_7_router_config { } { return {
+  | + policy | label_prefix: t7_d1 | domain: t7_d1
+  | + policy | label_prefix: t7_d2 | domain: t7_d2
+  | + domain t7_d1 | interface: 100.200.0.1/24
+  | | + dhcp-server | ip_first:          100.200.0.32
+  | | |             | ip_last:           100.200.0.64
+  | | |             | ip_lease_time_sec: 3600
+  | | | + dns-server | ip: 8.8.8.8
+  | | + tcp | dst: 10.13.0.0/16
+  | |   + permit | port: 2345 | domain: t7_d2
+  | |   + permit | port: 3456 | domain: t7_d2
+  | + domain t7_d2 | interface: 10.13.78.1/24
+  |   + nat | domain: t7_d1 | tcp-ports: 18}
 }
 
 proc test_7_router_uplink_config { } { }
+
+
+for { set i 1 } { $i <= 7 } { incr i } {
+	if {![enable_test_$i]} {
+		proc test_${i}_start_nodes          { } { }
+		proc test_${i}_router_config        { } { }
+		proc test_${i}_router_uplink_config { } { }
+	}
+}
 
 
 #
 # Init config
 #
 
-append config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+install_config {
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="200" ram="1M"/>
++ default | caps: 200 | ram: 1M
 
-	<start name="timer" priority="0">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer | priority: 0
+  + provides | + service Timer
 
-	<start name="nic_loopback" priority="-1">
-		<provides> <service name="Nic"/> </provides>
-	</start>
++ start nic_loopback | priority: -1
+  + provides | + service Nic
 
-	<start name="nic_router" caps="400" ram="10M" priority="-1">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose="no"
-		        verbose_packets="no"
-		        verbose_domain_state="yes"
-		        dhcp_discover_timeout_sec="3"
-		        dhcp_request_timeout_sec="3"
-		        dhcp_offer_timeout_sec="3"
-		        udp_idle_timeout_sec="30"
-		        tcp_idle_timeout_sec="30"
-		        tcp_max_segm_lifetime_sec="15">
++ start nic_router | caps: 400 | ram: 10M | priority: -1
+  + provides
+  | + service Nic
+  | + service Uplink
+  + config
+  |        verbose:                   no
+  |        verbose_packets:           no
+  |        verbose_domain_state:      yes
+  |        dhcp_discover_timeout_sec: 3
+  |        dhcp_request_timeout_sec:  3
+  |        dhcp_offer_timeout_sec:    3
+  |        udp_idle_timeout_sec:      30
+  |        tcp_idle_timeout_sec:      30
+  |        tcp_max_segm_lifetime_sec: 15
+  |
+  | + report
+  |          bytes:               yes
+  |          config:              yes
+  |          quota:               no
+  |          stats:               no
+  |          link_state:          yes
+  |          link_state_triggers: yes
+  |          interval_sec:        60
+  |
+  | + nic-client | domain: uplink
+  | + domain uplink | interface: 10.0.2.55/24 | gateway: 10.0.2.1 | verbose_packets: no
+  |   } [test_1_router_uplink_config] {
+  |   } [test_2_router_uplink_config] {
+  |   } [test_3_router_uplink_config] {
+  |   } [test_4_router_uplink_config] {
+  |   } [test_5_router_uplink_config] {
+  |   } [test_6_router_uplink_config] {
+  |   } [test_7_router_uplink_config] {
+  |
+  | } [test_1_router_config] {
+  | } [test_2_router_config] {
+  | } [test_3_router_config] {
+  | } [test_4_router_config] {
+  | } [test_5_router_config] {
+  | } [test_6_router_config] {
+  | } [test_7_router_config] {
+  |
+  + route
+    + service Nic    | + child nic_bridge
+    + service Report | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-			<report bytes="yes"
-			        config="yes"
-			        quota="no"
-			        stats="no"
-			        link_state="yes"
-			        link_state_triggers="yes"
-			        interval_sec="60" />
++ start nic_bridge | caps: 200 | ram: 10M | priority: -1
+  + provides | + service Nic
+  + config
+    + policy | label_prefix: nic_router   | ip_addr: 10.0.2.55
+    + policy | label_prefix: t2_d0_c1_udp | ip_addr: 10.0.2.212
+    + policy | label_prefix: t3_d0_s1_udp | ip_addr: 10.0.2.213
+    + policy | label_prefix: t4_d0_c1_tcp | ip_addr: 10.0.2.201
+    + policy | label_prefix: t5_d0_c1_tcp | ip_addr: 10.0.2.202
+    + policy | label_prefix: t6_d0_s1_tcp | ip_addr: 10.0.2.203
+  + route
+    + service Nic | + child nic_loopback
+    + any-service
+      + parent
+      + any-child
++ start report_rom | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-			<nic-client domain="uplink"/>
-
-			<domain name="uplink"
-			        interface="10.0.2.55/24"
-			        gateway="10.0.2.1"
-			        verbose_packets="no">
-
-				} [test_1_router_uplink_config] {
-				} [test_2_router_uplink_config] {
-				} [test_3_router_uplink_config] {
-				} [test_4_router_uplink_config] {
-				} [test_5_router_uplink_config] {
-				} [test_6_router_uplink_config] {
-				} [test_7_router_uplink_config] {
-
-			</domain>
-
-			} [test_1_router_config] {
-			} [test_2_router_config] {
-			} [test_3_router_config] {
-			} [test_4_router_config] {
-			} [test_5_router_config] {
-			} [test_6_router_config] {
-			} [test_7_router_config] {
-
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="nic_bridge" caps="200" ram="10M" priority="-1">
-		<provides><service name="Nic"/></provides>
-		<config>
-			<policy label_prefix="nic_router"   ip_addr="10.0.2.55"  />
-			<policy label_prefix="t2_d0_c1_udp" ip_addr="10.0.2.212" />
-			<policy label_prefix="t3_d0_s1_udp" ip_addr="10.0.2.213" />
-			<policy label_prefix="t4_d0_c1_tcp" ip_addr="10.0.2.201" />
-			<policy label_prefix="t5_d0_c1_tcp" ip_addr="10.0.2.202" />
-			<policy label_prefix="t6_d0_s1_tcp" ip_addr="10.0.2.203" />
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_loopback"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="report_rom" ram="2M">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
-
-	} [test_1_config] {
-	} [test_2_config] {
-	} [test_3_config] {
-	} [test_4_config] {
-	} [test_5_config] {
-	} [test_6_config] {
-	} [test_7_config] {
-
-</config> }
-
-install_config $config
+} [test_1_start_nodes] {
+} [test_2_start_nodes] {
+} [test_3_start_nodes] {
+} [test_4_start_nodes] {
+} [test_5_start_nodes] {
+} [test_6_start_nodes] {
+} [test_7_start_nodes] {
+-
+}
 
 build_boot_image [build_artifacts]
 
