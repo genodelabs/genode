@@ -582,49 +582,79 @@ __SYS_(int, open, (const char *pathname, int flags, ...),
 	if (pathname[0] == '\0')
 		return Errno(ENOENT);
 
-	Absolute_path partially_resolved_path;
+	Absolute_path next_iteration_working_path;
 	Absolute_path resolved_path;
 
 	Plugin *plugin;
 	File_descriptor *new_fdo;
 
-	if (resolve_symlinks_except_last_element(pathname, partially_resolved_path).failed())
-		return -1;
+	try {
+		next_iteration_working_path.import(pathname, cwd().base());
+	} catch (Absolute_path::Path_too_long) {
+		return Errno(ENAMETOOLONG);
+	}
 
-	/* determine type of last element */
+	enum { FOLLOW_LIMIT = 10 };
+	int follow_count = 0;
+	bool leaf_symlink_resolved_in_this_iteration = false;
 
-	struct stat stat_buf;
-	int res;
+	do {
 
-	FNAME_FUNC_WRAPPER_GENERIC(res = , stat, partially_resolved_path.base(), &stat_buf);
+		Absolute_path current_iteration_working_path;
+		Absolute_path partially_resolved_path;
 
-	if (res == 0) {
+		if (follow_count++ == FOLLOW_LIMIT)
+			return Errno(ELOOP);
 
-		if (S_ISLNK(stat_buf.st_mode)) {
+		leaf_symlink_resolved_in_this_iteration = false;
 
-			if (flags & O_NOFOLLOW)
-				return Errno(ELOOP);
+		current_iteration_working_path = next_iteration_working_path;
 
-			/* resolve last element */
+		if (resolve_symlinks_except_last_element(current_iteration_working_path.base(),
+		                                         partially_resolved_path).failed())
+			return -1;
 
-			if (_resolve_symlink(partially_resolved_path, resolved_path).failed())
-				return -1;
+		/* determine type of last element */
+
+		struct stat stat_buf;
+		int res;
+
+		FNAME_FUNC_WRAPPER_GENERIC(res = , stat, partially_resolved_path.base(), &stat_buf);
+
+		if (res == 0) {
+
+			if (S_ISLNK(stat_buf.st_mode)) {
+
+				if (flags & O_NOFOLLOW)
+					return Errno(ELOOP);
+
+				/* resolve last element and start over */
+
+				if (_resolve_symlink(partially_resolved_path,
+				                     next_iteration_working_path).failed())
+					return -1;
+
+				leaf_symlink_resolved_in_this_iteration = true;
+
+			} else {
+				resolved_path = partially_resolved_path;
+				break;
+			}
+
 		} else {
-			resolved_path = partially_resolved_path;
+
+			/* stat() failed */
+
+			if (errno == ENOENT) {
+				if (!(flags & O_CREAT))
+					return -1;
+				else
+					resolved_path = partially_resolved_path;
+			} else
+				return -1;
 		}
 
-	} else {
-
-		/* stat() failed */
-
-		if (errno == ENOENT) {
-			if (!(flags & O_CREAT))
-				return -1;
-			else
-				resolved_path = partially_resolved_path;
-		} else
-			return -1;
-	}
+	} while (leaf_symlink_resolved_in_this_iteration);
 
 	plugin = plugin_registry()->get_plugin_for_open(resolved_path.base(), flags);
 
