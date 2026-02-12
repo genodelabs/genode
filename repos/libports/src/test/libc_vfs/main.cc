@@ -274,8 +274,8 @@ static void test(Genode::Node const &node)
 			CALL_AND_CHECK(ret, mkdir("a", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "a");
 			CALL_AND_CHECK(ret, mkdir("c", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "c");
 			CALL_AND_CHECK(ret, symlink("../a", "c/d"),
-						   ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/c/d");
-			CALL_AND_CHECK(ret, symlink("c", "e"), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "e");
+						   ((ret == 0) || (errno == EEXIST)), "symlink_name=%s", "c/d");
+			CALL_AND_CHECK(ret, symlink("c", "e"), ((ret == 0) || (errno == EEXIST)), "symlink_name=%s", "e");
 
 			CALL_AND_CHECK(fd, open("a/b", O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", "a/b");
 			CALL_AND_CHECK(count, write(fd, pattern, pattern_size), (size_t)count == pattern_size, "");
@@ -291,6 +291,14 @@ static void test(Genode::Node const &node)
 			} else {
 				printf("file content is correct\n");
 			}
+
+			CALL_AND_CHECK(ret, symlink("a/b", "f"), ((ret == 0) || (errno == EEXIST)), "symlink_name=%s", "f");
+			CALL_AND_CHECK(fd, open("f", O_RDONLY), fd >= 0, "file_name=%s", "f");
+			CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+
+			CALL_AND_CHECK(ret, symlink("f", "g"), ((ret == 0) || (errno == EEXIST)), "symlink_name=%s", "g");
+			CALL_AND_CHECK(fd, open("g", O_RDONLY), fd >= 0, "file_name=%s", "g");
+			CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 
 			/* test open with O_NOFOLLOW */
 			CALL_AND_CHECK(fd, open("e", O_RDONLY | O_NOFOLLOW), (fd == -1) && (errno == ELOOP), "file_name=%s", "e");
