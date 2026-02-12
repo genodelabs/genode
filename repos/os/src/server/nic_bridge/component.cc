@@ -167,7 +167,7 @@ Net::Root::Root(Genode::Env                          &env,
                 Genode::Attached_rom_dataspace const &config)
 :
 	Genode::Root_component<Session_component>(env.ep(), md_alloc),
-	_mac_alloc(Mac_address(config.xml().attribute_value("mac", Mac_address(DEFAULT_MAC)))),
+	_mac_alloc(Mac_address(config.node().attribute_value("mac", Mac_address(DEFAULT_MAC)))),
 	_env(env),
 	_nic(nic),
 	_config(config),
