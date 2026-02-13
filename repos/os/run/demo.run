@@ -64,7 +64,7 @@ config
 + start nitpicker_config
   + binary rom_filter
   + provides | + service ROM
-  + config | generate_xml: yes
+  + config
   | + input xray_enabled | rom: xray | node: xray | + attribute enabled
   | + output | node: config
   |   + attribute focus | value: rom

@@ -1,12 +1,8 @@
-# RTC test
-
 create_boot_directory
 
 proc rtc_src { } {
-
 	if {[have_board linux]} { return "linux_rtc" }
 	if {[have_board pc]}    { return "pc_rtc" }
-
 	return "dummy_rtc"
 }
 
@@ -15,90 +11,67 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/[rtc_src]
 
-proc rtc_driver_start_attributes { } {
-
-	if {[have_board linux]} { return { name="linux_rtc" ld="no" } }
-	if {[have_board pc]}    { return { name="pc_rtc" } }
-
-	return { name="dummy_rtc" }
-}
+proc rtc_driver_start_attr { } { if {[have_board linux]} { return "| ld: no" } }
 
 # RTC setting tested on Qemu only
 proc test_update { } { return [have_include power_on/qemu] }
 
-proc test_rtc_config { } {
-
-	if {![test_update]} {
-		return { <config/> } }
-
-	return {
-		<config set_rtc="yes" year="2069" month="12" day="31"
-		        hour="23" minute="55" second="0"/>
-	}
+append rtc_start_nodes_with_update {
++ start } [rtc_src] { | priority: -1 } [rtc_driver_start_attr] {
+  + provides | + service Rtc
+  + config | allow_setting_rtc: true | verbose: yes
+  + route
+    + service ROM | label: set_rtc | + child report_rom
+    + any-service                  | + parent
++ start report_rom | ram: 1M
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+    + policy | label_suffix: set_rtc | report: test-rtc -> set_rtc
++ start test-rtc | priority: -1
+  + config | set_rtc: yes | year: 2069 | month:  12 | day:   31
+                          | hour: 23   | minute: 55 | second: 0
 }
 
-proc additional_start_nodes_for_update_test { } {
-
-	if {![test_update]} {
-		return { } }
-
-	return {
-	<start name="report_rom" ram="1M">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<policy label_suffix="set_rtc" report="test-rtc -> set_rtc"/>
-		</config>
-	</start>}
+append rtc_start_nodes_without_update {
++ start } [rtc_src] { | priority: -1 } [rtc_driver_start_attr] {
+  + provides | + service Rtc
+  + config
++ start test-rtc | priority: -1
+  + config
 }
 
-proc rtc_driver_config_and_route { } {
-
-	if {![test_update]} {
-		return { <config/> } }
-
-	return {
-		<config allow_setting_rtc="true" verbose="yes"/>
-		<route>
-			<service name="ROM" label="set_rtc">
-				<child name="report_rom"/>
-			</service>
-			<any-service> <parent/> </any-service>
-		</route> }
+if {[test_update]} {
+	set rtc_start_nodes $rtc_start_nodes_with_update
+} else {
+	set rtc_start_nodes $rtc_start_nodes_without_update
 }
 
 install_config {
-<config prio_levels="2" verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | prio_levels: 2 | verbose: yes
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start } [rtc_driver_start_attributes] { priority="-1">
-		<provides><service name="Rtc"/></provides>
-		} [rtc_driver_config_and_route] {
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="test-rtc" priority="-1">
-		} [test_rtc_config] {
-	</start>
++ start timer
+  + provides | + service Timer
 
-	} [additional_start_nodes_for_update_test] {
-
-</config>
+} $rtc_start_nodes {
+-
 }
 
 build { test/rtc }

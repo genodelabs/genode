@@ -23,187 +23,158 @@ proc bad_dst_port { } { return "12345" }
 proc bad_dst_ip   { } { return "10.0.1.2" }
 
 append config {
-<config generate_xml="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose="no"
-		        verbose_packets="no"
-		        dhcp_discover_timeout_sec="1"
-		        icmp_idle_timeout_sec="6">
++ start timer
+  + provides | + service Timer
 
-			<policy label_prefix="ping_1"  domain="ping_1"/>
-			<policy label_prefix="ping_2"  domain="ping_2"/>
-			<policy label_prefix="drivers" domain="uplink"/>
++ start drivers | caps: 1200 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
 
-			<domain name="uplink">
-				<nat domain="ping_1" icmp-ids="100"/>
-				<nat domain="ping_2" icmp-ids="100" udp-ports="100"/>
-			</domain>
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose: no | verbose_packets: no | dhcp_discover_timeout_sec: 1
+    |                                          | icmp_idle_timeout_sec:     6
+    + policy | label_prefix: ping_1  | domain: ping_1
+    + policy | label_prefix: ping_2  | domain: ping_2
+    + policy | label_prefix: drivers | domain: uplink
+    + domain uplink
+    | + nat | domain: ping_1 | icmp-ids: 100
+    | + nat | domain: ping_2 | icmp-ids: 100 | udp-ports: 100
+    + domain ping_2 | interface: 10.0.4.1/24
+    | + dhcp-server | ip_first: 10.0.4.2 | ip_last: 10.0.4.200 | ip_lease_time_sec: 4
+    | + icmp | dst: } [good_dst_ip] {/24 | domain: uplink
+    | + udp  | dst: } [good_dst_ip] {/24
+    |   + permit | port: } [bad_dst_port] { | domain: uplink
+    + domain ping_1 | interface: 10.0.3.1/24
+      + icmp | dst: } [good_dst_ip] {/24 | domain: uplink
 
-			<domain name="ping_2" interface="10.0.4.1/24">
-				<icmp dst="} [good_dst_ip] {/24" domain="uplink"/>
-				<udp dst="} [good_dst_ip] {/24">
-					<permit port="} [bad_dst_port] {" domain="uplink"/>
-				</udp>
-				<dhcp-server ip_first="10.0.4.2"
-				             ip_last="10.0.4.200"
-				             ip_lease_time_sec="4"/>
-			</domain>
++ start ping_2_nic_router | caps: 200 | ram: 10M
+  + binary nic_router
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose: no | verbose_packets: no | icmp_idle_timeout_sec: 10
+  | + policy | label_prefix: ping_2 | domain: ping_2
+  | + nic-client | domain: uplink
+  | + domain uplink
+  |   + nat | domain: ping_2 | icmp-ids: 100 | udp-ports: 100
+  | + domain ping_2 | interface: 10.0.5.1/24
+  |   + dhcp-server | ip_first: 10.0.5.100 | ip_last: 10.0.5.200
+  |   + icmp | dst: } [bad_dst_ip]  {/24 | domain: uplink
+  |   + icmp | dst: } [good_dst_ip] {/24 | domain: uplink
+  |   + udp  | dst: } [good_dst_ip] {/24
+  |     + permit | port: } [bad_dst_port] { | domain: uplink
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-			<domain name="ping_1" interface="10.0.3.1/24">
-				<icmp dst="} [good_dst_ip] {/24" domain="uplink"/>
-			</domain>
++ start ping_11 | ram: 8M
+  + binary ping
+  + config
+  |        period_sec: 1
+  |        verbose:    no
+  |        interface:  10.0.3.2/24
+  |        gateway:    10.0.3.1
+  |        dst_ip:     } [good_dst_ip] {
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-		</config>
-	</start>
++ start ping_12 | ram: 8M
+  + binary ping
+  + config
+  |        period_sec: 1
+  |        verbose:    no
+  |        interface:  10.0.3.3/24
+  |        gateway:    10.0.3.1
+  |        dst_ip:     } [good_dst_ip] {
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-	<start name="ping_2_nic_router" caps="200" ram="10M">
-		<binary name="nic_router"/>
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose="no"
-		        verbose_packets="no"
-		        icmp_idle_timeout_sec="10">
++ start ping_2_nic_bridge | caps: 200 | ram: 10M
+  + binary nic_bridge
+  + provides | + service Nic
+  + config | mac: 12:12:12:12:12:00
+    + policy | label_prefix: ping_21
+    + policy | label_prefix: ping_23
+  + route
+    + service Nic | + child ping_2_nic_router
+    + any-service
+      + parent
+      + any-child
 
-			<policy label_prefix="ping_2" domain="ping_2"/>
-			<nic-client                   domain="uplink"/>
++ start ping_21 | ram: 8M
+  + binary ping
+  + config | dst_ip: } [good_dst_ip] { | period_sec: 1 | verbose: no
+  + route
+    + service Nic | + child ping_2_nic_bridge
+    + any-service
+      + parent
+      + any-child
 
-			<domain name="uplink">
-				<nat domain="ping_2" icmp-ids="100" udp-ports="100"/>
-			</domain>
-
-			<domain name="ping_2" interface="10.0.5.1/24">
-				<dhcp-server ip_first="10.0.5.100"
-				             ip_last="10.0.5.200"/>
-
-				<icmp dst="} [bad_dst_ip] {/24" domain="uplink"/>
-				<icmp dst="} [good_dst_ip] {/24" domain="uplink"/>
-				<udp dst="} [good_dst_ip] {/24">
-					<permit port="} [bad_dst_port] {" domain="uplink"/>
-				</udp>
-			</domain>
-
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="ping_11" ram="8M">
-		<binary name="ping"/>
-		<config interface="10.0.3.2/24"
-		        gateway="10.0.3.1"
-		        dst_ip="} [good_dst_ip] {"
-		        period_sec="1"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="ping_12" ram="8M">
-		<binary name="ping"/>
-		<config interface="10.0.3.3/24"
-		        gateway="10.0.3.1"
-		        dst_ip="} [good_dst_ip] {"
-		        period_sec="1"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="ping_2_nic_bridge" caps="200" ram="10M">
-		<binary name="nic_bridge"/>
-		<provides><service name="Nic"/></provides>
-		<config mac="12:12:12:12:12:00">
-			<policy label_prefix="ping_21"/>
-			<policy label_prefix="ping_23"/>
-		</config>
-		<route>
-		<service name="Nic"> <child name="ping_2_nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="ping_21" ram="8M">
-		<binary name="ping"/>
-		<config dst_ip="} [good_dst_ip] {"
-		        period_sec="1"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="ping_2_nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="ping_22" ram="8M">
-		<binary name="ping"/>
-		<config interface="10.0.5.3/24"
-		        gateway="10.0.5.1"
-		        dst_ip="} [bad_dst_ip] {"
-		        period_sec="1"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="ping_2_nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>}
++ start ping_22 | ram: 8M
+  + binary ping
+  + config
+  |        period_sec: 1
+  |        verbose:    no
+  |        interface:  10.0.5.3/24
+  |        gateway:    10.0.5.1
+  |        dst_ip:     } [bad_dst_ip] {
+  + route
+    + service Nic | + child ping_2_nic_router
+    + any-service
+      + parent
+      + any-child}
 
 append_if $on_hardware config {
-	<start name="ping_23" ram="8M">
-		<binary name="ping"/>
-		<config period_sec="1"
-		        verbose="no"
-		        count="1"
-		        protocol="udp"
-		        dst_ip="} [good_dst_ip] {"
-		        dst_port="} [bad_dst_port] {"/>
-		<route>
-			<service name="Nic"> <child name="ping_2_nic_bridge"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>}
++ start ping_23 | ram: 8M
+  + binary ping
+  + config
+  |        period_sec: 1
+  |        verbose:    no
+  |        count:      1
+  |        protocol:   udp
+  |        dst_ip:     } [good_dst_ip] {
+  |        dst_port:   } [bad_dst_port] {
+  + route
+    + service Nic | + child ping_2_nic_bridge
+    + any-service
+      + parent
+      + any-child}
 
 append config {
-</config>}
+-}
 
 install_config $config
 

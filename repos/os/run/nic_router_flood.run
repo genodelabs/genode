@@ -23,203 +23,104 @@ import_from_depot [depot_user]/src/[base_src] \
 build { app/ping test/net_flood server/nic_router server/dynamic_rom }
 
 install_config {
+config | prio_levels: 4
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<config prio_levels="4">
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
++ start timer | caps: 100 | ram: 1M | priority: 0
+  + provides | + service Timer
 
-		<start name="timer" caps="100" ram="1M" priority="0">
-			<provides><service name="Timer"/></provides>
-			<route>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="IO_PORT"> <parent/> </service>
-				<service name="IO_MEM"> <parent/> </service>
-				<service name="IRQ"> <parent/> </service>
-			</route>
-		</start>
++ start drivers | caps: 1200 | ram: 32M | managing_system: yes | priority: 0
+  + binary init
+  + route
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + service ROM | label: config | + parent | label: drivers.config
+    + any-service                 | + parent
 
-		<start name="drivers" caps="1200" ram="32M" managing_system="yes" priority="0">
-			<binary name="init"/>
-			<route>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="Uplink"> <child name="nic_router"/> </service>
-				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="RM"> <parent/> </service>
-				<service name="IO_PORT"> <parent/> </service>
-				<service name="IO_MEM"> <parent/> </service>
-				<service name="IRQ"> <parent/> </service>
-			</route>
-		</start>
++ start nic_router | caps: 200 | ram: 10M | priority: -1
+  + provides
+    + service Nic
+    + service Uplink
+  + config
+  |        verbose:                   no
+  |        verbose_packets:           no
+  |        verbose_packet_drop:       yes
+  |        verbose_domain_state:      yes
+  |        dhcp_discover_timeout_sec: 1
+  |        tcp_idle_timeout_sec:      3600
+  |        udp_idle_timeout_sec:      3600
+  |        icmp_idle_timeout_sec:     3600
+  |
+  | + policy | label_prefix: net_clients | domain: net_clients
+  | + policy | label_prefix: drivers     | domain: uplink
+  | + domain uplink | interface: 10.0.2.15/24 | gateway: 10.0.2.2 | verbose_packets: no
+  |   + nat | domain: net_clients | udp-ports: 16384 | tcp-ports: 16384 | icmp-ids: 16384
+  | + domain net_clients | interface: 10.0.1.1/24
+  |   + dhcp-server | ip_first: 10.0.1.100 | ip_last: 10.0.1.200
+  |   + icmp | dst: 0.0.0.0/0 | domain: uplink
+  |   + udp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+  |   + tcp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+  + route
+    + service Timer  | + child timer
+    + service Report | + child report_rom
+    + any-service    | + parent
 
-		<start name="nic_router" caps="200" ram="10M" priority="-1">
-			<provides>
-				<service name="Nic"/>
-				<service name="Uplink"/>
-			</provides>
-			<config verbose="no"
-					verbose_packets="no"
-					verbose_packet_drop="yes"
-					verbose_domain_state="yes"
-					dhcp_discover_timeout_sec="1"
-					tcp_idle_timeout_sec="3600"
-					udp_idle_timeout_sec="3600"
-					icmp_idle_timeout_sec="3600">
++ start report_rom | caps: 100 | ram: 1M | priority: -1
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-				<policy label_prefix="net_clients" domain="net_clients"/>
-				<policy label_prefix="drivers" domain="uplink"/>
++ start dynamic_rom | caps: 100 | ram: 4M | priority: -1
+  + provides | + service ROM
+  + config
+    + rom net_clients.config
+      + inline | + config | . give the drivers time to come up
+      + sleep | milliseconds: 5000
+      + inline
+      | + config
+      |   + parent-provides
+      |     + service ROM
+      |     + service PD
+      |     + service CPU
+      |     + service LOG
+      |     + service Nic
+      |     + service Timer
+      |   + default-route | + any-service | + parent
+      |   + start tcp_flood  | caps: 100 | ram: 8M
+      |     + binary test-net_flood
+      |     + config | dst_ip: } [bad_dst_ip]  { | protocol: tcp  | verbose: no
+      |   + start udp_flood  | caps: 100 | ram: 8M
+      |     + binary test-net_flood
+      |     + config | dst_ip: } [bad_dst_ip]  { | protocol: udp  | verbose: no
+      |   + start icmp_flood | caps: 100 | ram: 8M
+      |     + binary test-net_flood
+      |     + config | dst_ip: } [bad_dst_ip]  { | protocol: icmp | verbose: no
+      |   + start ping       | caps: 100 | ram: 8M
+      |     + config | dst_ip: } [good_dst_ip] { | period_sec: 2 | count: 999
+      + sleep | milliseconds: 3600000
 
-				<domain name="uplink" interface="10.0.2.15/24" gateway="10.0.2.2" verbose_packets="no">
-					<nat domain="net_clients" udp-ports="16384" tcp-ports="16384" icmp-ids="16384"/>
-				</domain>
-
-				<domain name="net_clients" interface="10.0.1.1/24">
-					<dhcp-server ip_first="10.0.1.100" ip_last="10.0.1.200"/>
-					<icmp dst="0.0.0.0/0" domain="uplink"/>
-					<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
-					<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
-				</domain>
-
-			</config>
-			<route>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="Report"> <child name="report_rom"/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
-
-		<start name="report_rom" caps="100" ram="1M" priority="-1">
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config verbose="yes"/>
-			<route>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
-
-		<start name="dynamic_rom" caps="100" ram="4M" priority="-1">
-			<provides><service name="ROM"/> </provides>
-			<config>
-				<rom name="net_clients.config">
-
-					<!-- give the drivers time to come up -->
-					<inline> <config/> </inline>
-
-					<sleep milliseconds="5000"/>
-
-					<inline>
-
-						<config>
-
-							<parent-provides>
-								<service name="ROM"/>
-								<service name="PD"/>
-								<service name="CPU"/>
-								<service name="LOG"/>
-								<service name="Nic"/>
-								<service name="Timer"/>
-							</parent-provides>
-
-							<start name="tcp_flood" caps="100" ram="8M">
-								<binary name="test-net_flood"/>
-								<config dst_ip="} [bad_dst_ip] {" protocol="tcp" verbose="no"/>
-								<route>
-									<service name="Nic"> <parent/> </service>
-									<service name="Timer"> <parent/> </service>
-									<service name="PD"> <parent/> </service>
-									<service name="ROM"> <parent/> </service>
-									<service name="LOG"> <parent/> </service>
-									<service name="CPU"> <parent/> </service>
-								</route>
-							</start>
-
-							<start name="udp_flood" caps="100" ram="8M">
-								<binary name="test-net_flood"/>
-								<config dst_ip="} [bad_dst_ip] {" protocol="udp" verbose="no"/>
-								<route>
-									<service name="Nic"> <parent/> </service>
-									<service name="Timer"> <parent/> </service>
-									<service name="PD"> <parent/> </service>
-									<service name="ROM"> <parent/> </service>
-									<service name="LOG"> <parent/> </service>
-									<service name="CPU"> <parent/> </service>
-								</route>
-							</start>
-
-							<start name="icmp_flood" caps="100" ram="8M">
-								<binary name="test-net_flood"/>
-								<config dst_ip="} [bad_dst_ip] {" protocol="icmp" verbose="no"/>
-								<route>
-									<service name="Nic"> <parent/> </service>
-									<service name="Timer"> <parent/> </service>
-									<service name="PD"> <parent/> </service>
-									<service name="ROM"> <parent/> </service>
-									<service name="LOG"> <parent/> </service>
-									<service name="CPU"> <parent/> </service>
-								</route>
-							</start>
-
-							<start name="ping" caps="100" ram="8M">
-								<config dst_ip="} [good_dst_ip] {" period_sec="2" count="999"/>
-								<route>
-									<service name="Nic"> <parent/> </service>
-									<service name="Timer"> <parent/> </service>
-									<service name="PD"> <parent/> </service>
-									<service name="ROM"> <parent/> </service>
-									<service name="LOG"> <parent/> </service>
-									<service name="CPU"> <parent/> </service>
-								</route>
-							</start>
-
-						</config>
-
-					</inline>
-					<sleep milliseconds="3600000"/>
-				</rom>
-			</config>
-			<route>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
-
-		<start name="net_clients" caps="1000" ram="200M" priority="-2">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config"> <child name="dynamic_rom" label="net_clients.config"/> </service>
-				<service name="Nic"> <child name="nic_router"/> </service>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
-
-	</config>
++ start net_clients | caps: 1000 | ram: 200M | priority: -2
+  + binary init
+  + route
+    + service ROM | label: config | + child dynamic_rom | label: net_clients.config
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build_boot_image [build_artifacts]

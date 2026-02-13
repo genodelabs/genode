@@ -24,107 +24,94 @@ import_from_depot [depot_user]/src/[base_src] \
 
 build { test/terminal_expect_send }
 
-proc vmm_config { } {
-
-	# for early printk add bootarg: earlycon=pl011,0x9000000
+proc vmm_arch_config_attr { } {
 
 	if {[have_spec arm]} {
-		return {
-		<config kernel_rom="linux" initrd_rom="initrd" ram_size="128M"
-		        cpu_count="1" cpu_type="arm,cortex-a15" gic_version="2"
-		        bootargs="rdinit=/bin/sh ip=dhcp console=hvc0">
-			<virtio_device name="hvc0" type="console"/>
-			<virtio_device name="eth0" type="net"/>
-			<virtio_device name="blk0" type="block"/>
-		</config>}
-	}
+		return "cpu_count: 1 | cpu_type: arm,cortex-a15 | gic_version: 2" }
 
 	if {[have_spec arm_64]} {
-		return {
-		<config kernel_rom="linux" initrd_rom="initrd" ram_size="128M"
-		        cpu_count="4" cpu_type="arm,cortex-a53" gic_version="3"
-		        bootargs="rdinit=/bin/sh ip=dhcp console=hvc0">
-			<virtio_device name="hvc0" type="console"/>
-			<virtio_device name="eth0" type="net"/>
-			<virtio_device name="blk0" type="block"/>
-		</config>}
-	}
+		return "cpu_count: 4 | cpu_type: arm,cortex-a53 | gic_version: 3" }
 
 	return unavailable
 }
 
 install_config {
-<config verbose="yes" prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="VM"/>
-	</parent-provides>
-	<default-route>
-		<any-service><parent/><any-child/></any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | verbose: yes | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service VM
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="nic" ram="8M">
-		<binary name="nic_router" />
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config>
-			<default-policy domain="default"/>
-			<domain name="default" interface="10.0.1.1/24">
-				<dhcp-server ip_first="10.0.1.2" ip_last="10.0.1.2" />
-			</domain>
-		</config>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="vfs_block" ram="2M">
-		<provides> <service name="Block"/> </provides>
-		<config>
-			<vfs> <rom name="block.img"/> </vfs>
-			<default-policy file="/block.img" block_size="512"/>
-		</config>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="log_terminal" ram="2M">
-		<provides> <service name="Terminal"/> </provides>
-	</start>
++ start nic | ram: 8M
+  + binary nic_router
+  + provides
+    + service Nic
+    + service Uplink
+  + config
+    + default-policy | domain: default
+    + domain default | interface: 10.0.1.1/24
+      + dhcp-server | ip_first: 10.0.1.2 | ip_last: 10.0.1.2
 
-	<start name="terminal_crosslink">
-		<provides> <service name="Terminal"/> </provides>
-	</start>
++ start vfs_block | ram: 2M
+  + provides | + service Block
+  + route | + any-service | + parent
+  + config
+    + vfs | + rom block.img
+    + default-policy | file: /block.img | block_size: 512
 
-	<start name="vmm" caps="200" ram="256M" priority="-1">
-		<route>
-			<service name="Terminal" label="earlycon"> <child name="log_terminal"/> </service>
-			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
-			<service name="Nic"> <child name="nic"/> </service>
-			<any-service><parent/><any-child/></any-service>
-		</route>} [vmm_config] {
-	</start>
++ start log_terminal | ram: 2M
+  + provides | + service Terminal
 
-	<start name="vm">
-		<binary name="test-terminal_expect_send"/>
-		<config expect="/ #" send="mount /dev/vda /root; cp -r /etc /root; ls /root/etc; umount /root" verbose="yes"/>
-		<route>
-			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-</config>
++ start terminal_crosslink
+  + provides | + service Terminal
+
++ start vmm | caps: 200 | ram: 256M | priority: -1
+  + route
+  | + service Terminal | label: earlycon | + child log_terminal
+  | + service Terminal                   | + child terminal_crosslink
+  | + service Nic                        | + child nic
+  | + any-service
+  |   + parent
+  |   + any-child
+  + config | } [vmm_arch_config_attr] {
+    | kernel_rom: linux
+    | initrd_rom: initrd
+    | ram_size:   128M
+    | bootargs:   rdinit=/bin/sh ip=dhcp console=hvc0
+    .
+    . for early printk add bootarg: earlycon=pl011,0x9000000
+    .
+    + virtio_device hvc0 | type: console
+    + virtio_device eth0 | type: net
+    + virtio_device blk0 | type: block
+
++ start vm
+  + binary test-terminal_expect_send
+  + config
+  | expect:  / #
+  | send:    mount /dev/vda /root; cp -r /etc /root; ls /root/etc; umount /root
+  | verbose: yes
+  + route
+    + service Terminal | + child terminal_crosslink
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 

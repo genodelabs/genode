@@ -62,4 +62,4 @@ build_boot_image [build_artifacts]
 
 append qemu_args " -nographic"
 
-run_genode_until "init -> report_rom]     + structure | type: 0 .*?description: BIOS Information.*\n.*report_rom]   -" 20
+run_genode_until {init -> report_rom\] +\+ structure [|] type: 0 .*?description: BIOS Information.*\n.*report_rom\]   -} 20
