@@ -37,6 +37,7 @@ schema runtime
   + node capture
   + node play
   + node record
+  + node platform
 
 + node requires
   + node | category: service
