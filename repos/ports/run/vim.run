@@ -16,189 +16,170 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vim
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="IRQ"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-	</parent-provides>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_PORT
+  + service IO_MEM
++ default-route
+  + any-service
+    + parent
+    + any-child
++ default | caps: 100 | ram: 1M
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ start timer
+  + provides | + service Timer
 
-	<default caps="100" ram="1M"/>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label:  clipboard -> focus | report: nitpicker -> focus
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + report | focus: yes | . interpreted by clipboard
+    + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+    + domain default | layer: 2 | content: client | label: no | hover:  always
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy                 | domain: default
+  + route
+    + service Report | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="report_rom">
-		<provides>
-			<service name="Report"/> <service name="ROM"/>
-		</provides>
-		<config verbose="no">
-			<policy label="clipboard -> focus" report="nitpicker -> focus"/>
-		</config>
-	</start>
++ start pointer | ram: 2M
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
++ start clipboard | ram: 2M
+  + provides
+    + service ROM
+    + service Report
+  + config | verbose: yes | match_labels: yes
+    + default-policy | domain: default
+  + route
+    + service ROM | label: focus | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-			<report focus="yes" /> <!-- interpreted by clipboard -->
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="2" content="client" label="no" hover="always"/>
++ start wm | caps: 1000 | ram: 32M
+  + binary init
+  + provides
+    + service Gui
+    + service Report
+    + service ROM
+  + route
+    + service ROM    | label: config         | + parent | label: wm.config
+    + service ROM    | label_last: clipboard | + child clipboard
+    + service Report | label_last: clipboard | + child clipboard
+    + service Gui                            | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy domain="default"/>
-		</config>
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start terminal | caps: 110 | ram: 6M
+  + provides | + service Terminal
+  + config | copy: yes | paste: yes
+  | + initial | width: 800 | height: 600
+  | + vfs
+  |   + rom VeraMono.ttf
+  |   + dir fonts
+  |     + dir monospace | + ttf regular | path: /VeraMono.ttf | size_px: 16
+  + route
+    + service ROM    | label: clipboard | + child wm
+    + service Report | label: clipboard | + child wm
+    + service Gui                       | + child wm | label: terminal
+    + any-service
+      + parent
+      + any-child
 
-	<start name="pointer" ram="2M">
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start vfs | caps: 120 | ram: 5M
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: vfs_rom | root: /
+    + default-policy | root: / | writeable: yes
+    + vfs
+      + tar vim.tar
+      + dir dev
+        + terminal
+        + inline rtc | : 2018-01-01 00:01
 
-	<start name="clipboard" ram="2M">
-		<provides>
-			<service name="ROM"/> <service name="Report"/>
-		</provides>
-		<config verbose="yes" match_labels="yes">
-			<default-policy domain="default"/>
-		</config>
-		<route>
-			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start vfs_rom | ram: 5M
+  + binary fs_rom
+  + provides | + service ROM
+  + config
+  + route
+    + service File_system | + child vfs
+    + any-service         | + parent
 
-	<start name="wm" caps="1000" ram="32M">
-		<binary name="init"/>
-		<provides>
-			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
-			<service name="ROM"    label_last="clipboard"> <child name="clipboard"/> </service>
-			<service name="Report" label_last="clipboard"> <child name="clipboard"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="terminal" caps="110" ram="6M">
-		<provides><service name="Terminal"/></provides>
-		<config copy="yes" paste="yes">
-			<initial width="800" height="600"/>
-			<vfs>
-				<rom name="VeraMono.ttf"/>
-				<dir name="fonts">
-					<dir name="monospace">
-						<ttf name="regular" path="/VeraMono.ttf" size_px="16"/>
-					</dir>
-				</dir>
-			</vfs>
-		</config>
-		<route>
-			<service name="ROM"    label="clipboard"> <child name="wm"/> </service>
-			<service name="Report" label="clipboard"> <child name="wm"/> </service>
-			<service name="Gui"> <child name="wm" label="terminal"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="vfs" caps="120" ram="5M">
-		<provides><service name="File_system"/></provides>
-		<config>
-			<vfs>
-				<tar name="vim.tar" />
-				<dir name="dev">
-					<terminal/>
-					<inline name="rtc">2018-01-01 00:01</inline>
-				</dir>
-			</vfs>
-
-			<policy label_prefix="vfs_rom" root="/"/>
-			<default-policy root="/" writeable="yes"/>
-		</config>
-	</start>
-
-	<start name="vfs_rom" ram="5M">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<config/>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="/bin/vim" caps="150" ram="10M">
-		<config>
-			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/terminal"
-			      rtc="/dev/rtc"/>
-
-			<vfs> <fs/> </vfs>
-
-			<env name="TERM">screen</env>
-
-			<arg>/bin/vim</arg>
-
-			<!-- Deactivate the loading of plugins. Otherwise, vim will
-			     attempt to use a sub shell for pattern matching -->
-			<arg>--noplugin</arg>
-
-			<!-- Do not use swap file. Any attempt to create of would
-			     fail because we are on a read-only file system -->
-			<arg>-n</arg>
-
-			<!-- Use the nocompatible mode, which is much nicer than
-			     the plain vi mode -->
-			<arg>-N</arg>
-
-			<!-- Permanently display status bar -->
-			<arg name="--cmd">set laststatus=2</arg>
-
-			<!-- Enable highlighted search results -->
-			<arg name="--cmd">set hls</arg>
-		</config>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-			<service name="ROM" label_last="/bin/vim"> <child name="vfs_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start /bin/vim | caps: 150 | ram: 10M
+  + config
+  | + libc | stdin: /dev/terminal | stdout: /dev/terminal | stderr: /dev/terminal
+  |        | rtc: /dev/rtc
+  | + vfs | + fs
+  | + env TERM | : screen
+  | + arg /bin/vim
+  | + arg --noplugin
+  |   .
+  |   . Deactivate the loading of plugins.
+  |   . Otherwise, vim will attempt to use a sub shell for pattern matching.
+  |   .
+  | + arg -n
+  |   .
+  |   . Do not use swap file. Any attempt to create of would fail because we
+  |   . are on a read-only file system.
+  |   .
+  | + arg -N
+  |   .
+  |   . Use the nocompatible mode, which is much nicer than the plain vi mode.
+  |   .
+  | + arg --cmd | : set laststatus=2
+  |   .
+  |   . Permanently display status bar
+  |   .
+  | + arg --cmd | : set hls
+  |   .
+  |   . Enable highlighted search results
+  |   .
+  + route
+    + service File_system                 | + child vfs
+    + service ROM | label_suffix: .lib.so | + parent
+    + service ROM | label_last: /bin/vim  | + child vfs_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"wm -> focus\" domain=\"default\"/>"
+puts $fd "focus | label: wm -> focus | domain: default\n-"
 close $fd
 
 copy_file [genode_dir]/repos/gems/recipes/raw/motif_wm/wm.config [run_dir]/genode/

@@ -11,36 +11,38 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/libc
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="ROM"/>
-	</parent-provides>
+config
++ parent-provides
+  + service CPU
+  + service LOG
+  + service PD
+  + service ROM
 
-	<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="report_rom" caps="100" ram="1M">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
++ start report_rom | caps: 100 | ram: 1M
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-	<start name="verify" caps="200" ram="12M">
-		<config verbose="yes" generate_xml="yes">
-			<libc stdout="/dev/log" stderr="/dev/null" rtc="/dev/null"/>
-			<vfs>
-				<rom name="pubkey"/>
-				<tar name="test.tar"/>
-				<dir name="dev"> <log/> <null/> </dir>
-			</vfs>
-			<verify path="expect_valid.txt"   pubkey="/nonexistent_pubkey"/>
-			<verify path="expect_valid.txt"   pubkey="/dev/null"/>
-			<verify path="expect_valid.txt"   pubkey="/pubkey"/>
-			<verify path="expect_invalid.txt" pubkey="/pubkey"/>
-		</config>
-	</start>
-</config>
++ start verify | caps: 200 | ram: 12M
+  + config | verbose: yes
+    + libc | stdout: /dev/log | stderr: /dev/null | rtc: /dev/null
+    + vfs
+    | + rom pubkey
+    | + tar test.tar
+    | + dir dev
+    |   + log
+    |   + null
+    + verify | path: expect_valid.txt   | pubkey: /nonexistent_pubkey
+    + verify | path: expect_valid.txt   | pubkey: /dev/null
+    + verify | path: expect_valid.txt   | pubkey: /pubkey
+    + verify | path: expect_invalid.txt | pubkey: /pubkey
+-
 }
 
 build { app/verify lib/libc lib/vfs }
@@ -53,16 +55,16 @@ build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 
-run_genode_until {</result>.*\n} 30
+run_genode_until {\[init -> report_rom\]   -.*\n} 30
 
 grep_output {\[init \-\> report_rom\]}
 
 compare_output_to {
 [init -> report_rom] report 'verify -> result'
-[init -> report_rom]   <result>
-[init -> report_rom]   	<bad path="expect_valid.txt" reason="public key unavailable"/>
-[init -> report_rom]   	<bad path="expect_valid.txt" reason="malformed public key"/>
-[init -> report_rom]   	<good path="expect_valid.txt"/>
-[init -> report_rom]   	<bad path="expect_invalid.txt" reason="bad signature"/>
-[init -> report_rom]   </result>
+[init -> report_rom]   result
+[init -> report_rom]   + bad | path: expect_valid.txt | reason: public key unavailable
+[init -> report_rom]   + bad | path: expect_valid.txt | reason: malformed public key
+[init -> report_rom]   + good | path: expect_valid.txt
+[init -> report_rom]   + bad | path: expect_invalid.txt | reason: bad signature
+[init -> report_rom]   -
 }

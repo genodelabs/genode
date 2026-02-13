@@ -26,116 +26,105 @@ set viminfo=}
 close $vimrc_fd
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="IRQ"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-	</parent-provides>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_PORT
+  + service IO_MEM
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
++ start timer
+  + provides | + service Timer
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + domain default | layer: 2 | content: client | label: no | hover: always
+    + default-policy | domain: default
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
-			<domain name="default" layer="2" content="client" label="no" hover="always"/>
-			<default-policy domain="default"/>
-		</config>
-		<route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start terminal | caps: 110 | ram: 6M
+  + provides | + service Terminal
+  + route
+    + service ROM | label: config | + parent | label: terminal.config
+    + service Gui                 | + child nitpicker
+    + any-service
+      + parent
+      + any-child
 
-	<start name="terminal" caps="110" ram="6M">
-		<provides><service name="Terminal"/></provides>
-		<route>
-			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start vfs | caps: 120 | ram: 30M
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: vfs_rom | root: /
+    + default-policy | root: / | writeable: yes
+    + vfs
+      + tar coreutils.tar
+      + tar vim.tar
+      + tar bash.tar
+      + dir home  | + ram
+      + dir share | + dir vim | + rom vimrc
+      + dir tmp   | + ram
+      + dir pipe  | + pipe
+      + dir dev
+        + zero
+        + null
+        + terminal
+        + inline rtc | : 2018-01-01 00:01
 
-	<start name="vfs" caps="120" ram="30M">
-		<provides><service name="File_system"/></provides>
-		<config>
-			<vfs>
-				<tar name="coreutils.tar" />
-				<tar name="vim.tar" />
-				<tar name="bash.tar" />
++ start vfs_rom | ram: 30M
+  + binary fs_rom
+  + provides | + service ROM
+  + config
+  + route
+    + service File_system | + child vfs
+    + any-service         | + parent
 
-				<dir name="home"> <ram/> </dir>
-				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
-				<dir name="tmp"> <ram/> </dir>
-				<dir name="dev">
-					<zero/> <null/> <terminal/>
-					<inline name="rtc">2018-01-01 00:01</inline>
-				</dir>
-				<dir name="pipe"> <pipe/> </dir>
-			</vfs>
-
-			<policy label_prefix="vfs_rom" root="/"/>
-			<default-policy root="/" writeable="yes"/>
-		</config>
-	</start>
-
-	<start name="vfs_rom" ram="30M">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<config/>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="/bin/bash" caps="1000" ram="30M">
-		<config ld_verbose="yes">
-			<libc stdin="/dev/terminal" stdout="/dev/terminal"
-			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>
-			<vfs> <fs/> </vfs>
-			<arg>bash</arg>
-			<env name="TERM">screen</env>
-			<env name="PATH">/bin</env>
-		</config>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-			<service name="ROM" label_last="/bin/bash"> <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start /bin/bash | caps: 1000 | ram: 30M
+  + config | ld_verbose: yes
+  | + libc | pipe: /pipe | rtc: /dev/rtc
+  |        | stdin:  /dev/terminal
+  |        | stdout: /dev/terminal
+  |        | stderr: /dev/terminal
+  | + vfs | + fs
+  | + arg bash
+  | + env TERM | : screen
+  | + env PATH | : /bin
+  + route
+    + service File_system                 | + child vfs
+    + service ROM | label_suffix: .lib.so | + parent
+    + service ROM | label_last: /bin/bash | + child vfs_rom
+    + service ROM | label_prefix: /bin    | + child vfs_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"terminal -> \" domain=\"default\"/>"
+puts $fd "focus | label: terminal -> \ | domain: default\n-"
 close $fd
 
 build { lib/ld lib/libc lib/vfs lib/posix test/fork test/execve }

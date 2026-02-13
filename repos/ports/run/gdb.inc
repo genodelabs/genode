@@ -11,6 +11,8 @@ proc platform_supported { } {
 
 assert {[platform_supported]}
 
+proc socat_uart { } { return [have_include power_on/qemu] }
+
 proc gdb_pkg_name { } {
 	if {[have_spec arm_64]} {
 		return "gdb_arm_64"
@@ -46,291 +48,219 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/[gdb_pkg_name]
 
-if {[have_include power_on/qemu]} {
+if {[socat_uart]} {
 	append build_components { driver/uart }
 } else {
 	import_from_depot [depot_user]/pkg/[drivers_nic_pkg] \
-                      [depot_user]/src/nic_router \
-                      [depot_user]/src/vfs_lwip
+	                  [depot_user]/src/nic_router \
+	                  [depot_user]/src/vfs_lwip
 }
 
 append build_components { lib/ld test/monitor_gdb test/log }
 
 build $build_components
 
-append config {
-<config>
-	<parent-provides>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="CPU"/>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="RM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+proc pc_uart_start_node { } { return {
++ start uart | ram: 2M
+  + binary pc_uart
+  + provides | + service Terminal
+  + config | + policy | label_prefix: socat | uart: 1
+} }
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
-}
+proc rpi3_uart_start_node { } { return {
++ start uart | ram: 2M
+  + binary rpi3_uart
+  + provides | + service Terminal
+  + config | + policy | label_prefix: socat | uart: 0
+} }
 
-if { [have_include power_on/qemu] } {
-
-	append_if [have_board pc] config {
-		<start name="uart" ram="2M">
-			<binary name="pc_uart"/>
-			<provides>
-				<service name="Terminal"/>
-			</provides>
-			<config>
-				<policy label_prefix="socat" uart="1"/>
-			</config>
-		</start>
-	}
-
-	append_if [have_board rpi3] config {
-		<start name="uart" ram="2M">
-			<binary name="rpi3_uart"/>
-			<provides>
-				<service name="Terminal"/>
-			</provides>
-			<config>
-				<policy label_prefix="socat" uart="0"/>
-			</config>
-		</start>
-	}
-
-} else {
-
-	append config {
-		<start name="drivers" caps="1000" ram="32M" managing_system="yes">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="Uplink"> <child name="nic_router"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-		<start name="nic_router" caps="200" ram="10M">
-			<provides>
-				<service name="Nic"/>
-				<service name="Uplink"/>
-			</provides>
-			<config verbose_domain_state="yes">
-
-				<policy label_prefix="socat"   domain="downlink"/>
-				<policy label_prefix="drivers" domain="uplink"/>
-
-				<domain name="uplink">
-
-					<nat domain="downlink"
-						tcp-ports="1"
-						udp-ports="1"
-						icmp-ids="1"/>
-
-					<tcp-forward port="5555" domain="downlink" to="10.0.3.2"/>
-
-				</domain>
-
-				<domain name="downlink" interface="10.0.3.1/24">
-
-					<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
-
-					<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-
-				</domain>
-
-			</config>
-		</start>
+proc uart_start_node { } {
+	if {[socat_uart]} {
+		if {[have_board pc]}   { return [pc_uart_start_node] }
+		if {[have_board rpi3]} { return [rpi3_uart_start_node] }
 	}
 }
 
-append config {
+proc nic_start_nodes { } { return {
++ start drivers | caps: 1000 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
 
-	<start name="terminal_monitor" ram="2M">
-		<binary name="terminal_crosslink"/>
-		<provides>
-			<service name="Terminal"/>
-		</provides>
-	</start>
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: socat   | domain: downlink
+    + policy | label_prefix: drivers | domain: uplink
+    + domain uplink
+      + nat | domain: downlink | tcp-ports: 1 | udp-ports: 1 | icmp-ids: 1
+      + tcp-forward | port: 5555 | domain: downlink | to: 10.0.3.2
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
+      + tcp | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+} }
 
-	<start name="terminal_gdb" ram="2M">
-		<binary name="terminal_crosslink"/>
-		<provides>
-			<service name="Terminal"/>
-		</provides>
-	</start>
+if {[socat_uart]} { proc nic_start_nodes { } { } }
 
-	<start name="monitor" caps="1000" ram="100M">
-		<config>
-			<parent-provides>
-				<service name="LOG"/>
-				<service name="PD"/>
-				<service name="CPU"/>
-				<service name="ROM"/>
-			</parent-provides>
-			<default caps="100"/>
+proc socat_uart_dev { } { if {[socat_uart]}  { return "+ terminal uart | label: uart" } }
+proc socat_tcpip    { } { if {![socat_uart]} { return "+ lwip | dhcp: yes" } }
 
-			<monitor>
-				<policy label="test-monitor_gdb" wait="yes" wx="yes"/>
-			</monitor>
-
-			<start name="test-monitor_gdb" caps="300" ram="10M">
-				<config>
-					<vfs> <dir name="dev"> <log/> </dir> </vfs>
-					<libc stdout="/dev/log" stderr="/dev/log"/>
-				</config>
-				<route>
-					<service name="PD">  <local/> </service>
-					<service name="CPU"> <local/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-			<start name="test-log" ram="2M">
-				<route>
-					<service name="PD">  <local/> </service>
-					<service name="CPU"> <local/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-		</config>
-		<route>
-			<service name="Terminal"> <child name="terminal_monitor"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="vfs" ram="12M">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<tar name="socat.tar"/>
-				<tar name="gdb.tar"/>
-			</vfs>
-			<default-policy root="/" writeable="no"/>
-		</config>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="vfs_rom" ram="60M">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<config/>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="socat" caps="200" ram="30M">
-		<binary name="/bin/socat"/>
-		<config>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<inline name="rtc">2018-01-01 00:01</inline>
-					<terminal name="gdb" label="gdb"/>}
-append_if [have_include power_on/qemu] config {
-					<terminal name="uart" label="uart"/>
-}
-append config {
-				</dir>}
-if {![have_include power_on/qemu]} {
-	append config {
-				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+proc socat_last_arg { } {
+	if {[socat_uart]} {
+		return "/dev/uart"
+	} else {
+		return "TCP4-LISTEN:5555"
 	}
 }
-append config {
-				<fs/>
-			</vfs>
-			<libc stdout="/dev/log"
-			      stderr="/dev/log"
-			      rtc="/dev/rtc"
-			      socket="/socket"/>
-			<arg>socat</arg>
-			<arg>/dev/gdb</arg>}
-if {[have_include power_on/qemu]} {
-	append config {
-			<arg>/dev/uart</arg>
-	}
-} else {
-	append config {
-			<arg>TCP4-LISTEN:5555</arg>
-	}
+
+install_config {
+config
++ parent-provides
+  + service LOG
+  + service PD
+  + service CPU
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service RM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
+} [uart_start_node] {
+} [nic_start_nodes] {
+
++ start terminal_monitor | ram: 2M
+  + binary terminal_crosslink
+  + provides | + service Terminal
+
++ start terminal_gdb | ram: 2M
+  + binary terminal_crosslink
+  + provides | + service Terminal
+
++ start monitor | caps: 1000 | ram: 100M
+  + config
+  | + parent-provides
+  |   + service LOG
+  |   + service PD
+  |   + service CPU
+  |   + service ROM
+  | + default | caps: 100
+  | + monitor
+  |   + policy | label: test-monitor_gdb | wait: yes | wx: yes
+  |
+  | + start test-monitor_gdb | caps: 300 | ram: 10M
+  |   + config
+  |     + vfs | + dir dev | + log
+  |     + libc | stdout: /dev/log | stderr: /dev/log
+  |   + route
+  |     + service PD  | + local
+  |     + service CPU | + local
+  |     + any-service | + parent
+  |
+  | + start test-log | ram: 2M
+  |   + route
+  |     + service PD  | + local
+  |     + service CPU | + local
+  |     + any-service | + parent
+  |
+  + route
+    + service Terminal | + child terminal_monitor
+    + any-service
+      + parent
+      + any-child
+
++ start vfs | ram: 12M
+  + provides | + service File_system
+  + route | + any-service | + parent
+  + config
+    + default-policy | root: / | writeable: no
+    + vfs
+      + tar socat.tar
+      + tar gdb.tar
+
++ start vfs_rom | ram: 60M
+  + binary fs_rom
+  + provides | + service ROM
+  + config
+  + route
+    + service File_system | + child vfs
+    + any-service         | + parent
+
++ start socat | caps: 200 | ram: 30M
+  + binary /bin/socat
+  + config
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + inline rtc | : 2018-01-01 00:01
+  |     + terminal gdb | label: gdb
+  |     } [socat_uart_dev] {
+  |   + dir socket | } [socat_tcpip] {
+  |   + fs
+  | + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc | socket: /socket
+  | + arg socat
+  | + arg /dev/gdb
+  | + arg } [socat_last_arg] {
+  + route
+    + service File_system                  | + child vfs
+    + service ROM | label_suffix: .lib.so  | + parent
+    + service ROM | label_last: /bin/socat | + child vfs_rom
+    + service Terminal | label: uart       | + child uart
+    + service Terminal | label: gdb        | + child terminal_gdb
+    + any-service
+      + parent
+      + any-child
+
++ start gdb | caps: 300 | ram: 46M
+  + binary /bin/} [gdb_prefix] {gdb
+  + config | ld_verbose: yes
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + inline rtc | : 2023-01-01 00:01
+  |     + terminal tty | label: tty
+  |     + terminal monitor | label: monitor
+  |   + dir pipe | + pipe
+  |   + tar gdb_run_debug.tar
+  |   + fs
+  | + libc | stdin: /dev/tty | stdout: /dev/tty | stderr: /dev/tty
+  |        | pipe: /pipe     | rtc: /dev/rtc
+  | + arg gdb
+  | + arg debug/ld.lib.so
+  | + arg -ex | : set pagination off
+  | + arg -ex | : set style enabled off
+  | + arg -ex | : set interactive-mode off
+  | + arg -ex | : set solib-search-path debug
+  | + arg -ex | : set non-stop on
+  | + arg -ex | : target extended-remote /dev/monitor
+  | + arg -ex | : b binary_ready_hook_for_gdb
+  | + arg -ex | : c
+  | + arg -ex | : delete 1
+  | + arg -ex | : thread 2
+  | + arg -ex | : file debug/test-monitor_gdb
+  + route
+    + service ROM | label_last: /bin/} [gdb_prefix] {gdb | + child vfs_rom
+    + service Terminal | label: tty                      | + child terminal_gdb
+    + service Terminal | label: monitor                  | + child terminal_monitor
+    + any-service
+      + parent
+      + any-child
+-
 }
-append config {
-		</config>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-			<service name="ROM" label_last="/bin/socat"> <child name="vfs_rom"/> </service>
-			<service name="Terminal" label="uart">
-				<child name="uart"/>
-			</service>
-			<service name="Terminal" label="gdb">
-				<child name="terminal_gdb"/>
-			</service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="gdb" caps="300" ram="46M">
-		<binary name="/bin/} [gdb_prefix] {gdb"/>
-		<config ld_verbose="yes">
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<inline name="rtc">2023-01-01 00:01</inline>
-					<terminal name="tty" label="tty"/>
-					<terminal name="monitor" label="monitor"/>
-				</dir>
-				<dir name="pipe"> <pipe/> </dir>
-				<tar name="gdb_run_debug.tar"/>
-				<fs/>
-			</vfs>
-			<libc stdin="/dev/tty" stdout="/dev/tty" stderr="/dev/tty"
-			      pipe="/pipe" rtc="/dev/rtc"/>
-			<arg>gdb</arg>
-			<arg>debug/ld.lib.so</arg>
-			<arg name="-ex">set pagination off</arg>
-			<arg name="-ex">set style enabled off</arg>
-			<arg name="-ex">set interactive-mode off</arg>
-			<arg name="-ex">set solib-search-path debug</arg>
-			<arg name="-ex">set non-stop on</arg>
-			<arg name="-ex">target extended-remote /dev/monitor</arg>
-			<arg name="-ex">b binary_ready_hook_for_gdb</arg>
-			<arg name="-ex">c</arg>
-			<arg name="-ex">delete 1</arg>
-			<arg name="-ex">thread 2</arg>
-			<arg name="-ex">file debug/test-monitor_gdb</arg>
-		</config>
-		<route>
-			<service name="ROM" label_last="/bin/} [gdb_prefix] {gdb">
-				<child name="vfs_rom"/>
-			</service>
-			<service name="Terminal" label="tty">
-				<child name="terminal_gdb"/>
-			</service>
-			<service name="Terminal" label="monitor">
-				<child name="terminal_monitor"/>
-			</service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>
-}
-
-install_config $config
 
 # GDB loads symbols from 'debug/ld.lib.so'
 if { [have_spec nova] } {

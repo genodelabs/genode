@@ -32,17 +32,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/cached_fs_rom \
                   [depot_user]/src/zlib
 
-
-#
-# Disable syntax check for config file
-#
-# The syntax check fails because the content of the '.bash_profile' is
-# specified using an '<inline>' node but it is no valid XML. I.e., xmllint
-# complains about the sequence '&&'.
-#
-proc check_xml_with_schema {xml_file} { }
-
-
 set cc_march ""
 set tool_chain_timeout  600
 
@@ -110,9 +99,7 @@ proc mounted_tar_archives { } {
 	set archives "bash coreutils grep sed findutils make which $binutils $gcc tclsh"
 
 	set result {}
-	foreach archive $archives {
-		append result "\t\t\t\t<tar name=\"$archive.tar\" />\n" }
-
+	foreach archive $archives { append result "\n    | + tar $archive.tar" }
 	return $result
 }
 
@@ -137,105 +124,88 @@ proc fs_rom_binary { } {
 
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-		<service name="IRQ"/>
-	</parent-provides>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IO_PORT
+  + service IO_MEM
+  + service IRQ
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="vfs" caps="200" ram="124M">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				} [mounted_tar_archives] {
-				<dir name="dev">
-					<zero/>
-					<log/>
-					<inline name="rtc">2030-01-01 00:01</inline>
-				</dir>
-				<dir name="pipe"> <pipe/> </dir>
-				<dir name="home">
-					<ram/>
-					<rom name=".bash_profile" label="bash_profile" binary="no"/>
-				</dir>
-				<dir name="genode"> <tar name="genode.tar"/> </dir>
-				<dir name="tmp"> <ram/> </dir>
-				<dir name="usr">
-					<dir name="bin">
-						<symlink name="make"  target="/bin/make" />
-						<symlink name="mkdir" target="/bin/mkdir"/>
-						<symlink name="echo"  target="/bin/echo" />
-						<symlink name="tclsh" target="/bin/tclsh"/>
-					</dir>
-				</dir>
++ start vfs | caps: 200 | ram: 124M
+  + provides | + service File_system
+  + config
+    + vfs} [mounted_tar_archives] {
+    | + dir dev
+    |   + zero
+    |   + log
+    |   + inline rtc | : 2030-01-01 00:01
+    | + dir pipe | + pipe
+    | + dir home
+    |   + ram
+    |   + rom .bash_profile | label: bash_profile | binary: no
+    | + dir genode | + tar genode.tar
+    | + dir tmp    | + ram
+    | + dir usr
+    |   + dir bin
+    |     + symlink make  | target: /bin/make
+    |     + symlink mkdir | target: /bin/mkdir
+    |     + symlink echo  | target: /bin/echo
+    |     + symlink tclsh | target: /bin/tclsh
+    | + dir bin
+    |   + symlink nm | target: } [prefixed_nm] {
+    |   + symlink sh | target: bash
+    + default-policy | root: / | writeable: yes
 
-				<dir name="bin">
-					<symlink name="nm" target="} [prefixed_nm] {"/>
-					<symlink name="sh" target="bash"/>
-				</dir>
-			</vfs>
-			<default-policy root="/" writeable="yes"/>
-		</config>
-	</start>
++ start vfs_rom | ram: 60M
+  + binary } [fs_rom_binary] {
+  + provides | + service ROM
+  + config
+  + route
+    + service File_system | + child vfs
+    + any-service         | + parent
 
-	<start name="vfs_rom" ram="60M">
-		<binary name="} [fs_rom_binary] {"/>
-		<provides> <service name="ROM"/> </provides>
-		<config/>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="/bin/bash" caps="2000" ram="300M">
-		<config ld_verbose="yes">
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      rtc="/dev/rtc" pipe="/pipe">
-				<stack size="256K"/>
-			</libc>
-			<vfs>
-				<fs buffer_size="2M"/>
-				<dir name="dev"> <null/> </dir>
-			</vfs>
-			<env name="HOME">/home</env>
-			<env name="PATH">/bin</env>
-			<arg>/bin/bash</arg>
-			<arg>--login</arg>
-		</config>
-		<route>
-			<service name="File_system"> <child name="vfs"/> </service>
-			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-			<service name="ROM" label_last="/bin/bash">           <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/genode/tool">      <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/bin">              <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/usr/bin">          <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/libexec">          <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/x86_64-pc-elf">    <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/arm-none-eabi">    <child name="vfs_rom"/> </service>
-			<service name="ROM" label_prefix="/aarch64-none-elf"> <child name="vfs_rom"/> </service>
-
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>}
++ start /bin/bash | caps: 2000 | ram: 300M
+  + config | ld_verbose: yes
+  | + libc | stdin:  /dev/null | stdout: /dev/log | stderr: /dev/log
+  |        | rtc:    /dev/rtc  | pipe:   /pipe
+  |        | + stack | size: 256K
+  | + vfs
+  |   + fs | buffer_size: 2M
+  |   + dir dev | + null
+  | + env HOME | : /home
+  | + env PATH | : /bin
+  | + arg /bin/bash
+  | + arg --login
+  + route
+    + service File_system | + child vfs
+    + service ROM | label_suffix: .lib.so           | + parent
+    + service ROM | label_last: /bin/bash           | + child vfs_rom
+    + service ROM | label_prefix: /genode/tool      | + child vfs_rom
+    + service ROM | label_prefix: /bin              | + child vfs_rom
+    + service ROM | label_prefix: /usr/bin          | + child vfs_rom
+    + service ROM | label_prefix: /libexec          | + child vfs_rom
+    + service ROM | label_prefix: /x86_64-pc-elf    | + child vfs_rom
+    + service ROM | label_prefix: /arm-none-eabi    | + child vfs_rom
+    + service ROM | label_prefix: /aarch64-none-elf | + child vfs_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build_boot_image [list {*}[build_artifacts] bash_profile genode.tar $binutils.tar $gcc.tar]
 
