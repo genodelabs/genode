@@ -1,129 +1,113 @@
-<runtime ram="120M" caps="2000" binary="init">
+runtime | ram: 120M | caps: 2000 | binary: init
 
-	<provides>
-		<file_system/>
-	</provides>
++ provides | + file_system
 
-	<requires>
-		<file_system label="data" writeable="yes"/>
-		<file_system label="trust_anchor" writeable="yes"/>
-		<file_system label="fonts" writeable="yes"/>
-		<gui/>
-		<rm/>
-		<timer/>
-	</requires>
++ requires
+  + file_system | label: data         | writeable: yes
+  + file_system | label: trust_anchor | writeable: yes
+  + file_system | label: fonts        | writeable: yes
+  + gui
+  + rm
+  + timer
 
-	<content>
-		<rom label="init"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="zlib.lib.so"/>
-		<rom label="fs_query"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_block"/>
-		<rom label="vfs_jitterentropy.lib.so"/>
-		<rom label="vfs_tresor.lib.so"/>
-		<rom label="vfs_tresor_crypto_aes_cbc.lib.so"/>
-		<rom label="vfs_tresor_trust_anchor.lib.so"/>
-		<rom label="tresor_init"/>
-		<rom label="tresor_init_trust_anchor"/>
-		<rom label="libcrypto.lib.so"/>
-		<rom label="rump.lib.so"/>
-		<rom label="vfs_rump.lib.so"/>
-		<rom label="rump_fs.lib.so"/>
-		<rom label="sandbox.lib.so"/>
-		<rom label="fs_tool"/>
-		<rom label="mke2fs"/>
-		<rom label="e2fsck"/>
-		<rom label="resize2fs"/>
-		<rom label="posix.lib.so"/>
-		<rom label="file_vault"/>
-		<rom label="file_vault-sync_to_tresor_vfs_init"/>
-		<rom label="file_vault-truncate_file"/>
-		<rom label="file_vault_gui"/>
-		<rom label="report_rom"/>
-		<rom label="menu_view"/>
-		<rom label="menu_view_styles.tar"/>
-		<rom label="libpng.lib.so"/>
-		<rom label="dialog.lib.so"/>
-	</content>
++ content
+  + rom | label: init
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: zlib.lib.so
+  + rom | label: fs_query
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_block
+  + rom | label: vfs_jitterentropy.lib.so
+  + rom | label: vfs_tresor.lib.so
+  + rom | label: vfs_tresor_crypto_aes_cbc.lib.so
+  + rom | label: vfs_tresor_trust_anchor.lib.so
+  + rom | label: tresor_init
+  + rom | label: tresor_init_trust_anchor
+  + rom | label: libcrypto.lib.so
+  + rom | label: rump.lib.so
+  + rom | label: vfs_rump.lib.so
+  + rom | label: rump_fs.lib.so
+  + rom | label: sandbox.lib.so
+  + rom | label: fs_tool
+  + rom | label: mke2fs
+  + rom | label: e2fsck
+  + rom | label: resize2fs
+  + rom | label: posix.lib.so
+  + rom | label: file_vault
+  + rom | label: file_vault-sync_to_tresor_vfs_init
+  + rom | label: file_vault-truncate_file
+  + rom | label: file_vault_gui
+  + rom | label: report_rom
+  + rom | label: menu_view
+  + rom | label: menu_view_styles.tar
+  + rom | label: libpng.lib.so
+  + rom | label: dialog.lib.so
 
-	<config>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Gui
+    + service Timer
+    + service File_system
 
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Gui"/>
-			<service name="Timer"/>
-			<service name="File_system"/>
-		</parent-provides>
+  + service File_system | + default-policy | + child file_vault
 
-		<service name="File_system">
-			<default-policy>
-				<child name="file_vault"/>
-			</default-policy>
-		</service>
+  + start report_rom | caps: 100 | ram: 1M
+    + provides
+      + service Report
+      + service ROM
+    + config
+      + policy | label: gui -> ui_report        | report: file_vault -> ui_report
+      + policy | label: file_vault -> ui_config | report: gui -> ui_config
+    + route
+      + service PD  | + parent
+      + service ROM | + parent
+      + service LOG | + parent
+      + service CPU | + parent
 
-		<start name="report_rom" caps="100" ram="1M">
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config>
-				<policy label="gui -> ui_report" report="file_vault -> ui_report"/>
-				<policy label="file_vault -> ui_config" report="gui -> ui_config"/>
-			</config>
-			<route>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
+  + start file_vault | caps: 1200 | ram: 100M
+    + provides | + service File_system
+    + config | + vfs | + dir tresor | + fs | label: tresor -> /
+    + route
+      + service File_system | label_prefix: tresor_trust_anchor_vfs -> storage_dir
+        + parent | identity: trust_anchor
+      + service File_system | label_prefix: tresor_init ->
+        + parent | identity: data
+      + service File_system | label_prefix: tresor ->
+        + parent | identity: data
+      + service File_system | label_prefix: image_fs_query ->
+        + parent | identity: data
+      + service File_system | label_prefix: tresor_vfs -> tresor_fs
+        + parent | identity: data
+      + service File_system | label_prefix: truncate_file -> tresor
+        + parent | identity: data
+      + service ROM    | label: ui_config | + child report_rom
+      + service Report | label: ui_report | + child report_rom
+      + service Timer                     | + parent
+      + service PD                        | + parent
+      + service ROM                       | + parent
+      + service CPU                       | + parent
+      + service LOG                       | + parent
+      + service RM                        | + parent
 
-		<start name="file_vault" caps="1200" ram="100M">
-			<provides>
-				<service name="File_system"/>
-			</provides>
-			<config>
-				<vfs> <dir name="tresor"> <fs label="tresor -> /"/> </dir> </vfs>
-			</config>
-			<route>
-				<service name="ROM" label="ui_config"> <child name="report_rom"/> </service>
-				<service name="Report" label="ui_report"> <child name="report_rom"/> </service>
-				<service name="File_system" label_prefix="tresor_trust_anchor_vfs -> storage_dir"> <parent identity="trust_anchor"/> </service>
-				<service name="File_system" label_prefix="tresor_init ->">                         <parent identity="data"/> </service>
-				<service name="File_system" label_prefix="tresor ->">                              <parent identity="data"/> </service>
-				<service name="File_system" label_prefix="image_fs_query ->">                      <parent identity="data"/> </service>
-				<service name="File_system" label_prefix="tresor_vfs -> tresor_fs">                <parent identity="data"/> </service>
-				<service name="File_system" label_prefix="truncate_file -> tresor">                <parent identity="data"/> </service>
-				<service name="Timer"> <parent/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="RM"> <parent/> </service>
-			</route>
-		</start>
-
-		<start name="gui" caps="400" ram="8M">
-			<binary name="file_vault_gui"/>
-			<route>
-				<service name="ROM" label="ui_report"> <child name="report_rom"/> </service>
-				<service name="Report" label="ui_config"> <child name="report_rom"/> </service>
-				<service name="File_system" label_prefix="fonts ->"> <parent identity="fonts"/> </service>
-				<service name="Gui"> <parent/> </service>
-				<service name="Timer"> <parent/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="RM"> <parent/> </service>
-			</route>
-		</start>
-
-	</config>
-
-</runtime>
+  + start gui | caps: 400 | ram: 8M
+    + binary file_vault_gui
+    + route
+      + service ROM    | label: ui_report            | + child report_rom
+      + service Report | label: ui_config            | + child report_rom
+      + service File_system | label_prefix: fonts -> | + parent | identity: fonts
+      + service Gui                                  | + parent
+      + service Timer                                | + parent
+      + service PD                                   | + parent
+      + service ROM                                  | + parent
+      + service CPU                                  | + parent
+      + service LOG                                  | + parent
+      + service RM                                   | + parent
+-

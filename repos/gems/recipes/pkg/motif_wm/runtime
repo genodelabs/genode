@@ -1,26 +1,26 @@
-<runtime ram="48M" caps="1000" binary="init" config="wm.config">
+runtime | ram: 48M | caps: 1000 | binary: init | config: wm.config
 
-	<requires>
-		<gui label="focus"/>
-		<gui/>
-		<report label="shape"/>
-		<report label="clipboard"/>
-		<rom    label="clipboard"/>
-		<timer/>
-	</requires>
++ requires
+  + gui    | label: focus
+  + gui
+  + report | label: shape
+  + report | label: clipboard
+  + rom    | label: clipboard
+  + timer
 
-	<provides> <gui/> <report/> <rom/> </provides>
++ provides
+  + gui
+  + report
+  + rom
 
-	<content>
-		<rom label="init"/>
-		<rom label="ld.lib.so"/>
-		<rom label="report_rom"/>
-		<rom label="decorator"/>
-		<rom label="window_layouter"/>
-		<rom label="wm"/>
-		<rom label="wm.config"/>
-		<rom label="decorator_init.config"/>
-		<rom label="layouter.config"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: init
+  + rom | label: ld.lib.so
+  + rom | label: report_rom
+  + rom | label: decorator
+  + rom | label: window_layouter
+  + rom | label: wm
+  + rom | label: wm.config
+  + rom | label: decorator_init.config
+  + rom | label: layouter.config
+-

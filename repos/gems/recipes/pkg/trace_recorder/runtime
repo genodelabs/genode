@@ -1,29 +1,24 @@
-<runtime ram="48M" caps="300" binary="trace_recorder">
+runtime | ram: 48M | caps: 300 | binary: trace_recorder
 
-	<requires>
-		<file_system label="target"/>
-		<trace/>
-		<rtc/>
-		<rom label="platform_info"/>
-	</requires>
++ requires
+  + file_system | label: target
+  + trace
+  + rtc
+  + rom | label: platform_info
 
-	<content>
-		<rom label="trace_recorder"/>
-		<rom label="ld.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="ctf0"/>
-		<rom label="pcapng"/>
-		<rom label="ctf0_pcapng"/>
-		<rom label="metadata"/>
-	</content>
++ content
+  + rom | label: trace_recorder
+  + rom | label: ld.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: ctf0
+  + rom | label: pcapng
+  + rom | label: ctf0_pcapng
+  + rom | label: metadata
 
-	<!-- example, must be refined and enabled -->
-	<config period_ms="5000" enable="no">
-		<vfs> <fs label="target -> /"/> </vfs>
-
-		<default-policy policy="ctf0">
-			<ctf/>
-		</default-policy>
-	</config>
-
-</runtime>
++ config | period_ms: 5000 | enable: no
+  .
+  . example, must be refined and enabled
+  .
+  + vfs | + fs | label: target -> /
+  + default-policy | policy: ctf0 | + ctf
+-

@@ -1,66 +1,57 @@
-<runtime ram="32M" caps="1100" binary="init">
+runtime | ram: 32M | caps: 1100 | binary: init
 
-	<requires>
-		<gui/>
-		<trace/>
-		<timer/>
-	</requires>
++ requires
+  + gui
+  + trace
+  + timer
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="TRACE"/>
-			<service name="Gui"/>
-			<service name="Timer"/>
-		</parent-provides>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service TRACE
+    + service Gui
+    + service Timer
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<default caps="100"/>
+  + default | caps: 100
 
-		<start name="report_rom" ram="4M">
-			<provides>
-				<service name="Report"/>
-				<service name="ROM"/>
-			</provides>
-			<config>
-				<policy label="cpu_load_display -> trace_subjects"
-				        report="trace_subject_reporter -> trace_subjects"/>
-			</config>
-		</start>
+  + start report_rom | ram: 4M
+    + provides
+      + service Report
+      + service ROM
+    + config
+      + policy | label:  cpu_load_display -> trace_subjects
+               | report: trace_subject_reporter -> trace_subjects
 
-		<start name="trace_subject_reporter" ram="6M">
-			<config period_ms="500">
-				<report activity="yes" affinity="yes"/>
-			</config>
-			<route>
-				<service name="Report"> <child name="report_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+  + start trace_subject_reporter | ram: 6M
+    + config | period_ms: 500
+      + report | activity: yes | affinity: yes
+    + route
+      + service Report | + child report_rom
+      + any-service
+        + parent
+        + any-child
 
-		<start name="cpu_load_display" ram="6M">
-			<config/>
-			<route>
-				<service name="ROM" label="trace_subjects"> <child name="report_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+  + start cpu_load_display | ram: 6M
+    + config
+    + route
+      + service ROM | label: trace_subjects | + child report_rom
+      + any-service
+        + parent
+        + any-child
 
-	</config>
-
-	<content>
-		<rom label="init"/>
-		<rom label="ld.lib.so"/>
-		<rom label="report_rom"/>
-		<rom label="cpu_load_display"/>
-		<rom label="trace_subject_reporter"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: init
+  + rom | label: ld.lib.so
+  + rom | label: report_rom
+  + rom | label: cpu_load_display
+  + rom | label: trace_subject_reporter
+-
