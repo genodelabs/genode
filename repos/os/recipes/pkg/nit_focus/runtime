@@ -1,18 +1,14 @@
-<runtime ram="1M" caps="100" binary="nit_focus">
+runtime | ram: 1M | caps: 100 | binary: nit_focus
 
-	<requires>
-		<rom label="clicked"/>
-		<report label="focus"/>
-	</requires>
++ requires
+  + rom    | label: clicked
+  + report | label: focus
 
-	<config>
-		<policy label_prefix="leitzentrale" focus="no"/>
-		<default-policy focus="yes"/>
-	</config>
++ config
+  + policy | label_prefix: leitzentrale | focus: no
+  + default-policy | focus: yes
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="nit_focus"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: nit_focus
+-

@@ -1,30 +1,21 @@
-<runtime ram="10M" caps="300" binary="nic_router">
+runtime | ram: 10M | caps: 300 | binary: nic_router
 
-	<requires> <nic/> </requires>
-	<provides> <nic/> </provides>
++ requires | + nic
 
-	<config verbose_domain_state="yes">
-		<default-policy domain="default" />
-		<nic-client     domain="uplink"  />
-		<domain name="uplink">
-			<nat domain="default"
-			     tcp-ports="1000"
-			     udp-ports="1000"
-			     icmp-ids="1000"/>
-		</domain>
-		<domain name="default" interface="10.0.1.1/24">
-			<dhcp-server ip_first="10.0.1.2"
-			             ip_last="10.0.1.200"
-			             dns_config_from="uplink"/>
-			<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
-			<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
-			<icmp dst="0.0.0.0/0" domain="uplink"/>
-		</domain>
-	</config>
++ provides | + nic
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="nic_router"/>
-	</content>
++ config | verbose_domain_state: yes
+  + default-policy | domain: default
+  + nic-client | domain: uplink
+  + domain uplink
+    + nat | domain: default | tcp-ports: 1000 | udp-ports: 1000 | icmp-ids: 1000
+  + domain default | interface: 10.0.1.1/24
+    + dhcp-server | ip_first: 10.0.1.2 | ip_last: 10.0.1.200 | dns_config_from: uplink
+    + tcp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+    + udp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+    + icmp | dst: 0.0.0.0/0 | domain: uplink
 
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: nic_router
+-

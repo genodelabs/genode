@@ -1,12 +1,10 @@
-<runtime ram="2M" caps="100" binary="terminal_crosslink">
+runtime | ram: 2M | caps: 100 | binary: terminal_crosslink
 
-	<provides> <terminal/> </provides>
++ provides | + terminal
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="terminal_crosslink"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: terminal_crosslink
 
-	<config/>
-
-</runtime>
++ config
+-

@@ -1,14 +1,13 @@
-<runtime ram="4M" caps="100" binary="fs_report">
+runtime | ram: 4M | caps: 100 | binary: fs_report
 
-	<requires> <file_system/> </requires>
-	<provides> <report/> </provides>
++ requires | + file_system
 
-	<config/>
++ provides | + report
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="fs_report"/>
-	</content>
++ config
 
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: fs_report
+-

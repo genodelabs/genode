@@ -1,10 +1,8 @@
-<runtime ram="4M" caps="100" binary="init">
+runtime | ram: 4M | caps: 100 | binary: init
 
-	<config/>
++ config
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="init"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: init
+-

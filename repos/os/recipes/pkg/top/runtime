@@ -1,11 +1,11 @@
-<runtime ram="100M" caps="1000" binary="top">
+runtime | ram: 100M | caps: 1000 | binary: top
 
-	<requires> <trace/> <timer/> </requires>
++ requires
+  + trace
+  + timer
 
-	<content>
-		<rom label="top"/>
-	</content>
++ content
+  + rom | label: top
 
-	<config period_ms="5000" sort_time="ec"/>
-
-</runtime>
++ config | period_ms: 5000 | sort_time: ec
+-
