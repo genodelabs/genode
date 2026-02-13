@@ -415,10 +415,9 @@ void i915_gem_object_release_mmap_offset(struct drm_i915_gem_object * obj)
 }
 
 
-int wbinvd_on_all_cpus(void)
+void wbinvd_on_all_cpus(void)
 {
 	lx_emul_trace(__func__);
-	return 0;
 }
 
 
@@ -484,7 +483,7 @@ int register_acpi_bus_type(struct acpi_bus_type * type)
 }
 
 
-void __init __register_sysctl_init(const char * path, struct ctl_table * table,
+void __init __register_sysctl_init(const char * path, const struct ctl_table * table,
                                    const char * table_name, size_t table_size)
 {
 	lx_emul_trace(__func__);
@@ -680,12 +679,6 @@ void intel_gsc_uc_init_early(struct intel_gsc_uc * gsc)
 }
 
 
-bool intel_hdcp_gsc_cs_required(struct drm_i915_private * i915)
-{
-	return DISPLAY_VER(i915) >= 14;
-}
-
-
 int intel_pxp_init(struct drm_i915_private *i915)
 {
 	lx_emul_trace(__func__);
@@ -717,6 +710,14 @@ long intel_gt_retire_requests_timeout(struct intel_gt * gt, long timeout, long *
 		*remaining_timeout = 0;
 
 	return 0;
+}
+
+
+extern bool intel_gt_gpu_reset_clobbers_display(struct intel_gt * gt);
+bool intel_gt_gpu_reset_clobbers_display(struct intel_gt * gt)
+{
+	lx_emul_trace(__func__);
+	return true;
 }
 
 
@@ -768,4 +769,19 @@ int _printk_deferred(const char * fmt,...)
 	va_end(args);
 
 	return r;
+}
+
+
+struct intel_fbdev;
+extern struct intel_framebuffer * intel_fbdev_framebuffer(struct intel_fbdev * fbdev);
+struct intel_framebuffer * intel_fbdev_framebuffer(struct intel_fbdev * fbdev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void intel_fbdev_get_map(struct intel_fbdev * fbdev,struct iosys_map * map);
+void intel_fbdev_get_map(struct intel_fbdev * fbdev,struct iosys_map * map)
+{
+	lx_emul_trace_and_stop(__func__);
 }

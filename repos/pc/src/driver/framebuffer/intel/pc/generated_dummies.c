@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-07-14
+ * \date   2026-02-17
  */
 
 #include <lx_emul.h>
@@ -28,9 +28,9 @@ int __cond_resched_lock(spinlock_t * lock)
 struct cpumask __cpu_active_mask;
 
 
-#include <linux/sched.h>
+#include <linux/file_ref.h>
 
-char * __get_task_comm(char * buf,size_t buf_size,struct task_struct * tsk)
+bool __file_ref_put(file_ref_t * ref,unsigned long cnt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -84,14 +84,6 @@ void __printk_deferred_exit(void)
 #include <linux/seq_file.h>
 
 void __seq_puts(struct seq_file * m,const char * s)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -253,14 +245,6 @@ int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 #include <linux/kernel.h>
 
 void bust_spinlocks(int yes)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/pagemap.h>
-
-bool clear_page_dirty_for_io(struct page * page)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -431,6 +415,14 @@ int drm_writeback_prepare_job(struct drm_writeback_job * job)
 struct irq_chip dummy_irq_chip;
 
 
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
@@ -474,6 +466,14 @@ void finish_rcuwait(struct rcuwait * w)
 #include <linux/mm.h>
 
 bool folio_mark_dirty(struct folio * folio)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/writeback.h>
+
+bool folio_redirty_for_writepage(struct writeback_control * wbc,struct folio * folio)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -564,7 +564,7 @@ void gpiod_remove_lookup_table(struct gpiod_lookup_table * table)
 
 #include <linux/gpio/consumer.h>
 
-void gpiod_set_value(struct gpio_desc * desc,int value)
+int gpiod_set_value(struct gpio_desc * desc,int value)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -572,7 +572,7 @@ void gpiod_set_value(struct gpio_desc * desc,int value)
 
 #include <linux/gpio/consumer.h>
 
-void gpiod_set_value_cansleep(struct gpio_desc * desc,int value)
+int gpiod_set_value_cansleep(struct gpio_desc * desc,int value)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -789,13 +789,6 @@ int i915_gem_object_attach_phys(struct drm_i915_gem_object * obj,int align)
 }
 
 
-extern struct i915_vma * __must_check i915_gem_object_ggtt_pin(struct drm_i915_gem_object * obj,const struct i915_gtt_view * view,u64 size,u64 alignment,u64 flags);
-struct i915_vma * __must_check i915_gem_object_ggtt_pin(struct drm_i915_gem_object * obj,const struct i915_gtt_view * view,u64 size,u64 alignment,u64 flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern int i915_gem_object_pread_phys(struct drm_i915_gem_object * obj,const struct drm_i915_gem_pread * args);
 int i915_gem_object_pread_phys(struct drm_i915_gem_object * obj,const struct drm_i915_gem_pread * args)
 {
@@ -1006,13 +999,6 @@ void i915_perf_unregister(struct drm_i915_private * i915)
 }
 
 
-extern void i915_pmu_exit(void);
-void i915_pmu_exit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern void i915_pmu_unregister(struct drm_i915_private * i915);
 void i915_pmu_unregister(struct drm_i915_private * i915)
 {
@@ -1131,6 +1117,14 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 bool initcall_debug;
 
 
+#include <linux/math.h>
+
+unsigned long int_sqrt(unsigned long x)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern u64 intel_context_get_total_runtime_ns(struct intel_context * ce);
 u64 intel_context_get_total_runtime_ns(struct intel_context * ce)
 {
@@ -1154,6 +1148,13 @@ struct intel_engine_cs * intel_engine_lookup_user(struct drm_i915_private * i915
 
 extern unsigned int intel_engines_has_context_isolation(struct drm_i915_private * i915);
 unsigned int intel_engines_has_context_isolation(struct drm_i915_private * i915)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int intel_fbdev_driver_fbdev_probe(struct drm_fb_helper * helper,struct drm_fb_helper_surface_size * sizes);
+int intel_fbdev_driver_fbdev_probe(struct drm_fb_helper * helper,struct drm_fb_helper_surface_size * sizes)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1346,15 +1347,15 @@ bool intel_has_reset_engine(const struct intel_gt * gt)
 }
 
 
-extern bool intel_hdcp_gsc_check_status(struct drm_i915_private * i915);
-bool intel_hdcp_gsc_check_status(struct drm_i915_private * i915)
+extern bool intel_hdcp_gsc_check_status(struct drm_device * drm);
+bool intel_hdcp_gsc_check_status(struct drm_device * drm)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-extern void intel_hdcp_gsc_fini(struct drm_i915_private * i915);
-void intel_hdcp_gsc_fini(struct drm_i915_private * i915)
+extern void intel_hdcp_gsc_fini(struct intel_display * display);
+void intel_hdcp_gsc_fini(struct intel_display * display)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1418,6 +1419,13 @@ struct drm_atomic_state * intel_load_detect_get_pipe(struct drm_connector * conn
 
 extern void intel_load_detect_release_pipe(struct drm_connector * connector,struct drm_atomic_state * state,struct drm_modeset_acquire_ctx * ctx);
 void intel_load_detect_release_pipe(struct drm_connector * connector,struct drm_atomic_state * state,struct drm_modeset_acquire_ctx * ctx)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern bool intel_match_g8_cpu(void);
+bool intel_match_g8_cpu(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1592,6 +1600,14 @@ bool irq_work_queue_on(struct irq_work * work,int cpu)
 
 #include <linux/irq_work.h>
 
+void irq_work_sync(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -1641,17 +1657,33 @@ void kmsg_dump_desc(enum kmsg_dump_reason reason,const char * desc)
 }
 
 
-#include <linux/rcutree.h>
+#include <linux/delay.h>
 
-void kvfree_rcu_barrier(void)
+unsigned long loops_per_jiffy;
+
+
+#include <asm-generic/logic_io.h>
+
+void memcpy_fromio(void * to,const volatile void __iomem * from,size_t n)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/delay.h>
+#include <asm-generic/logic_io.h>
 
-unsigned long loops_per_jiffy;
+void memcpy_toio(volatile void __iomem * to,const void * from,size_t n)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <asm-generic/logic_io.h>
+
+void memset_io(volatile void __iomem * a,int b,size_t c)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/io.h>
@@ -1662,17 +1694,9 @@ void memunmap(void * addr)
 }
 
 
-#include <linux/preempt.h>
+#include <linux/mman.h>
 
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
+void mm_compute_batch(int overcommit_policy)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1768,14 +1792,6 @@ void on_each_cpu_cond_mask(smp_cond_func_t cond_func,smp_call_func_t func,void *
 int oops_in_progress;	/* If set, an oops, panic(), BUG() or die() is in progress */
 
 
-#include <linux/pagemap.h>
-
-noinline struct page * pagecache_get_page(struct address_space * mapping,pgoff_t index,fgf_t fgp_flags,gfp_t gfp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/reboot.h>
 
 enum reboot_mode panic_reboot_mode;
@@ -1805,7 +1821,13 @@ void pci_disable_device(struct pci_dev * dev)
 }
 
 
-#include <asm-generic/pci_iomap.h>
+#include <linux/pci.h>
+
+const struct cpumask * pci_irq_get_affinity(struct pci_dev * dev,int nr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
 
 #include <linux/pci.h>
 
@@ -1842,6 +1864,14 @@ void pci_unmap_rom(struct pci_dev * pdev,void __iomem * rom)
 #include <linux/pci.h>
 
 int pci_write_config_byte(const struct pci_dev * dev,int where,u8 val)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/percpu_counter.h>
+
+void percpu_counter_sync(struct percpu_counter * fbc)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1895,6 +1925,14 @@ void printk_legacy_allow_panic_sync(void)
 
 #include <linux/sysctl.h>
 
+int proc_dointvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
 int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -1904,6 +1942,14 @@ int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,
 #include <linux/sysctl.h>
 
 int proc_douintvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+int proc_doulongvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2026,9 +2072,9 @@ void shmem_truncate_range(struct inode * inode,loff_t lstart,loff_t lend)
 }
 
 
-#include <linux/sched/debug.h>
+#include <linux/shmem_fs.h>
 
-void show_state_filter(unsigned int state_filter)
+int shmem_writeout(struct folio * folio,struct swap_iocb ** plug,struct list_head * folio_list)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2121,14 +2167,6 @@ struct callback_head * task_work_cancel_func(struct task_struct * task,task_work
 }
 
 
-#include <linux/pagemap.h>
-
-void unlock_page(struct page * page)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/mm.h>
 
 void unmap_mapping_range(struct address_space * mapping,loff_t const holebegin,loff_t const holelen,int even_cows)
@@ -2159,6 +2197,13 @@ void update_group_capacity(struct sched_domain * sd,int cpu)
 }
 
 
+extern bool video_is_primary_device(struct device * dev);
+bool video_is_primary_device(struct device * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/vmalloc.h>
 
 void * vmap_pfn(unsigned long * pfns,unsigned int count,pgprot_t prot)
@@ -2170,6 +2215,14 @@ void * vmap_pfn(unsigned long * pfns,unsigned int count,pgprot_t prot)
 #include <linux/vmalloc.h>
 
 void vunmap(const void * addr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/writeback.h>
+
+struct folio * writeback_iter(struct address_space * mapping,struct writeback_control * wbc,struct folio * folio,int * error)
 {
 	lx_emul_trace_and_stop(__func__);
 }

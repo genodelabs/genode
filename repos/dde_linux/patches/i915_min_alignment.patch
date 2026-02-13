@@ -1,0 +1,12 @@
+Make function externally available as it is needed by 'lx_user.c'.
+--- src/linux/drivers/gpu/drm/i915/display/intel_fb.c
++++ src/linux/drivers/gpu/drm/i915/display/intel_fb.c
+@@ -1658,7 +1658,7 @@
+ 	       fb->base.modifier == I915_FORMAT_MOD_Yf_TILED;
+ }
+ 
+-static unsigned int intel_fb_min_alignment(const struct drm_framebuffer *fb)
++unsigned int intel_fb_min_alignment(const struct drm_framebuffer *fb)
+ {
+ 	struct intel_display *display = to_intel_display(fb->dev);
+ 	struct intel_plane *plane;

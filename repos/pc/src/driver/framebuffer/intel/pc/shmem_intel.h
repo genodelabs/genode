@@ -62,7 +62,7 @@ struct file *shmem_file_setup(char const *name, loff_t size,
 
 	inode->i_mapping = mapping;
 
-	atomic_long_set(&f->f_count, 1);
+	file_ref_inc(&f->f_ref);
 	f->f_inode    = inode;
 	f->f_mapping  = mapping;
 	f->f_flags    = flags;
@@ -113,7 +113,7 @@ void fput(struct file *file)
 	if (!file)
 		return;
 
-	if (atomic_long_sub_and_test(1, &file->f_count)) {
+	if (file_ref_put(&file->f_ref)) {
 		_free_file(file);
 	}
 }
@@ -162,7 +162,7 @@ struct folio *shmem_read_folio_gfp(struct address_space *mapping,
 	if (!private_data->folio) {
 		unsigned order       = order_base_2(mapping->nrpages);
 		/* essence of shmem_alloc_folio function */
-		private_data->folio  = vma_alloc_folio(gfp, order, NULL, 0, true);
+		private_data->folio  = vma_alloc_folio(gfp, order, NULL, 0);
 	}
 
 	return private_data->folio;
