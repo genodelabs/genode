@@ -1,13 +1,11 @@
-<runtime ram="32M" caps="200" binary="vfs">
+runtime | ram: 32M | caps: 200 | binary: vfs
 
-	<provides> <file_system/> </provides>
++ provides | + file_system
 
-	<config/>
++ config
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs
+-

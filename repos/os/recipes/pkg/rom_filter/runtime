@@ -1,13 +1,12 @@
-<runtime ram="2M" caps="100" binary="rom_filter">
+runtime | ram: 2M | caps: 100 | binary: rom_filter
 
-	<requires> <rom/> </requires>
-	<provides> <rom/> </provides>
++ requires | + rom
 
-	<config/>
++ provides | + rom
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="rom_filter"/>
-	</content>
++ config
 
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: rom_filter
+-

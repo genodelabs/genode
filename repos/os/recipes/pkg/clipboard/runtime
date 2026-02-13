@@ -1,16 +1,14 @@
-<runtime ram="4M" caps="128" binary="clipboard">
+runtime | ram: 4M | caps: 128 | binary: clipboard
 
-	<requires> <timer/> </requires>
-	<provides>
-		<report/>
-		<rom/>
-	</provides>
++ requires | + timer
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="clipboard"/>
-	</content>
++ provides
+  + report
+  + rom
 
-	<config verbose="yes"/>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: clipboard
 
-</runtime>
++ config | verbose: yes
+-

@@ -1,14 +1,10 @@
-<runtime ram="1M" caps="100" binary="cpu_burner">
+runtime | ram: 1M | caps: 100 | binary: cpu_burner
 
-	<requires>
-		<timer/>
-	</requires>
++ requires | + timer
 
-	<config percent="100"/>
++ config | percent: 100
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="cpu_burner"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: cpu_burner
+-

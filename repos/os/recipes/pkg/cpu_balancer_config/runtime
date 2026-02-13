@@ -1,76 +1,56 @@
-<runtime ram="7M" caps="700" binary="init">
+runtime | ram: 7M | caps: 700 | binary: init
 
-	<provides> <pd/> <cpu/> </provides>
++ provides
+  + pd
+  + cpu
 
-	<requires>
-		<trace/>
-		<timer/>
-		<file_system label="recall" writeable="yes"/>
-	</requires>
++ requires
+  + trace
+  + timer
+  + file_system | label: recall | writeable: yes
 
-	<config>
++ config
+  + service PD  | + default-policy | + child cpu_balancer
+  + service CPU | + default-policy | + child cpu_balancer
+  + default-route | + any-service | + parent
+  + parent-provides
+  | + service PD
+  | + service CPU
+  | + service LOG
+  | + service ROM
+  | + service TRACE
+  | + service File_system
+  | + service Gui
+  | + service Timer
+  |
+  + start fs_report | caps: 100 | ram: 1M
+  | + provides | + service Report
+  | + config | + vfs | + fs
+  | + route
+  |   + service File_system | + parent | identity: recall
+  |   + any-service         | + parent
+  |
+  + start fs_rom | caps: 100 | ram: 1M
+  | + provides | + service ROM
+  | + config
+  | + route
+  |   + service File_system | + parent | identity: recall
+  |   + any-service         | + parent
+  |
+  + start cpu_balancer | caps: 200 | ram: 2M
+    + provides
+      + service PD
+      + service CPU
+    x config | interval_us: 1000000 | report: yes | trace: yes
+    + route
+      + service ROM    | label: config     | + child fs_rom | label: config
+      + service Report | label: components | + child fs_report | label: components
+      + any-service                        | + parent
 
-		<service name="PD">
-			<default-policy> <child name="cpu_balancer"/> </default-policy>
-		</service>
-		<service name="CPU">
-			<default-policy> <child name="cpu_balancer"/> </default-policy>
-		</service>
-
-		<default-route> <any-service> <parent/> </any-service> </default-route>
-
-		<parent-provides>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="ROM"/>
-			<service name="TRACE"/>
-			<service name="File_system"/>
-			<service name="Gui"/>
-			<service name="Timer"/>
-		</parent-provides>
-
-		<start name="fs_report" caps="100" ram="1M">
-			<provides> <service name="Report"/> </provides>
-			<config> <vfs> <fs/> </vfs> </config>
-			<route>
-				<service name="File_system"> <parent identity="recall"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="fs_rom" caps="100" ram="1M">
-			<provides> <service name="ROM"/> </provides>
-			<config/>
-			<route>
-				<service name="File_system"> <parent identity="recall"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="cpu_balancer" caps="200" ram="2M">
-
-			<provides>
-				<service name="PD"/>
-				<service name="CPU"/>
-			</provides>
-<!--
-			<config interval_us="1000000" report="yes" trace="yes"/>
--->
-			<route>
-				<service name="ROM" label="config"> <child name="fs_rom" label="config"/> </service>
-				<service name="Report" label="components"> <child name="fs_report" label="components"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-	</config>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="cpu_balancer"/>
-		<rom label="init"/>
-		<rom label="fs_report"/>
-		<rom label="fs_rom"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: cpu_balancer
+  + rom | label: init
+  + rom | label: fs_report
+  + rom | label: fs_rom
+-

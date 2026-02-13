@@ -1,13 +1,12 @@
-<runtime ram="1M" caps="100" binary="fs_rom">
+runtime | ram: 1M | caps: 100 | binary: fs_rom
 
-	<requires> <file_system/> </requires>
-	<provides> <rom/> </provides>
++ requires | + file_system
 
-	<config/>
++ provides | + rom
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="fs_rom"/>
-	</content>
++ config
 
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: fs_rom
+-

@@ -1,18 +1,17 @@
-<runtime ram="2M" caps="150" binary="cpu_balancer">
+runtime | ram: 2M | caps: 150 | binary: cpu_balancer
 
-	<provides> <pd/> <cpu/> </provides>
++ provides
+  + pd
+  + cpu
 
-	<requires>
-		<trace/>
-		<report/>
-		<timer/>
-	</requires>
++ requires
+  + trace
+  + report
+  + timer
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="cpu_balancer"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: cpu_balancer
 
-	<config interval_us="1000000" report="yes" trace="yes"/>
-
-</runtime>
++ config | interval_us: 1000000 | report: yes | trace: yes
+-

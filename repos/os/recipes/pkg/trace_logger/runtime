@@ -1,22 +1,21 @@
-<runtime ram="100M" caps="1000" binary="trace_logger">
+runtime | ram: 100M | caps: 1000 | binary: trace_logger
 
-	<requires> <trace/> <timer/> </requires>
++ requires
+  + trace
+  + timer
 
-	<content>
-		<rom label="trace_logger"/>
-		<rom label="null"/>
-		<rom label="rpc_name"/>
-	</content>
++ content
+  + rom | label: trace_logger
+  + rom | label: null
+  + rom | label: rpc_name
 
-	<config verbose="no"
-	        session_ram="90M"
-	        session_arg_buffer="1M"
-	        period_sec="10"
-	        default_policy="null"
-	        default_buffer="8K">
-
-		<policy label_prefix="init -> runtime -> "/>
-
-	</config>
-
-</runtime>
++ config
+  |      verbose:            no
+  |      session_ram:        90M
+  |      session_arg_buffer: 1M
+  |      period_sec:         10
+  |      default_policy:     null
+  |      default_buffer:     8K
+  |
+  + policy | label_prefix: init -> runtime ->
+-
