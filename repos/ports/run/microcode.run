@@ -31,19 +31,16 @@ build { core lib/ld init test/microcode }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="50"/>
-		<start name="test-microcode" ram="10M"/>
-	</config>
+config
++ parent-provides
+  + service LOG
+  + service PD
+  + service CPU
+  + service ROM
++ default-route | + any-service | + parent
++ default | caps: 50
++ start test-microcode | ram: 10M
+-
 }
 
 foreach file $microcode_files {

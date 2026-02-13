@@ -169,272 +169,244 @@ build { app/netperf }
 
 set lx_ip_addr "10.0.2.55"
 
-set config {
-<config verbose="yes" prio_levels="4" generate_xml="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="2M"/>
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start> }
+# Wifi driver
 
-if { $use_wifi_driver } {
-	append config {
-	<start name="report_rom" caps="100" ram="2M" priority="-1">
-		<provides>
-			<service name="ROM" />
-			<service name="Report" />
-		</provides>
-		<config>
-			<policy label="pci_decode -> system" report="acpi -> acpi"/>
-			<policy label="platform -> devices"  report="pci_decode -> devices"/>
-		</config>
-	</start>
-
-	<start name="acpi" caps="250" ram="4M" priority="-1"/>
-
-	<start name="pci_decode" caps="350" ram="2M" priority="-1">
-		<route>
-			<service name="ROM" label="system"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="platform" caps="100" ram="2M" managing_system="yes" priority="-1">
-		<provides> <service name="Platform"/> </provides>
-		<route>
-			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-		<config>
-			<policy label_prefix="nic" info="yes"> <pci class="WIFI"/> </policy>
-		</config>
-	</start>
-
-	<start name="config_fs" ram="4M" priority="-1">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<ram/>
-				<import>
-					<inline name="wifi_config">
-<wifi_config>}
-append config "<network ssid=\"$wifi_ssid\" protection=\"WPA2\" passphrase=\"$wifi_psk\" auto_connect=\"true\"/>"
-append  config { </wifi_config>
-					</inline>
-				</import>
-			</vfs>
-			<policy label_prefix="config_rom" root="/"/>
-		</config>
-	</start>
-
-	<start name="config_rom" ram="4M" priority="-1">
-		<binary name="fs_rom"/>
-		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="File_system"> <child name="config_fs" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="nic" caps="470" ram="32M" priority="-1">
-		<binary name="wifi"/>
-		<config>
-			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
-			<vfs>
-				<dir name="dev">
-					<log/> <null/>
-					<jitterentropy name="random"/>
-					<jitterentropy name="urandom"/>
-					<inline name="rtc">2018-01-01 00:01</inline>
-				</dir>
-				<dir name="firmware">
-					<tar name="wifi_firmware.tar"/>
-				</dir>
-			</vfs>
-		</config>
-		<route>
-			<service name="Rtc"> <any-child/> </service>
-			<service name="File_system"> <child name="config_fs"/> </service>
-			<service name="ROM" label="wifi_config"> <child name="config_rom" /> </service>
-			<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
-			<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
-
-} elseif { $use_usb_driver } {
-
-	append config {
-
-	<start name="usb" caps="1500" ram="32M" managing_system="yes" priority="-1">
-		<binary name="init"/>
-		<provides> <service name="Usb"/> </provides>
-		<route>
-			<service name="ROM" label="config">
-				<parent label="drivers.config"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Timer">  <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="nic" caps="200" ram="20M" priority="-1">
-		<binary name="usb_net"/>
-		<config mac="02:00:00:00:01:01" />
-		<route>
-			<service name="Uplink"><child name="nic_router"/></service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start> }
-
-} else {
-
-	append config {
-
-	<start name="nic" caps="1200" ram="32M" managing_system="yes" priority="-1">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start> }
+proc wifi_config { } {
+	global wifi_ssid
+	global wifi_psk
+	return "ssid: $wifi_ssid | protection: WPA2 | passphrase: $wifi_psk | auto_connect: yes"
 }
 
-append config {
+proc wifi_start_nodes { } { return [join [list {
 
-	<start name="nic_router" caps="120" ram="5M" priority="-1">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes"> }
++ start report_rom | caps: 100 | ram: 2M | priority: -1
+  + provides
+    + service ROM
+    + service Report
+  + config
+    + policy | label: pci_decode -> system | report: acpi -> acpi
+    + policy | label: platform -> devices | report: pci_decode -> devices
 
-if {$use_nic_bridge} { append config {
++ start acpi | caps: 250 | ram: 4M | priority: -1
 
-			<policy label_prefix="nic_bridge" domain="server"/> }
++ start pci_decode | caps: 350 | ram: 2M | priority: -1
+  + route
+    + service ROM | label: system | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-} else { append config {
++ start platform | caps: 100 | ram: 2M | managing_system: yes | priority: -1
+  + provides | + service Platform
+  + config | + policy | label_prefix: nic | info: yes | + pci | class: WIFI
+  + route
+    + service ROM | label: devices | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-			<policy label_prefix="netserver_genode" domain="server"/> }
++ start config_fs | ram: 4M | priority: -1
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: config_rom | root: /
+    + vfs
+      + ram
+      + import
+        + inline wifi_config
+          + wifi_config
+            + network | } [wifi_config] {
+
++ start config_rom | ram: 4M | priority: -1
+  + binary fs_rom
+  + provides | + service ROM
+  + route
+    + service File_system | + child config_fs
+    + any-service
+      + parent
+      + any-child
+
++ start nic | caps: 470 | ram: 32M | priority: -1
+  + binary wifi
+  + config
+  | + libc | stdout: /dev/null | stderr: /dev/log | rtc: /dev/rtc
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + null
+  |     + jitterentropy random
+  |     + jitterentropy urandom
+  |     + inline rtc | : 2018-01-01 00:01
+  |   + dir firmware | + tar wifi_firmware.tar
+  + route
+    + service Rtc                            | + any-child
+    + service File_system                    | + child config_fs
+    + service ROM | label: wifi_config       | + child config_rom
+    + service ROM | label: wifi.lib.so       | + parent | label: pc_wifi.lib.so
+    + service ROM | label: wifi_firmware.tar | + parent | label: pc_wifi_firmware.tar
+    + service Report                         | + child report_rom
+    + service Uplink                         | + child nic_router
+    + any-service
+      + parent
+      + any-child
+}] ""] }
+
+if {!$use_wifi_driver} { proc wifi_start_nodes { } { } }
+
+
+# USB-network driver
+
+proc usb_start_nodes { } { return {
+
++ start usb | caps: 1500 | ram: 32M | managing_system: yes | priority: -1
+  + binary init
+  + provides | + service Usb
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Report              | + child report_rom
+    + service Timer               | + child timer
+    + any-service                 | + parent
+
++ start nic | caps: 200 | ram: 20M | priority: -1
+  + binary usb_net
+  + config | mac: 02:00:00:00:01:01
+  + route
+    + service Uplink | + child nic_router
+    + any-service
+      + parent
+      + any-child
+} }
+
+if {!$use_usb_driver} { proc usb_start_nodes { } { } }
+
+
+# Ethernet driver
+
+proc nic_start_nodes { } { return {
++ start nic | caps: 1200 | ram: 32M | managing_system: yes | priority: -1
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
+} }
+
+if {$use_wifi_driver || $use_usb_driver} { proc nic_start_nodes { } { } }
+
+
+# NIC bridge and NIC router config
+
+proc nic_bridge_config_attr { } {
+	global bridge_mac
+	return "mac: $bridge_mac"
 }
-append config {
 
-			<policy label_prefix="nic" domain="uplink"/>
+proc nic_bridge_start_node { } { return [join [list {
++ start bridge | ram: 5M | priority: -1
+  + binary nic_bridge
+  + provides | + service Nic
+  + config | } [nic_bridge_config_attr] {
+    + default-policy
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
+}] ""] }
 
-			<domain name="uplink" }
+if {!$use_nic_bridge} { proc nic_bridge_start_node { } { } }
 
-append_if [have_spec linux] config "
-
-			        interface=\"$lx_ip_addr/24\" gateway=\"10.0.2.1\""
-
-append config {
-
-			>
-				<nat domain="server" tcp-ports="100" udp-ports="100" />
-				<tcp-forward port="} [server_data_port] {" domain="server" to="10.0.3.2" />
-				<tcp-forward port="} [server_ctrl_port] {" domain="server" to="10.0.3.2" />
-				<udp-forward port="} [server_data_port] {" domain="server" to="10.0.3.2" />
-			</domain>
-
-			<domain name="server" interface="10.0.3.1/24" verbose_packets="no">
-				<dhcp-server ip_first="10.0.3.2"
-				             ip_last="10.0.3.2"
-				             ip_lease_time_sec="600"/>
-			</domain>
-
-		</config>
-	</start> }
-
-append_if $use_nic_bridge config {
-
-	<start name="nic_bridge" ram="5M" priority="-1">
-		<provides><service name="Nic"/></provides>
-		<config mac="} $bridge_mac {">
-			<default-policy/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start> }
-
-append config {
-
-	<start name="netserver_genode" caps="320" ram="14M" priority="-2">
-		<binary name="netserver"/>
-		<config>
-			<arg>netserver</arg>
-			<arg>-D</arg>
-			<arg>-4</arg>
-			<arg>-f</arg>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
-			<vfs>
-				<dir name="dev">
-					<log/> <inline name="rtc">2018-01-01 00:01</inline>
-				</dir>
-				<dir name="socket">
-					<} [socket_fs_plugin] { dhcp="yes"/>
-				</dir>
-			</vfs>
-		</config>
-		<route>
+proc nic_router_uplink_domain_attr { } {
+	global lx_ip_addr
+	if {[have_spec linux]} {
+		return "| interface: $lx_ip_addr/24 | gateway: 10.0.2.1"
+	}
 }
-if { $use_nic_bridge } {
 
-	append config {
-
-			<service name="Nic"> <child name="nic_bridge"/> </service> }
-
-} else {
-
-	append config {
-
-			<service name="Nic"> <child name="nic_router"/> </service> }
+proc netserver_nic_target { } {
+	global use_nic_bridge
+	if {$use_nic_bridge} { return "bridge" } else { return "nic_router" }
 }
-append config {
 
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
+install_config {
+config | verbose: yes | prio_levels: 4
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-</config> }
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-install_config $config
++ default | caps: 200 | ram: 2M
+
++ start timer
+  + provides | + service Timer
+
+} [wifi_start_nodes] [usb_start_nodes] [nic_start_nodes] [nic_bridge_start_node] {
+
++ start nic_router | caps: 120 | ram: 5M | priority: -1
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: bridge           | domain: server
+    + policy | label_prefix: netserver_genode | domain: server
+    + policy | label_prefix: nic              | domain: uplink
+    + domain uplink | } [nic_router_uplink_domain_attr] {
+      + nat | domain: server | tcp-ports: 100 | udp-ports: 100
+      + tcp-forward | port: } [server_data_port] { | domain: server | to: 10.0.3.2
+      + tcp-forward | port: } [server_ctrl_port] { | domain: server | to: 10.0.3.2
+      + udp-forward | port: } [server_data_port] { | domain: server | to: 10.0.3.2
+    + domain server | interface: 10.0.3.1/24 | verbose_packets: no
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2 | ip_lease_time_sec: 600
+
++ start netserver_genode | caps: 320 | ram: 14M | priority: -2
+  + binary netserver
+  + config
+  | + arg netserver
+  | + arg -D
+  | + arg -4
+  | + arg -f
+  | + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc | socket: /socket
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + inline rtc | : 2018-01-01 00:01
+  |   + dir socket | + } [socket_fs_plugin] { | dhcp: yes
+  + route
+    + service Nic | + child } [netserver_nic_target] {
+    + any-service
+      + parent
+      + any-child
+-
+}
+
 
 #
 # Define USB host controller config
 #
 if { $use_usb_driver } {
+	lappend usb_config "config | bios_handoff: no"
+	lappend_if [have_board rpi] usb_config \
+		"+ policy | label_prefix: nic" \
+		"  + device | vendor_id: 0x0424 | product_id: 0xec00"
+	lappend_if [have_spec x86] usb_config \
+		"+ policy | label_prefix: nic" \
+		"  + device | vendor_id: 0x0b95 | product_id: 0x1790"
+	lappend usb_config "-"
+
 	set fd [open [run_dir]/genode/usb_host.config w]
-	append usb_config {<config bios_handoff="no">}
-	append_if [have_board rpi] usb_config {
-		<policy label_prefix="nic">
-			<device vendor_id="0x0424" product_id="0xec00"/>
-		</policy> }
-	append_if [have_spec x86] usb_config {
-		<policy label_prefix="nic">
-			<device vendor_id="0x0b95" product_id="0x1790"/>
-		</policy> }
-	append usb_config {</config>}
-	puts $fd $usb_config
+	puts $fd [join $usb_config "\n"]
 	close $fd
 }
 

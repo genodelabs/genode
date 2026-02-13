@@ -6,16 +6,12 @@
 
 proc ip_stack { } { return lwip }
 
-proc socket_fs_plugin { } {
-	return "<[ip_stack] dhcp=\"yes\"/>"
-}
-
-proc nic_router_uplink { } {
+proc nic_router_uplink_domain_attr { } {
 	# static IP config on Linux
 	if {[have_spec linux]} {
-		return {<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">}
+		return {interface: 10.0.2.55/24 | gateway: 10.0.2.1}
 	} else {
-		return {<domain name="uplink">}
+		return {}
 	}
 }
 
@@ -36,191 +32,160 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/zlib
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="IRQ"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_PORT
+  + service IO_MEM
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="nic" caps="1000" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes">
++ start timer
+  + provides | + service Timer
 
-			<policy label_prefix="lighttpd" domain="downlink"/>
-			<policy label_prefix="nic"      domain="uplink"/>
++ start nic | caps: 1200 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
 
-			} [nic_router_uplink] {
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: lighttpd | domain: downlink
+    + policy | label_prefix: nic      | domain: uplink
+    + domain uplink | } [nic_router_uplink_domain_attr] {
+      + nat | domain: downlink | tcp-ports: 16384 | udp-ports: 16384 | icmp-ids: 16384
+      + tcp-forward | port:  80 | domain: downlink | to: 10.0.3.2
+      + tcp-forward | port: 443 | domain: downlink | to: 10.0.3.2
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
 
-				<nat domain="downlink"
-				     tcp-ports="16384"
-				     udp-ports="16384"
-				     icmp-ids="16384"/>
-
-				<tcp-forward port="80" domain="downlink" to="10.0.3.2"/>
-				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
-
-			</domain>
-
-			<domain name="downlink" interface="10.0.3.1/24">
-
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2">
-					<dns-server ip="8.8.8.8"/>
-					<dns-server ip="1.1.1.1"/>
-				</dhcp-server>
-
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
-				<icmp dst="0.0.0.0/0" domain="uplink"/>
-
-			</domain>
-
-		</config>
-	</start>
-
-	<start name="lighttpd" caps="200" ram="1G">
-		<config>
-			<arg>lighttpd</arg>
-			<arg name="-f">/etc/lighttpd/lighttpd.conf</arg>
-			<arg>-D</arg>
-			<vfs>
-				<dir name="dev">
-					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
-					<jitterentropy name="random"/>
-				</dir>
-				<dir name="socket"> } [socket_fs_plugin] { </dir>
-				<dir name="etc">
-					<dir name="lighttpd">
-						<inline name="lighttpd.conf">
-# lighttpd configuration
-server.port            = 80
-server.document-root   = "/website"
-server.event-handler   = "select"
-server.network-backend = "write"
-server.upload-dirs     = ( "/tmp" )
-server.modules         = ("mod_openssl")
-server.modules += ( "mod_webdav" )
-index-file.names     = (
-  "index.xhtml", "index.html", "index.htm"
-)
-mimetype.assign      = (
-  ".html"         =>      "text/html",
-  ".htm"          =>      "text/html"
-)
-  dir-listing.activate = "enable"
-  webdav.activate = "enable"
-  webdav.is-readonly = "disable"
-$SERVER["socket"] == ":443" {
-	ssl.engine  = "enable"
-	ssl.pemfile = "/etc/lighttpd/example.pem"
++ start lighttpd | caps: 200 | ram: 1G
+  + config
+  | + libc | stdin: /dev/null | stdout: /dev/log    | stderr: /dev/log
+  |        | rtc:   /dev/rtc  | rng:    /dev/random | socket: /socket
+  | + arg lighttpd
+  | + arg -f | : /etc/lighttpd/lighttpd.conf
+  | + arg -D
+  | + vfs
+  |   + dir dev
+  |     + log
+  |     + null
+  |     + inline rtc | : 2000-01-01 00:00
+  |     + jitterentropy random
+  |   + dir socket | + } [ip_stack] { | dhcp: yes
+  |   + dir tmp | + ram
+  |   + dir etc
+  |   | + dir lighttpd
+  |   |   + inline lighttpd.conf
+  |   |     :
+  |   |     : server.port            = 80
+  |   |     : server.document-root   = "/website"
+  |   |     : server.event-handler   = "select"
+  |   |     : server.network-backend = "write"
+  |   |     : server.upload-dirs     = ( "/tmp" )
+  |   |     : server.modules         = ( "mod_openssl" )
+  |   |     : server.modules        += ( "mod_webdav" )
+  |   |     : index-file.names       = ( "index.xhtml",
+  |   |     :                            "index.html",
+  |   |     :                            "index.htm" )
+  |   |     : mimetype.assign        = ( ".html" => "text/html",
+  |   |     :                            ".htm"  => "text/html" )
+  |   |     : dir-listing.activate   = "enable"
+  |   |     : webdav.activate        = "enable"
+  |   |     : webdav.is-readonly     = "disable"
+  |   |     :
+  |   |     : $SERVER["socket"] == ":443" {
+  |   |     :   ssl.engine  = "enable"
+  |   |     :   ssl.pemfile = "/etc/lighttpd/example.pem"
+  |   |     : }
+  |   |     :
+  |   |   + inline example.pem
+  |   |     :
+  |   |     : -----BEGIN PRIVATE KEY-----
+  |   |     : MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4KHUZjDRew89c
+  |   |     : wDlYPz9XFigcMDnDlHzdg2ByrGZIOUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ
+  |   |     : 4DQx0Qk6+TDpVD3F2MYQgbIX6YkX9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAF
+  |   |     : uNSnRLvg4EH72AVKLLKiruGwkisW/AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg
+  |   |     : 1NqxNyHPR6YRbA+vqcK0kbC8btKR9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L
+  |   |     : 1rljSqHbaXD+XJsVKgX+UlI1ZlYW4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm
+  |   |     : +sdO3CXFAgMBAAECggEAIKv00nqAVAuzP0ZPJivaZe3lYdLgfKVcXcRQGSgi4U9f
+  |   |     : dkBfYxqU0W15mHvCspUAfM85s8jhrW4suwK739axJ4hMOCkc6Hvj78vCt+FT1C96
+  |   |     : cCIh4/PmjCVEjHJ/xTifKRwsTWwK5AgY4AsBl0dneabvremOTrGNY7VZDwVvpZz1
+  |   |     : qXkSNjQ63tZKj9cESO5ceGLzuBAG6JDDpqJM5fmdsQ36/QVz9Gogr8bXEWFM1TOo
+  |   |     : lWVAPB/l6nqKurfMv+5th354+owv9CGKxqLBE1fujwE2VogBz7mkR/rnABOPU5ev
+  |   |     : wQVLXoUkO2bI8Uvc28lChaiG6ihfdmNCmwoi56HFRQKBgQDj0WoIxiY7H42KV7Hh
+  |   |     : uQZv/0aoQyjXuqJ7Vq0HdxOAxZr0GpSYgo3MTZWooI2AnAstPHXo0BsQr+XVijWm
+  |   |     : xiDxMM4p9nrBzjEIHwyDaf62Pz/6lIPdenynLiEIOUbocJ3r0/3tCrY3U7fgjzYY
+  |   |     : f9PZmXKEOOKdbVPyXG0OIJ/ADwKBgQDO8GkCdVGy/YB0X7ntqcBG0xgmDnKRmYpQ
+  |   |     : X7Tb377AT2lzvftxaRVrx+UXtvFdy4xdrxjqHJCgOHT/fsAfjJlo7v1+KhTvE0pt
+  |   |     : jCdJPLbzXJRwaISaeEaMJ/N8Vv/j2/YuoS5M5vh4NlWeO16HtF7N9V9cMEZ5iRW1
+  |   |     : 9G/eWgOo6wKBgQCY6rn3xblnuhgxogd+ccmGZ50v2FST6WyiyV0/Q4hNyVXnP+g6
+  |   |     : LneriPBJzertRtChvpGOghGIs+jb2veESD1YZ+Aafp2LdTGoN98YXo9gGTiCpCmX
+  |   |     : Al6lgOsfMAMOhnkaEKPC9ou0u3cTPk2bSEIVL1CUu/IwpW/RoIR7FR7ltQKBgQDA
+  |   |     : RAmsqQfhPzqL5SzALclhhFuZcC7uLDOf/WvyJW37C000pjzp3/JxE2Y8pFKZDLc7
+  |   |     : i6WgTi3pTssVXtRt+5nFLtcC02Jjxg6OvXr6xphMf6XC0rjxM/KH4c6Npd9V+1Y9
+  |   |     : eK+l76rHNeRSgWKQvvqebO3On2O7I6yyQ4t0kTl5RQKBgQCbX1cTtNmNr6HNleXL
+  |   |     : zfclKESSYy57uq3fQxhRrEE2ZNbemLOxEuoBCFYoMwpZEjC1GZyICrM7o5673/Ih
+  |   |     : I0oZerUBmt2l8noZCQoITEa97bCbp2vIdHYnCf/H3Nf2qM329fc00kAmm7vUVRgM
+  |   |     : 4BqXnuFcAOuY68sgp9JArzK+EQ==
+  |   |     : -----END PRIVATE KEY-----
+  |   |     : -----BEGIN CERTIFICATE-----
+  |   |     : MIIDazCCAlOgAwIBAgIUYPOYXijLmMjjlgRCGHuZeyP0iPEwDQYJKoZIhvcNAQEL
+  |   |     : BQAwRTELMAkGA1UEBhMCREUxEzARBgNVBAgMClNvbWUtU3RhdGUxDTALBgNVBAoM
+  |   |     : BFRlc3QxEjAQBgNVBAMMCTEwLjAuMi41NTAeFw0yMDA1MTQxNDQ0MzlaFw00NzA5
+  |   |     : MzAxNDQ0MzlaMEUxCzAJBgNVBAYTAkRFMRMwEQYDVQQIDApTb21lLVN0YXRlMQ0w
+  |   |     : CwYDVQQKDARUZXN0MRIwEAYDVQQDDAkxMC4wLjIuNTUwggEiMA0GCSqGSIb3DQEB
+  |   |     : AQUAA4IBDwAwggEKAoIBAQC4KHUZjDRew89cwDlYPz9XFigcMDnDlHzdg2ByrGZI
+  |   |     : OUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ4DQx0Qk6+TDpVD3F2MYQgbIX6YkX
+  |   |     : 9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAFuNSnRLvg4EH72AVKLLKiruGwkisW
+  |   |     : /AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg1NqxNyHPR6YRbA+vqcK0kbC8btKR
+  |   |     : 9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L1rljSqHbaXD+XJsVKgX+UlI1ZlYW
+  |   |     : 4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm+sdO3CXFAgMBAAGjUzBRMB0GA1Ud
+  |   |     : DgQWBBQvSHuosL/SDn/8sKl0dpyPeFvOfjAfBgNVHSMEGDAWgBQvSHuosL/SDn/8
+  |   |     : sKl0dpyPeFvOfjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQBR
+  |   |     : sGYEuRwIU/tmAmTbniptItN9VE0NNj9QeKh+hKQ9cHvhxmlBlf5b7Vb2JaRZdy88
+  |   |     : kRIFKiNkyjgQVg+5KuEIcg17mHSal7zG+jIZ3c1bIpVCM4AjUe7EXl8LM4+dJ5sX
+  |   |     : Bwpd34tUk2edOiT8R/dU7uesxCdeIQ2FfvKyrXca73nj+UTvFGXUk/9mWY8KAaYc
+  |   |     : F/PWBhiZhJD4/dkUHJnrVtjpcqW2Io8bFmrMq2vfqQv+W2FZGCsHgXkAZO2E0jyQ
+  |   |     : 5eOrwzgWRtMc5PvoGvqQfefseaLs0fvSQdcPqfv88Eqk5NGTOCIW8/KEsBwFJuwa
+  |   |     : EpA5DBBklj8UE2CdONvN
+  |   |     : -----END CERTIFICATE-----
+  |   |     :
+  |   + dir website
+  |     + inline index.html
+  |       : <html>
+  |       :   <head>
+  |       :     <title>Hello</title>
+  |       :   </head>
+  |       :   <body>
+  |       :     <p>Hello Genode!</p>
+  |       :     <b>I am bold ;-)</b>
+  |       :   </body>
+  |       : </html>
+  |     + ram
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
+-
 }
-						</inline>
-						<inline name="example.pem">
------BEGIN PRIVATE KEY-----
-MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4KHUZjDRew89c
-wDlYPz9XFigcMDnDlHzdg2ByrGZIOUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ
-4DQx0Qk6+TDpVD3F2MYQgbIX6YkX9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAF
-uNSnRLvg4EH72AVKLLKiruGwkisW/AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg
-1NqxNyHPR6YRbA+vqcK0kbC8btKR9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L
-1rljSqHbaXD+XJsVKgX+UlI1ZlYW4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm
-+sdO3CXFAgMBAAECggEAIKv00nqAVAuzP0ZPJivaZe3lYdLgfKVcXcRQGSgi4U9f
-dkBfYxqU0W15mHvCspUAfM85s8jhrW4suwK739axJ4hMOCkc6Hvj78vCt+FT1C96
-cCIh4/PmjCVEjHJ/xTifKRwsTWwK5AgY4AsBl0dneabvremOTrGNY7VZDwVvpZz1
-qXkSNjQ63tZKj9cESO5ceGLzuBAG6JDDpqJM5fmdsQ36/QVz9Gogr8bXEWFM1TOo
-lWVAPB/l6nqKurfMv+5th354+owv9CGKxqLBE1fujwE2VogBz7mkR/rnABOPU5ev
-wQVLXoUkO2bI8Uvc28lChaiG6ihfdmNCmwoi56HFRQKBgQDj0WoIxiY7H42KV7Hh
-uQZv/0aoQyjXuqJ7Vq0HdxOAxZr0GpSYgo3MTZWooI2AnAstPHXo0BsQr+XVijWm
-xiDxMM4p9nrBzjEIHwyDaf62Pz/6lIPdenynLiEIOUbocJ3r0/3tCrY3U7fgjzYY
-f9PZmXKEOOKdbVPyXG0OIJ/ADwKBgQDO8GkCdVGy/YB0X7ntqcBG0xgmDnKRmYpQ
-X7Tb377AT2lzvftxaRVrx+UXtvFdy4xdrxjqHJCgOHT/fsAfjJlo7v1+KhTvE0pt
-jCdJPLbzXJRwaISaeEaMJ/N8Vv/j2/YuoS5M5vh4NlWeO16HtF7N9V9cMEZ5iRW1
-9G/eWgOo6wKBgQCY6rn3xblnuhgxogd+ccmGZ50v2FST6WyiyV0/Q4hNyVXnP+g6
-LneriPBJzertRtChvpGOghGIs+jb2veESD1YZ+Aafp2LdTGoN98YXo9gGTiCpCmX
-Al6lgOsfMAMOhnkaEKPC9ou0u3cTPk2bSEIVL1CUu/IwpW/RoIR7FR7ltQKBgQDA
-RAmsqQfhPzqL5SzALclhhFuZcC7uLDOf/WvyJW37C000pjzp3/JxE2Y8pFKZDLc7
-i6WgTi3pTssVXtRt+5nFLtcC02Jjxg6OvXr6xphMf6XC0rjxM/KH4c6Npd9V+1Y9
-eK+l76rHNeRSgWKQvvqebO3On2O7I6yyQ4t0kTl5RQKBgQCbX1cTtNmNr6HNleXL
-zfclKESSYy57uq3fQxhRrEE2ZNbemLOxEuoBCFYoMwpZEjC1GZyICrM7o5673/Ih
-I0oZerUBmt2l8noZCQoITEa97bCbp2vIdHYnCf/H3Nf2qM329fc00kAmm7vUVRgM
-4BqXnuFcAOuY68sgp9JArzK+EQ==
------END PRIVATE KEY-----
------BEGIN CERTIFICATE-----
-MIIDazCCAlOgAwIBAgIUYPOYXijLmMjjlgRCGHuZeyP0iPEwDQYJKoZIhvcNAQEL
-BQAwRTELMAkGA1UEBhMCREUxEzARBgNVBAgMClNvbWUtU3RhdGUxDTALBgNVBAoM
-BFRlc3QxEjAQBgNVBAMMCTEwLjAuMi41NTAeFw0yMDA1MTQxNDQ0MzlaFw00NzA5
-MzAxNDQ0MzlaMEUxCzAJBgNVBAYTAkRFMRMwEQYDVQQIDApTb21lLVN0YXRlMQ0w
-CwYDVQQKDARUZXN0MRIwEAYDVQQDDAkxMC4wLjIuNTUwggEiMA0GCSqGSIb3DQEB
-AQUAA4IBDwAwggEKAoIBAQC4KHUZjDRew89cwDlYPz9XFigcMDnDlHzdg2ByrGZI
-OUNYC5LH1QUK0TDbPP45Xx455niA0QY85dMQ4DQx0Qk6+TDpVD3F2MYQgbIX6YkX
-9kgqX+jiHgsNzRD4KamNYmfUY+dJhlZEXWAFuNSnRLvg4EH72AVKLLKiruGwkisW
-/AYU6dNE8iFOYL8Q75bBUADiQSDdD8vkpeXg1NqxNyHPR6YRbA+vqcK0kbC8btKR
-9wG6m99OhTR4x3M87vtFFLNtJNEf54fYxi+L1rljSqHbaXD+XJsVKgX+UlI1ZlYW
-4KqlMciMemkBp0CovCxLfsbMmkXAW2RONpkm+sdO3CXFAgMBAAGjUzBRMB0GA1Ud
-DgQWBBQvSHuosL/SDn/8sKl0dpyPeFvOfjAfBgNVHSMEGDAWgBQvSHuosL/SDn/8
-sKl0dpyPeFvOfjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQBR
-sGYEuRwIU/tmAmTbniptItN9VE0NNj9QeKh+hKQ9cHvhxmlBlf5b7Vb2JaRZdy88
-kRIFKiNkyjgQVg+5KuEIcg17mHSal7zG+jIZ3c1bIpVCM4AjUe7EXl8LM4+dJ5sX
-Bwpd34tUk2edOiT8R/dU7uesxCdeIQ2FfvKyrXca73nj+UTvFGXUk/9mWY8KAaYc
-F/PWBhiZhJD4/dkUHJnrVtjpcqW2Io8bFmrMq2vfqQv+W2FZGCsHgXkAZO2E0jyQ
-5eOrwzgWRtMc5PvoGvqQfefseaLs0fvSQdcPqfv88Eqk5NGTOCIW8/KEsBwFJuwa
-EpA5DBBklj8UE2CdONvN
------END CERTIFICATE-----
-						</inline>
-					</dir>
-				</dir>
-				<dir name="website">
-					<inline name="index.html">
-<html>
-	<head>
-		<title>Hello</title>
-	</head>
-	<body>
-		<p>Hello Genode!</p>
-		<b>I am bold ;-)</b>
-	</body>
-</html>
-					</inline>
-					<ram/>
-				</dir>
-				<dir name="tmp"> <ram/> </dir>
-			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      rtc="/dev/rtc" rng="/dev/random" socket="/socket"/>
-		</config>
-
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-
-	</start>
-</config>}
 
 build_boot_image [build_artifacts]
 
