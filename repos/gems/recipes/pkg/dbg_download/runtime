@@ -1,115 +1,80 @@
-<runtime ram="128M" caps="3000" binary="init" config="depot_download.config">
+runtime | ram: 128M | caps: 3000 | binary: init | config: depot_download.config
 
-	<requires>
-		<file_system label="system_config" writeable="no"/>
-		<file_system label="depot" writeable="yes"/>
-		<file_system label="public" writeable="yes"/>
-		<rom label="build_info"/>
-		<nic/>
-		<rm/>
-		<timer/>
-	</requires>
++ requires
+  + file_system | label: system_config | writeable: no
+  + file_system | label: depot         | writeable: yes
+  + file_system | label: public        | writeable: yes
+  + rom         | label: build_info
+  + nic
+  + rm
+  + timer
 
-	<content>
-		<rom label="init"/>
-		<rom label="depot_download.config"/>
-		<rom label="report_rom"/>
-		<rom label="chroot"/>
-		<rom label="depot_download_manager"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_lxip.lib.so"/>
-		<rom label="lxip.lib.so"/>
-		<rom label="depot_query"/>
-		<rom label="fs_rom"/>
-		<rom label="fs_tool"/>
-		<rom label="fetchurl"/>
-		<rom label="curl.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libssh.lib.so"/>
-		<rom label="libcrypto.lib.so"/>
-		<rom label="zlib.lib.so"/>
-		<rom label="libssl.lib.so"/>
-		<rom label="verify"/>
-		<rom label="extract"/>
-		<rom label="libarchive.lib.so"/>
-		<rom label="liblzma.lib.so"/>
-		<rom label="vfs_pipe.lib.so"/>
-		<rom label="dbg_download"/>
-	</content>
++ content
+  + rom | label: init
+  + rom | label: depot_download.config
+  + rom | label: report_rom
+  + rom | label: chroot
+  + rom | label: depot_download_manager
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_lxip.lib.so
+  + rom | label: lxip.lib.so
+  + rom | label: depot_query
+  + rom | label: fs_rom
+  + rom | label: fs_tool
+  + rom | label: fetchurl
+  + rom | label: curl.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libssh.lib.so
+  + rom | label: libcrypto.lib.so
+  + rom | label: zlib.lib.so
+  + rom | label: libssl.lib.so
+  + rom | label: verify
+  + rom | label: extract
+  + rom | label: libarchive.lib.so
+  + rom | label: liblzma.lib.so
+  + rom | label: vfs_pipe.lib.so
+  + rom | label: dbg_download
 
-	<config>
++ config
+  + parent-provides
+    + service CPU
+    + service LOG
+    + service PD
+    + service RM
+    + service ROM
+    + service File_system
+    + service Timer
+    + service Report
+    + service Nic
 
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="ROM"/>
-			<service name="File_system"/>
-			<service name="Timer"/>
-			<service name="Report"/>
-			<service name="Nic"/>
-		</parent-provides>
+  + default | caps: 100
 
-		<default caps="100"/>
+  + start report_rom | ram: 2M
+    + binary report_rom
+    + provides
+      + service Report
+      + service ROM
+    + config | verbose: no
+      + policy | label: depot_download -> installation | report: dbg_download -> installation
+    + route | + any-service | + parent
 
-		<start name="report_rom" ram="2M">
-			<binary name="report_rom"/>
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config verbose="no">
-				<policy label="depot_download -> installation"
-				        report="dbg_download -> installation"/>
-			</config>
-			<route>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
+  + start depot_download | caps: 2000 | ram: 70M
+    + binary init
+    + route
+      + service ROM | label: config                   | + parent | label: depot_download.config
+      + service ROM | label_suffix: installation      | + child report_rom | label: depot_download -> installation
+      + service File_system | label_prefix: depot ->  | + parent | identity: depot
+      + service File_system | label_prefix: public -> | + parent | identity: public
+      + service Report                                | + child report_rom
+      + any-service                                   | + parent
 
-		<start name="depot_download" caps="2000" ram="70M">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config">
-					<parent label="depot_download.config"/>
-				</service>
-				<service name="ROM" label_suffix="installation">
-					<child name="report_rom" label="depot_download -> installation"/>
-				</service>
-				<service name="File_system" label_prefix="depot ->">
-					<parent identity="depot"/>
-				</service>
-				<service name="File_system" label_prefix="public ->">
-					<parent identity="public"/>
-				</service>
-				<service name="Report">
-					<child name="report_rom"/>
-				</service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="dbg_download" ram="16M">
-			<config>
-				<vfs>
-					<dir name="config">
-						<fs label="config -> /"/>
-					</dir>
-				</vfs>
-			</config>
-			<route>
-				<service name="File_system" label_prefix="config ->">
-					<parent identity="system_config"/>
-				</service>
-				<service name="Report">
-					<child name="report_rom"/>
-				</service>
-				<service name="ROM" label="build_info">
-					<parent label="build_info"/>
-				</service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-	</config>
-
-</runtime>
+  + start dbg_download | ram: 16M
+    + config
+      + vfs | + dir config | + fs | label: config -> /
+    + route
+      + service File_system | label_prefix: config -> | + parent | identity: system_config
+      + service Report                                | + child report_rom
+      + service ROM | label: build_info               | + parent | label: build_info
+      + any-service                                   | + parent
+-

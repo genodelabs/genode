@@ -1,7 +1,7 @@
-<installation arch="x86_64" download="no" exit="yes">
-	<archive path="test1/raw/good/2025-09-24"/>
-	<image   path="test1/image/os-pc-2025-09-24"/>
-	<index   path="test1/index/25.09"/>
-	<archive path="test2/raw/tamper/2025-09-24"/>
-	<archive path="test3/raw/corrupted/2025-09-24"/>
-</installation>
+installation | arch: x86_64 | download: no | exit: yes
++ archive | path: test1/raw/good/2025-09-24
++ image   | path: test1/image/os-pc-2025-09-24
++ index   | path: test1/index/25.09
++ archive | path: test2/raw/tamper/2025-09-24
++ archive | path: test3/raw/corrupted/2025-09-24
+-
