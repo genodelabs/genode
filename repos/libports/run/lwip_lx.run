@@ -72,7 +72,7 @@ config | verbose: yes
     + service Uplink
   + config | verbose_domain_state: yes
     + policy | label_prefix: test-lwip_httpsrv | domain: downlink
-    + policy | label_prefix: linux_nic | domain: uplink
+    + policy | label_prefix: linux_nic         | domain: uplink
     + domain uplink | interface: 10.0.2.55/24 | gateway: 10.0.2.1
       + nat | domain: downlink | tcp-ports: 16384 | udp-ports: 16384 | icmp-ids: 16384
       + tcp-forward | port: 443 | domain: downlink | to: 10.0.3.2
