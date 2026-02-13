@@ -29,54 +29,49 @@ catch { exec $mke2fs -F bin/ext2.raw }
 create_boot_directory
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="2M"/>
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="vfs_block" caps="300" ram="20M">
-		<provides><service name="Block"/></provides>
-		<config>
-			<vfs>
-				<ram/>
-				<import>
-					<rom name="ext2.raw"/>
-				</import>
-			</vfs>
-			<default-policy root="/" file="ext2.raw" block_size="512"
-			                writeable="yes"/>
-		</config>
-	</start>
-	<start name="vfs" caps="400" ram="25M">
-		<provides><service name="File_system"/></provides>
-		<config>
-			<vfs> <rump fs="ext2fs" ram="10M"/> </vfs>
-			<policy label_prefix="test-libc_vfs" root="/" writeable="yes"/>
-		</config>
-	</start>
-	<start name="test-libc_vfs" ram="4M">
-		<config>
-			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<fs/>
-			</vfs>
-			<libc stdout="/dev/log"/>
-		</config>
-	</start>
-</config>}
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 200 | ram: 2M
+
++ start timer
+  + provides | + service Timer
+
++ start vfs_block | caps: 300 | ram: 20M
+  + provides | + service Block
+  + config
+    + default-policy | root: / | file: ext2.raw | block_size: 512 | writeable: yes
+    + vfs
+      + ram
+      + import | + rom ext2.raw
+
++ start vfs | caps: 400 | ram: 25M
+  + provides | + service File_system
+  + config
+    + vfs | + rump | fs: ext2fs | ram: 10M
+    + policy | label_prefix: test-libc_vfs | root: / | writeable: yes
+
++ start test-libc_vfs | ram: 4M
+  + config
+    + libc | stdout: /dev/log
+    + vfs
+      + dir dev | | + log
+      + fs
+-
+}
 
 build_boot_image [list {*}[build_artifacts] ext2.raw]
 

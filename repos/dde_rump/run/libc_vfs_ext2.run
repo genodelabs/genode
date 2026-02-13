@@ -3,7 +3,7 @@ set mkfs_opts "-F"
 
 set test_build_components "lib/vfs_rump"
 
-set test_vfs_config "<rump fs=\"ext2fs\" ram=\"10M\" writeable=\"yes\"/>"
+set test_vfs_config "rump | fs: ext2fs | ram: 10M | writeable: yes"
 
 set use_vfs_server 0
 
