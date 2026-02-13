@@ -1,28 +1,27 @@
-<runtime ram="64M" caps="2000" binary="pdf_view">
+runtime | ram: 64M | caps: 2000 | binary: pdf_view
 
-	<requires> <timer/> <gui/> <file_system/> </requires>
++ requires
+  + timer
+  + gui
+  + file_system
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="libpng.lib.so"/>
-		<rom label="zlib.lib.so"/>
-		<rom label="pdf_view"/>
-		<rom label="mupdf.lib.so"/>
-		<rom label="freetype.lib.so"/>
-		<rom label="jbig2dec.lib.so"/>
-		<rom label="jpeg.lib.so"/>
-		<rom label="openjpeg.lib.so"/>
-		<rom label="vfs.lib.so"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: libpng.lib.so
+  + rom | label: zlib.lib.so
+  + rom | label: pdf_view
+  + rom | label: mupdf.lib.so
+  + rom | label: freetype.lib.so
+  + rom | label: jbig2dec.lib.so
+  + rom | label: jpeg.lib.so
+  + rom | label: openjpeg.lib.so
+  + rom | label: vfs.lib.so
 
-	<config>
-		<vfs>
-			<fs writeable="no"/>
-			<dir name="dev"> <log/> </dir>
-		</vfs>
-		<libc stdout="/dev/log" stderr="/dev/log"/>
-	</config>
-
-</runtime>
++ config
+  + libc | stdout: /dev/log | stderr: /dev/log
+  + vfs
+    + fs | writeable: no
+    + dir dev | + log
+-
