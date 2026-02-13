@@ -330,7 +330,7 @@ proc netserver_nic_target { } {
 }
 
 install_config {
-config | verbose: yes | prio_levels: 4 | generate_xml: yes
+config | verbose: yes | prio_levels: 4
 + parent-provides
   + service ROM
   + service IRQ
