@@ -1,31 +1,28 @@
-<runtime ram="128M" caps="1000" binary="init" config="gdb.config">
+runtime | ram: 128M | caps: 1000 | binary: init | config: gdb.config
 
-	<requires>
-		<timer/>
-		<terminal label="monitor"/>
-		<terminal label="ui"/>
-		<file_system label="system_config" writeable="no"/>
-		<file_system label="depot" writeable="no"/>
-		<rom label="build_info"/>
-		<rm/>
-	</requires>
++ requires
+  + timer
+  + terminal    | label: monitor
+  + terminal    | label: ui
+  + file_system | label: system_config | writeable: no
+  + file_system | label: depot | writeable: no
+  + rom         | label: build_info
+  + rm
 
-	<content>
-		<rom label="gdb.config"/>
-		<rom label="gdb_support"/>
-		<rom label="init"/>
-		<rom label="vfs"/>
-		<rom label="cached_fs_rom"/>
-		<rom label="expat.lib.so"/>
-		<rom label="gdb.tar"/>
-		<rom label="gmp.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="ncurses.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="stdcxx.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_pipe.lib.so"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: gdb.config
+  + rom | label: gdb_support
+  + rom | label: init
+  + rom | label: vfs
+  + rom | label: cached_fs_rom
+  + rom | label: expat.lib.so
+  + rom | label: gdb.tar
+  + rom | label: gmp.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: ncurses.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: stdcxx.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_pipe.lib.so
+-

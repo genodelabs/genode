@@ -1,75 +1,79 @@
-<runtime ram="4300M" caps="2500" binary="virtualbox6">
+runtime | ram: 4300M | caps: 2500 | binary: virtualbox6
 
-	<requires>
-		<file_system label="vm"/>
-		<file_system label="shared"/>
-		<vm/>
-		<timer/>
-		<gpu/>
-		<gui/>
-		<nic/>
-		<rom label="capslock"/>
-		<rom label="platform_info"/>
-		<report label="shape"/>
-		<report label="clipboard"/>
-		<rom    label="clipboard"/>
-		<rom label="mesa_gpu.lib.so"/>
-		<rm/>
-		<rtc/>
-		<usb/>
-		<play/>
-		<record/>
-	</requires>
++ requires
+  + file_system | label: vm
+  + file_system | label: shared
+  + vm
+  + timer
+  + gpu
+  + gui
+  + nic
+  + rom    | label: capslock
+  + rom    | label: platform_info
+  + report | label: shape
+  + report | label: clipboard
+  + rom    | label: clipboard
+  + rom    | label: mesa_gpu.lib.so
+  + rm
+  + rtc
+  + usb
+  + play
+  + record
 
-	<config vbox_file="machine.vbox6" xhci="yes" vm_name="linux" capslock="rom" ld_verbose="yes">
-		<vfs>
-			<dir name="dev">
-				<log/> <rtc/> <null/> <gpu/> <zero/>
-				<oss name="dsp" min_ofrag_size="8192" min_ifrag_size="8192"/>
-			</dir>
-			<dir name="pipe"> <pipe/> </dir>
-			<dir name="shared"> <fs label="shared -> /" writeable="yes"/> </dir>
-			<rom name="VBoxSharedClipboard.so"/>
-			<rom name="VBoxSharedFolders.so"/>
-			<fs label="vm -> /" writeable="yes"/>
-		</vfs>
-		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe">
-			<pthread placement="single-cpu"/>
-		</libc>
-		<monitor label="VBOX-1"/>
-		<arg>virtualbox</arg>
-		<env name="VBOX_USER_HOME">/</env>
-		<env name="VBOX_LOG_DEST">file=/dev/log</env>
-		<env name="VBOX_LOG">+dbgf+gim</env>
-		<env name="VBOX_LOG_FLAGS">thread</env>
-		<env name="VBOX_RELEASE_LOG_DEST">file=/dev/log</env>
-		<env name="VBOX_RELEASE_LOG"></env>
-		<env name="VBOX_RELEASE_LOG_FLAGS">thread</env>
-	</config>
++ config
+  |      vbox_file:  machine.vbox6
+  |      xhci:       yes
+  |      vm_name:    linux
+  |      capslock:   rom
+  |      ld_verbose: yes
+  + vfs
+  | + dir dev
+  |   + log
+  |   + rtc
+  |   + null
+  |   + gpu
+  |   + zero
+  |   + oss dsp | min_ofrag_size: 8192 | min_ifrag_size: 8192
+  | + dir pipe | + pipe
+  | + dir shared | + fs | label: shared -> / | writeable: yes
+  | + rom VBoxSharedClipboard.so
+  | + rom VBoxSharedFolders.so
+  | + fs | label: vm -> / | writeable: yes
+  |
+  + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc | pipe: /pipe
+  | + pthread | placement: single-cpu
+  |
+  + monitor | label: VBOX-1
+  + arg virtualbox
+  + env VBOX_USER_HOME         | : /
+  + env VBOX_LOG_DEST          | : file=/dev/log
+  + env VBOX_LOG               | : +dbgf+gim
+  + env VBOX_LOG_FLAGS         | : thread
+  + env VBOX_RELEASE_LOG_DEST  | : file=/dev/log
+  + env VBOX_RELEASE_LOG       | :
+  + env VBOX_RELEASE_LOG_FLAGS | : thread
 
-	<content>
-		<rom label="egl.lib.so"/>
-		<rom label="expat.lib.so"/>
-		<rom label="glapi.lib.so"/>
-		<rom label="ld.lib.so"/>
-		<rom label="virtualbox6"/>
-		<rom label="jpeg.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libdrm.lib.so"/>
-		<rom label="libiconv.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="libyuv.lib.so"/>
-		<rom label="mesa.lib.so"/>
-		<rom label="qemu-usb.lib.so"/>
-		<rom label="stdcxx.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_gpu.lib.so"/>
-		<rom label="vfs_oss.lib.so"/>
-		<rom label="vfs_pipe.lib.so"/>
-		<rom label="virtualbox6-shaderlib.lib.so"/>
-		<rom label="virtualbox6-sharedclipboard.lib.so" as="VBoxSharedClipboard.so"/>
-		<rom label="virtualbox6-sharedfolders.lib.so" as="VBoxSharedFolders.so"/>
-		<rom label="zlib.lib.so"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: egl.lib.so
+  + rom | label: expat.lib.so
+  + rom | label: glapi.lib.so
+  + rom | label: ld.lib.so
+  + rom | label: virtualbox6
+  + rom | label: jpeg.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libdrm.lib.so
+  + rom | label: libiconv.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: libyuv.lib.so
+  + rom | label: mesa.lib.so
+  + rom | label: qemu-usb.lib.so
+  + rom | label: stdcxx.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_gpu.lib.so
+  + rom | label: vfs_oss.lib.so
+  + rom | label: vfs_pipe.lib.so
+  + rom | label: virtualbox6-shaderlib.lib.so
+  + rom | label: virtualbox6-sharedclipboard.lib.so | as: VBoxSharedClipboard.so
+  + rom | label: virtualbox6-sharedfolders.lib.so   | as: VBoxSharedFolders.so
+  + rom | label: zlib.lib.so
+-
