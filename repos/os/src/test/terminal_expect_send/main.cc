@@ -72,13 +72,11 @@ struct Main
 	{
 		terminal.read_avail_sigh(read_avail);
 
-		try {
-			Genode::Attached_rom_dataspace config { env, "config" };
+		Genode::Attached_rom_dataspace config { env, "config" };
 
-			verbose = config.xml().attribute_value("verbose", false);
-			expect  = config.xml().attribute_value("expect", Line());
-			send    = config.xml().attribute_value("send",   Line());
-		} catch (...) { warning("No config data available"); }
+		verbose = config.node().attribute_value("verbose", false);
+		expect  = config.node().attribute_value("expect", Line());
+		send    = config.node().attribute_value("send",   Line());
 	}
 };
 
