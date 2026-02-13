@@ -15,176 +15,139 @@ build {
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<service name="Audio_out"> <child name="mixer"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-		<default caps="100" ram="1M"/>
++ default-route
+  + service Audio_out | + child mixer
+  + any-service
+    + parent
+    + any-child
 
-		<start name="timer">
-			<provides><service name="Timer"/></provides>
-		</start>
++ default | caps: 100 | ram: 1M
 
-		<start name="report_rom" ram="2M">
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config>
-				<policy label="pci_decode -> system" report="acpi -> acpi"/>
-				<policy label="platform -> devices"  report="pci_decode -> devices"/>
-				<policy label_prefix="to_whom_it_may_concern" report="mixer -> channel_list"/>
-			</config>
-		</start>
++ start timer
+  + provides | + service Timer
 
-		<start name="acpi" caps="350" ram="4M">
-			<route>
-				<service name="Report"> <child name="report_rom"/> </service>
-				<service name="IO_MEM"> <parent/> </service>
-				<service name="LOG">    <parent/> </service>
-				<service name="PD">     <parent/> </service>
-				<service name="RM">     <parent/> </service>
-				<service name="CPU">    <parent/> </service>
-				<service name="ROM">    <parent/> </service>
-			</route>
-		</start>
++ start report_rom | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + policy | label: pci_decode -> system          | report: acpi -> acpi
+    + policy | label: platform -> devices           | report: pci_decode -> devices
+    + policy | label_prefix: to_whom_it_may_concern | report: mixer -> channel_list
 
-		<start name="pci_decode" caps="350" ram="2M">
-			<route>
-				<service name="Report">             <child name="report_rom"/> </service>
-				<service name="ROM" label="system"> <child name="report_rom"/> </service>
-				<service name="IO_MEM"> <parent/> </service>
-				<service name="LOG">    <parent/> </service>
-				<service name="PD">     <parent/> </service>
-				<service name="RM">     <parent/> </service>
-				<service name="CPU">    <parent/> </service>
-				<service name="ROM">    <parent/> </service>
-			</route>
-		</start>
++ start acpi | caps: 350 | ram: 4M
+  + route
+    + service Report | + child report_rom
+    + any-service    | + parent
 
-		<start name="platform" caps="100" managing_system="yes">
-			<provides>
-				<service name="Platform"/>
-			</provides>
-			<route>
-				<service name="ROM" label="devices"> <child name="report_rom"/> </service>
-				<service name="Timer">   <child name="timer"/> </service>
-				<service name="IRQ">     <parent/> </service>
-				<service name="IO_MEM">  <parent/> </service>
-				<service name="ROM">     <parent/> </service>
-				<service name="PD">      <parent/> </service>
-				<service name="CPU">     <parent/> </service>
-				<service name="LOG">     <parent/> </service>
-				<service name="Timer">   <parent/> </service>
-			</route>
-			<config>
-				<policy label="audio -> "> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
-			</config>
-		</start>
++ start pci_decode | caps: 350 | ram: 2M
+  + route
+    + service Report              | + child report_rom
+    + service ROM | label: system | + child report_rom
+    + any-service                 | + parent
 
-		<start name="audio" caps="150" ram="10M">
-			<binary name="pci_audio"/>
-			<provides>
-				<service name="Audio_in"/>
-				<service name="Audio_out"/>
-			</provides>
-			<config>
-				<mixer field="outputs.master" value="148,148"/>
-			</config>
-		</start>
++ start platform | caps: 100 | managing_system: yes
+  + provides | + service Platform
+  + route
+    + service ROM | label: devices | + child report_rom
+    + service Timer                | + child timer
+    + service IRQ                  | + parent
+    + service IO_MEM               | + parent
+    + service ROM                  | + parent
+    + service PD                   | + parent
+    + service CPU                  | + parent
+    + service LOG                  | + parent
+    + service Timer                | + parent
+  + config
+    + policy | label: audio ->
+      + pci | class: AUDIO
+      + pci | class: HDAUDIO
 
-		<start name="dynamic_rom" ram="4M">
-			<provides><service name="ROM"/></provides>
-			<config verbose="yes">
-				<rom name="mixer.config">
-					<inline description="client1 plays (volume 70%)">
-<mixer.config>
-	<default out_volume="75" volume="42" muted="false"/>
-	<channel_list>
-		<channel type="input" label="client1" name="right" number="1" active="1" volume="70" muted="false"/>
-		<channel type="input" label="client1" name="left" number="0" active="1" volume="70" muted="false"/>
-		<channel type="input" label="client2" name="right" number="1" active="1" volume="0" muted="false"/>
-		<channel type="input" label="client2" name="left" number="0" active="1" volume="0" muted="false"/>
-		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="false"/>
-		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="false"/>
-	</channel_list>
-</mixer.config>
-					</inline>
-					<sleep milliseconds="10000" />
-					<inline description="client2 plays (volume 70%)">
-<mixer.config>
-	<default out_volume="75" volume="42" muted="false"/>
-	<channel_list>
-		<channel type="input" label="client1" name="right" number="1" active="1" volume="0" muted="false"/>
-		<channel type="input" label="client1" name="left" number="0" active="1" volume="0" muted="false"/>
-		<channel type="input" label="client2" name="right" number="1" active="1" volume="70" muted="false"/>
-		<channel type="input" label="client2" name="left" number="0" active="1" volume="70" muted="false"/>
-		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="false"/>
-		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="false"/>
-	</channel_list>
-</mixer.config>
-					</inline>
-					<sleep milliseconds="10000" />
-					<inline description="both play (volume 50%)">
-<mixer.config>
-	<default out_volume="75" volume="42" muted="false"/>
-	<channel_list>
-		<channel type="input" label="client1" name="right" number="1" active="1" volume="50" muted="false"/>
-		<channel type="input" label="client1" name="left" number="0" active="1" volume="50" muted="false"/>
-		<channel type="input" label="client2" name="right" number="1" active="1" volume="50" muted="false"/>
-		<channel type="input" label="client2" name="left" number="0" active="1" volume="50" muted="false"/>
-		<channel type="output" label="master" name="left" number="0" active="1" volume="100" muted="false"/>
-		<channel type="output" label="master" name="right" number="1" active="1" volume="100" muted="false"/>
-	</channel_list>
-</mixer.config>
-					</inline>
-					<sleep milliseconds="10000" />
-				</rom>
-			</config>
-		</start>
++ start audio | caps: 150 | ram: 10M
+  + binary pci_audio
+  + provides
+    + service Audio_in
+    + service Audio_out
+  + config
+    + mixer | field: outputs.master | value: 148,148
 
-		<start name="mixer" ram="2M">
-			<provides><service name="Audio_out"/></provides>
-			<route>
-				<service name="Audio_out"> <child name="audio"/> </service>
-				<service name="Report"> <child name="report_rom"/> </service>
-				<service name="ROM" label="config">
-					<child name="dynamic_rom" label="mixer.config"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom mixer.config
+      + inline | description: client1 plays (volume 70%)
+      | + mixer.config
+      |   + default | out_volume: 75 | volume: 42 | muted: no
+      |   + channel_list
+      |     + channel right | type: input  | label: client1 | number: 1 | active: 1 | volume:  70 | muted: no
+      |     + channel left  | type: input  | label: client1 | number: 0 | active: 1 | volume:  70 | muted: no
+      |     + channel right | type: input  | label: client2 | number: 1 | active: 1 | volume:   0 | muted: no
+      |     + channel left  | type: input  | label: client2 | number: 0 | active: 1 | volume:   0 | muted: no
+      |     + channel left  | type: output | label: master  | number: 0 | active: 1 | volume: 100 | muted: no
+      |     + channel right | type: output | label: master  | number: 1 | active: 1 | volume: 100 | muted: no
+      + sleep | milliseconds: 10000
+      + inline | description: client2 plays (volume 70%)
+      | + mixer.config
+      |   + default | out_volume: 75 | volume: 42 | muted: no
+      |   + channel_list
+      |     + channel right | type: input  | label: client1 | number: 1 | active: 1 | volume:   0 | muted: no
+      |     + channel left  | type: input  | label: client1 | number: 0 | active: 1 | volume:   0 | muted: no
+      |     + channel right | type: input  | label: client2 | number: 1 | active: 1 | volume:  70 | muted: no
+      |     + channel left  | type: input  | label: client2 | number: 0 | active: 1 | volume:  70 | muted: no
+      |     + channel left  | type: output | label: master  | number: 0 | active: 1 | volume: 100 | muted: no
+      |     + channel right | type: output | label: master  | number: 1 | active: 1 | volume: 100 | muted: no
+      + sleep | milliseconds: 10000
+      + inline | description: both play (volume 50%)
+      | + mixer.config
+      |   + default | out_volume: 75 | volume: 42 | muted: no
+      |   + channel_list
+      |     + channel right | type: input  | label: client1 | number: 1 | active: 1 | volume:  50 | muted: no
+      |     + channel left  | type: input  | label: client1 | number: 0 | active: 1 | volume:  50 | muted: no
+      |     + channel right | type: input  | label: client2 | number: 1 | active: 1 | volume:  50 | muted: no
+      |     + channel left  | type: input  | label: client2 | number: 0 | active: 1 | volume:  50 | muted: no
+      |     + channel left  | type: output | label: master  | number: 0 | active: 1 | volume: 100 | muted: no
+      |     + channel right | type: output | label: master  | number: 1 | active: 1 | volume: 100 | muted: no
+      + sleep | milliseconds: 10000
 
-		<start name="client1" ram="4M">
-			<binary name="test-audio_out"/>
-			<config>
-				<filename>client1.f32</filename>
-			</config>
-			<route>
-				<service name="Audio_out"> <child name="mixer"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start mixer | ram: 2M
+  + provides | + service Audio_out
+  + route
+    + service Audio_out           | + child audio
+    + service Report              | + child report_rom
+    + service ROM | label: config | + child dynamic_rom | label: mixer.config
+    + any-service
+      + parent
+      + any-child
 
-		<start name="client2" ram="4M">
-			<binary name="test-audio_out"/>
-			<config>
-				<filename>client2.f32</filename>
-			</config>
-			<route>
-				<service name="Audio_out"> <child name="mixer"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
++ start client1 | ram: 4M
+  + binary test-audio_out
+  + config | + filename | : client1.f32
+  + route
+    + service Audio_out | + child mixer
+    + any-service
+      + parent
+      + any-child
+
++ start client2 | ram: 4M
+  + binary test-audio_out
+  + config | + filename | : client2.f32
+  + route
+    + service Audio_out | + child mixer
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 if {[expr ![file exists bin/client1.f32] || ![file exists bin/client2.f32]]} {

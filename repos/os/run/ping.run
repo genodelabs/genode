@@ -73,112 +73,95 @@ proc dst_ip { } {
 	}
 }
 
-append config {
+append ping_1_start_node {
++ start ping_1 | ram: 8M
+  + binary ping
+  + config
+  |        period_sec: 1
+  |        verbose:    no
+  |        count:      3
+  |        dst_ip:     } [dst_ip] {
+  |        report:     yes
+  + route
+    + service Report | + child report_rom
+    + service Nic    | + child nic_router
+    + any-service
+      + parent
+      + any-child}
 
-<config>
+append ping_2_start_node {
++ start ping_2 | ram: 8M
+  + binary ping
+  + config
+  |        period_sec: 1
+  |        verbose:    no
+  |        count:      1
+  |        protocol:   udp
+  |        dst_ip:     } [dst_ip] {
+  |        dst_port:   12345
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child}
 
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+if {!$second_ping_via_udp} { set ping_2_start_node "" }
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
+install_config {
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default caps="100" ram="1M"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="report_rom" caps="200">
-		<provides>
-			<service name="ROM" />
-			<service name="Report" />
-		</provides>
-		<config verbose="yes"/>
-	</start>
+} $ping_1_start_node $ping_2_start_node {
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config dhcp_discover_timeout_sec="1">
++ start drivers | caps: 1200 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Uplink              | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-			<policy label_prefix="drivers" domain="uplink"/>
-			<policy label_prefix="ping"    domain="downlink"/>
++ start report_rom | caps: 200
+  + provides
+    + service ROM
+    + service Report
+  + config | verbose: yes
 
-			<domain name="uplink">
-
-				<nat domain="downlink" icmp-ids="100" udp-ports="100"/>
-
-			</domain>
-
-			<domain name="downlink" interface="10.0.3.1/24">
-
-				<dhcp-server ip_first="10.0.3.100" ip_last="10.0.3.200"/>
-				<icmp dst="} [dst_ip] {/24" domain="uplink"/>
-				<udp dst="} [dst_ip] {/24">
-					<permit port="12345" domain="uplink"/>
-				</udp>
-
-			</domain>
-
-		</config>
-	</start> }
-
-append_if $second_ping_via_udp config {
-
-	<start name="ping_2" ram="8M">
-		<binary name="ping"/>
-		<config period_sec="1"
-		        verbose="no"
-		        count="1"
-		        protocol="udp"
-		        dst_ip="} [dst_ip] {"
-		        dst_port="12345"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start> }
-
-append config {
-
-	<start name="ping_1" ram="8M">
-		<binary name="ping"/>
-		<config dst_ip="} [dst_ip] {"
-		        period_sec="1"
-		        report="yes"
-		        verbose="no"
-		        count="3"/>
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config> }
-
-install_config $config
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | dhcp_discover_timeout_sec: 1
+    + policy | label_prefix: drivers | domain: uplink
+    + policy | label_prefix: ping    | domain: downlink
+    + domain uplink
+      + nat | domain: downlink | icmp-ids: 100 | udp-ports: 100
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.100 | ip_last: 10.0.3.200
+      + icmp | dst: } [dst_ip] {/24 | domain: uplink
+      + udp  | dst: } [dst_ip] {/24
+        + permit | port: 12345 | domain: uplink
+-
+}
 
 build_boot_image [build_artifacts]
 
