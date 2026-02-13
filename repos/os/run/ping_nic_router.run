@@ -23,7 +23,7 @@ proc bad_dst_port { } { return "12345" }
 proc bad_dst_ip   { } { return "10.0.1.2" }
 
 append config {
-config | generate_xml: yes
+config
 + parent-provides
   + service ROM
   + service IRQ
