@@ -12,7 +12,6 @@
  */
 
 #include <dataspace/client.h>
-#include <base/attached_io_mem_dataspace.h>
 
 #include <device.h>
 #include <pci.h>
@@ -24,26 +23,6 @@ using Driver::Session_component;
 Genode::Capability<Platform::Device_interface>
 Session_component::_acquire(Device &device)
 {
-	/**
-	 * add IOMMU domain if doesn't exist yet
-	 *
-	 * note: must be done before device.acquire and Device_component construction
-	 *       because both may access the domain registry
-	 */
-	_devices.with_io_mmu(device, [&] (auto &io_mmu) {
-		_domain_registry.with_domain(io_mmu.name(),
-			[&] (Io_mmu::Domain &) { },
-			[&] () {
-				new (heap()) Io_mmu_domain(_domain_registry,
-				                           io_mmu,
-				                           heap(),
-				                           _env_ram,
-				                           _dma_allocator.buffer_registry(),
-				                           _ram_quota_guard(),
-				                           _cap_quota_guard());
-			});
-	});
-
 	Device_component * dc = new (heap())
 		Device_component(_device_registry, _env, *this, _devices, device);
 
@@ -65,13 +44,6 @@ void Session_component::_release_device(Device_component &dc)
 
 	/* destroy device component */
 	destroy(heap(), &dc);
-
-	/* destroy unused domains */
-	_domain_registry.for_each([&] (Io_mmu_domain &wrapper) {
-		if (wrapper.domain.devices() == 0)
-			destroy(heap(), &wrapper);
-	});
-
 	update_devices_rom();
 }
 
@@ -80,12 +52,34 @@ void Session_component::_free_dma_buffer(Dma_buffer &buf)
 {
 	Ram_dataspace_capability cap = buf.cap;
 
-	_domain_registry.for_each_domain([&] (Io_mmu::Domain &domain) {
-		domain.remove_range({ buf.dma_addr, buf.size });
-	});
+	_domain.remove_range({ buf.dma_addr, buf.size });
+	for_each_io_mmu([&] (auto &io_mmu) {
+		io_mmu.iotlb_flush(_domain); });
 
 	destroy(heap(), &buf);
 	_env_ram.free(cap);
+}
+
+
+Driver::Io_mmu::Domain & Session_component::_create_domain()
+{
+	/* Use non-functional domain if no IOMMU is in use */
+	static Io_mmu::Domain dummy { *(Allocator*)(nullptr) };
+
+	Io_mmu::Domain *domain = &dummy;
+
+	_devices.for_each([&] (Device const &dev) {
+		if (!matches(dev) || domain != &dummy)
+			return;
+
+		_devices.with_io_mmu(dev, [&] (auto &io_mmu) {
+			domain = &io_mmu.create_domain(heap(), _env_ram,
+			                               _ram_quota_guard(),
+			                               _cap_quota_guard());
+		});
+	});
+
+	return *domain;
 }
 
 
@@ -173,12 +167,6 @@ void Session_component::generate(Generator &g)
 Genode::Heap & Session_component::heap() { return _md_alloc; }
 
 
-Driver::Io_mmu_domain_registry & Session_component::domain_registry()
-{
-	return _domain_registry;
-}
-
-
 void Session_component::update_devices_rom()
 {
 	_rom_session.trigger_update();
@@ -187,27 +175,8 @@ void Session_component::update_devices_rom()
 
 void Session_component::enable_device(Device const &device)
 {
-	auto fn = [&] (Driver::Io_mmu::Domain &domain) {
-		device.for_pci_config([&] (Device::Pci_config const &cfg) {
-			Attached_io_mem_dataspace io_mem { _env, cfg.addr, 0x1000 };
-			domain.enable_pci_device(io_mem.cap(),
-			                         {cfg.bus_num, cfg.dev_num, cfg.func_num});
-		});
-		domain.enable_device();
-	};
-
-	auto default_domain_fn = [&] () { _domain_registry.with_default_domain(fn); };
-
-	device.for_each_io_mmu(
-		/* non-empty list fn */
-		[&] (Device::Io_mmu const &io_mmu) {
-			_domain_registry.with_domain(io_mmu.name, fn, default_domain_fn);
-		},
-
-		/* empty list fn */
-		default_domain_fn
-	);
-
+	_devices.with_io_mmu(device, [&] (auto &io_mmu) {
+		io_mmu.enregister(device, _domain); });
 	pci_enable(_env, device);
 }
 
@@ -215,24 +184,8 @@ void Session_component::enable_device(Device const &device)
 void Session_component::disable_device(Device const &device)
 {
 	pci_disable(_env, device);
-
-	auto fn = [&] (Driver::Io_mmu::Domain &domain) {
-		device.for_pci_config([&] (Device::Pci_config const &cfg) {
-			domain.disable_pci_device({cfg.bus_num, cfg.dev_num, cfg.func_num});
-		});
-		domain.disable_device();
-	};
-
-	auto default_domain_fn = [&] () { _domain_registry.with_default_domain(fn); };
-
-	device.for_each_io_mmu(
-		/* non-empty list fn */
-		[&] (Device::Io_mmu const &io_mmu) {
-			_domain_registry.with_domain(io_mmu.name, fn, default_domain_fn); },
-
-		/* empty list fn */
-		default_domain_fn
-	);
+	_devices.with_io_mmu(device, [&] (auto &io_mmu) {
+		io_mmu.deregister(device, _domain); });
 }
 
 
@@ -290,7 +243,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 
 		Accounted_ram_allocator &_env_ram;
 		Heap                    &_heap;
-		Io_mmu_domain_registry  &_domain_registry;
+		Io_mmu::Domain          &_domain;
 		bool                     _cleanup { true };
 
 		Ram_dataspace_capability ram_cap { };
@@ -303,25 +256,23 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 
 		Guard(Accounted_ram_allocator &env_ram,
 		      Heap                    &heap,
-		      Io_mmu_domain_registry  &registry)
+		      Io_mmu::Domain          &domain)
 		:
-			_env_ram(env_ram), _heap(heap), _domain_registry(registry)
+			_env_ram(env_ram), _heap(heap), _domain(domain)
 		{ }
 
 		~Guard()
 		{
 			if (_cleanup && buf) {
-				/* make sure to remove buffer range from all domains */
-				_domain_registry.for_each_domain([&] (Io_mmu::Domain &domain) {
-					domain.remove_range({ buf->dma_addr, buf->size });
-				});
+				/* make sure to remove buffer range from domain */
+				_domain.remove_range({ buf->dma_addr, buf->size });
 				destroy(_heap, buf);
 			}
 
 			if (_cleanup && ram_cap.valid())
 				_env_ram.free(ram_cap);
 		}
-	} guard { _env_ram, heap(), _domain_registry };
+	} guard { _env_ram, heap(), _domain };
 
 	/*
 	 * Check available quota beforehand and reflect the state back
@@ -350,9 +301,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 		                                              _dma_remapable());
 		guard.buf = &buf;
 
-		_domain_registry.for_each_domain([&] (Io_mmu::Domain &domain) {
-			domain.add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap);
-		});
+		_domain.add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap);
 	} catch (Dma_allocator::Out_of_virtual_memory) { }
 
 	guard.disarm();
@@ -399,7 +348,8 @@ Session_component::Session_component(Env                          &env,
 	Dynamic_rom_session::Producer("devices"),
 	_env(env), _config(config), _devices(devices),
 	_info(info), _version(version),
-	_dma_allocator(_md_alloc)
+	_dma_allocator(_md_alloc),
+	_domain(_create_domain())
 {
 	/*
 	 * FIXME: As the ROM session does not propagate Out_of_*
@@ -432,9 +382,6 @@ Session_component::~Session_component()
 {
 	_device_registry.for_each([&] (Device_component &dc) {
 		_release_device(dc); });
-
-	_domain_registry.for_each([&] (Io_mmu_domain &wrapper) {
-		destroy(heap(), &wrapper); });
 
 	/* free up dma buffers */
 	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer &buf) {

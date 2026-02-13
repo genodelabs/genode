@@ -57,15 +57,19 @@ class Driver::Kernel_io_mmu : public Io_mmu
 		Driver::Io_mmu::Domain & create_domain(
 			Allocator                  &md_alloc,
 			Ram_allocator              &,
-			Registry<Dma_buffer> const &buffer_registry,
 			Ram_quota_guard            &ram_guard,
 			Cap_quota_guard            &cap_guard) override;
+
+		void enregister(Device const &, Domain &) override;
+		void deregister(Device const &, Domain &) override;
 };
 
 
 class Driver::Kernel_io_mmu::Device_pd : public Io_mmu::Domain
 {
 	private:
+
+		friend class Kernel_io_mmu;
 
 		Pd_connection _pd;
 
@@ -105,18 +109,12 @@ class Driver::Kernel_io_mmu::Device_pd : public Io_mmu::Domain
 		Device_pd(Env                        &env,
 		          Ram_quota_guard            &ram_guard,
 		          Cap_quota_guard            &cap_guard,
-		          Kernel_io_mmu              &iommu,
-		          Allocator                  &md_alloc,
-		          Registry<Dma_buffer> const &buffer_registry);
+		          Allocator                  &md_alloc);
 
 		void add_range(Io_mmu::Range const &,
 		               addr_t const,
 		               Dataspace_capability const) override;
 		void remove_range(Io_mmu::Range const &) override;
-
-		void enable_pci_device(Io_mem_dataspace_capability const,
-		                       Pci::Bdf const &) override;
-		void disable_pci_device(Pci::Bdf const &) override;
 };
 
 #endif /* _SRC__DRIVER__PLATFORM__KERNEL_IO_MMU_H_ */

@@ -23,50 +23,9 @@ static void attribute_hex(Genode::Generator &g, char const * name,
 }
 
 
-template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::enable_pci_device(Io_mem_dataspace_capability const,
-                                                     Pci::Bdf const &bdf)
-{
-	Domain_id cur_domain =
-		_intel_iommu.root_table().insert_context<TABLE::address_width()>(
-			bdf, _translation_table_phys, _domain_id);
-
-	/**
-	 * We need to invalidate the context-cache entry for this device and
-	 * IOTLB entries for the previously used domain id.
-	 *
-	 * If the IOMMU caches unresolved requests, we must invalidate those. In
-	 * legacy translation mode, these are cached with domain id 0. This is
-	 * currently implemented as global invalidation, though.
-	 *
-	 * Some older architectures also require explicit write-buffer flushing
-	 * unless invalidation takes place.
-	 */
-	if (cur_domain.valid())
-		_intel_iommu.invalidator().invalidate_all(cur_domain, Pci::Bdf::rid(bdf));
-	else if (_intel_iommu.caching_mode())
-		_intel_iommu.invalidator().invalidate_context(Domain_id(), Pci::Bdf::rid(bdf));
-	else
-		_intel_iommu.flush_write_buffer();
-}
-
-
-template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const &bdf)
-{
-	_intel_iommu.root_table().remove_context(bdf, _translation_table_phys);
-
-	/* lookup default mappings and insert instead */
-	_intel_iommu.apply_default_mappings(bdf);
-
-	_intel_iommu.invalidator().invalidate_all(_domain_id);
-}
-
-
-template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::add_range(Range const &range,
-                                             addr_t const paddr,
-                                             Dataspace_capability const)
+void Intel::Io_mmu::Domain::add_range(Range const &range,
+                                      addr_t const paddr,
+                                      Dataspace_capability const)
 {
 	addr_t const             vaddr   { range.start };
 	size_t const             size    { range.size };
@@ -74,31 +33,18 @@ void Intel::Io_mmu::Domain<TABLE>::add_range(Range const &range,
 	Page_flags flags { RW, NO_EXEC, USER, NO_GLOBAL,
 	                   RAM, Genode::CACHED };
 
-	_translation_table.insert_translation(vaddr, paddr, size, flags,
-	                                      _table_allocator,
-	                                      !_intel_iommu.coherent_page_walk(),
-	                                      _intel_iommu.supported_page_sizes());
-
-	if (_skip_invalidation)
-		return;
-
-	/* only invalidate iotlb if failed requests are cached */
-	if (_intel_iommu.caching_mode())
-		_intel_iommu.invalidator().invalidate_iotlb(_domain_id);
-	else
-		_intel_iommu.flush_write_buffer();
+	_with_table([&] (auto &table) {
+		table.insert_translation(vaddr, paddr, size, flags, _table_allocator,
+		                         !_coherent_page_walk, _supported_page_sizes);
+	});
 }
 
 
-template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::remove_range(Range const &range)
+void Intel::Io_mmu::Domain::remove_range(Range const &range)
 {
-	_translation_table.remove_translation(range.start, range.size,
-	                                      _table_allocator,
-	                                      !_intel_iommu.coherent_page_walk());
-
-	if (!_skip_invalidation)
-		_intel_iommu.invalidator().invalidate_iotlb(_domain_id);
+	_with_table([&] (auto &table) {
+		table.remove_translation(range.start, range.size, _table_allocator,
+		                         !_coherent_page_walk); });
 }
 
 
@@ -442,20 +388,80 @@ void Intel::Io_mmu::_init()
 }
 
 
+void Intel::Io_mmu::enregister(Device const &device, Driver::Io_mmu::Domain &domain)
+{
+	Domain &intel_domain = static_cast<Domain&>(domain);
+
+	Pci::Bdf bdf;
+	device.for_pci_config([&] (Device::Pci_config const &cfg) {
+		bdf = Pci::Bdf{ cfg.bus_num, cfg.dev_num, cfg.func_num }; });
+
+	Domain_id cur_domain = (intel_domain._level_4)
+		? root_table().insert_context<Level_4_translation_table::address_width()>(
+			bdf, intel_domain._translation_table_phys, intel_domain._domain_id)
+		: root_table().insert_context<Level_3_translation_table::address_width()>(
+			bdf, intel_domain._translation_table_phys, intel_domain._domain_id);
+
+	/*
+	 * We need to invalidate the context-cache entry for this device and
+	 * IOTLB entries for the previously used domain id.
+	 *
+	 * If the IOMMU caches unresolved requests, we must invalidate those. In
+	 * legacy translation mode, these are cached with domain id 0. This is
+	 * currently implemented as global invalidation, though.
+	 *
+	 * Some older architectures also require explicit write-buffer flushing
+	 * unless invalidation takes place.
+	 */
+	if (cur_domain.valid())
+		invalidator().invalidate_all(cur_domain, Pci::Bdf::rid(bdf));
+	else if (caching_mode())
+		invalidator().invalidate_context(Domain_id(), Pci::Bdf::rid(bdf));
+	else
+		flush_write_buffer();
+}
+
+
+void Intel::Io_mmu::deregister(Device const &device, Driver::Io_mmu::Domain &domain)
+{
+	Domain &intel_domain = static_cast<Domain&>(domain);
+	Pci::Bdf bdf;
+	device.for_pci_config([&] (Device::Pci_config const &cfg) {
+		bdf = Pci::Bdf{ cfg.bus_num, cfg.dev_num, cfg.func_num }; });
+
+	root_table().remove_context(bdf, intel_domain._translation_table_phys);
+
+	/* lookup default mappings and insert instead */
+	_default_mappings.copy_stage2(_managed_root_table, bdf);
+
+	invalidator().invalidate_all(intel_domain._domain_id);
+}
+
+
+void Intel::Io_mmu::iotlb_flush(Driver::Io_mmu::Domain &domain)
+{
+	Domain &intel_domain = static_cast<Domain&>(domain);
+
+	invalidator().invalidate_iotlb(intel_domain._domain_id);
+}
+
+
 Intel::Io_mmu::Io_mmu(Env                            &env,
                       Io_mmu_devices                 &io_mmu_devices,
                       Registry<Irq_controller> const &irq_controllers,
                       Device::Name             const &name,
                       Device::Io_mem::Range           range,
+                      Translation_table_registry     &table_registry,
                       Context_table_allocator        &table_allocator,
                       unsigned                        irq_number)
 : Attached_mmio(env, {(char *)range.start, range.size}),
   Driver::Io_mmu(io_mmu_devices, name),
   _env(env),
+  _table_registry(table_registry),
   _table_allocator(table_allocator),
   _domain_allocator(_max_domains()-1),
-  _managed_root_table(_env, _table_allocator, *this, !coherent_page_walk()),
-  _default_mappings(_env, _table_allocator, *this, !coherent_page_walk(),
+  _managed_root_table(_env, _table_allocator, _table_registry, !coherent_page_walk()),
+  _default_mappings(_env, _table_allocator, _table_registry, !coherent_page_walk(),
                     _sagaw_to_levels())
 {
 	if (_broken_device()) {

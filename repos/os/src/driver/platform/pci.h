@@ -21,7 +21,6 @@
 
 /* local includes */
 #include <device.h>
-#include <io_mmu_domain_registry.h>
 
 namespace Driver {
 	class Device_component;

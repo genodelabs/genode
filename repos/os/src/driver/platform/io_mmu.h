@@ -50,58 +50,24 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 			unsigned                  irq_number;
 		};
 
-		class Domain : private Registry<Domain>::Element
+		class Domain
 		{
 			private:
 
 				friend class Io_mmu;
 
-				Io_mmu     &_io_mmu;
-				Allocator  &_md_alloc;
-
-				unsigned    _active_devices { 0 };
+				Allocator &_md_alloc;
 
 			public:
 
 				Allocator & md_alloc() { return _md_alloc; }
 
-				Device_name const & device_name() const { return _io_mmu.name(); }
-
-				void enable_device()
-				{
-					_active_devices++;
-
-					if (_active_devices == 1)
-						_io_mmu._enable_domain();
-				}
-
-				void disable_device()
-				{
-					if (_active_devices > 0) {
-						_active_devices--;
-
-						if (_active_devices == 0)
-							_io_mmu._disable_domain();
-					}
-				}
-
-				unsigned devices() const { return _active_devices; }
-
-				/* interface for (un)assigning a pci device */
-				virtual void enable_pci_device(Io_mem_dataspace_capability const,
-				                               Pci::Bdf const &) = 0;
-				virtual void disable_pci_device(Pci::Bdf const &) = 0;
-
 				/* interface for adding/removing DMA buffers */
-				virtual void add_range(Range const &,
-				                       addr_t const,
-				                       Dataspace_capability const) = 0;
-				virtual void remove_range(Range const &) = 0;
+				virtual void add_range(Range const &, addr_t const,
+				                       Dataspace_capability const) {};
+				virtual void remove_range(Range const &) {};
 
-				Domain(Io_mmu &io_mmu, Allocator &md_alloc)
-				: Registry<Domain>::Element(io_mmu._domains, *this),
-				  _io_mmu(io_mmu), _md_alloc(md_alloc)
-				{ }
+				Domain(Allocator &md_alloc) : _md_alloc(md_alloc) { }
 
 				virtual ~Domain() { }
 		};
@@ -110,13 +76,12 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 		friend class Domain;
 
-		Device_name       _name;
-		Registry<Domain>  _domains { };
+		Device_name _name;
 
-		unsigned          _active_domains { 0 };
+		unsigned _active_domains { 0 };
 
-		virtual void      _enable()  { };
-		virtual void      _disable() { };
+		virtual void _enable()  { };
+		virtual void _disable() { };
 
 		void _enable_domain()
 		{
@@ -133,12 +98,6 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 			if (!_active_domains)
 				_disable();
-		}
-
-		void _destroy_domains()
-		{
-			_domains.for_each([&] (Domain &domain) {
-				destroy(domain.md_alloc(), &domain); });
 		}
 
 	public:
@@ -163,18 +122,17 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 		Device_name const & name() const { return _name; }
 
-		bool domain_owner(Domain const &domain) const {
-			return &domain._io_mmu == this; }
-
 		/* Return true if device requires physical addressing */
 		virtual bool mpu() const { return false; }
 
 		/* Create a Io_mmu::Domain object */
-		virtual Domain & create_domain(Allocator &,
-		                               Ram_allocator &,
-		                               Registry<Dma_buffer> const &,
-		                               Ram_quota_guard &,
-		                               Cap_quota_guard &) = 0;
+		virtual Domain & create_domain(Allocator&, Ram_allocator&,
+		                               Ram_quota_guard&, Cap_quota_guard&) = 0;
+
+		virtual void enregister(Device const &, Domain &) {};
+		virtual void deregister(Device const &, Domain &) {};
+
+		virtual void iotlb_flush(Domain &) {};
 
 		virtual void generate(Generator &) const { }
 
@@ -183,15 +141,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 			_name(name)
 		{ }
 
-		virtual ~Io_mmu()
-		{
-			/**
-			 * destroying domain objects
-			 * any derived class that overrides any virtual method must
-			 * call this at the very beginning of its destruction
-			 */
-			_destroy_domains();
-		}
+		virtual ~Io_mmu() { }
 };
 
 

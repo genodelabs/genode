@@ -27,7 +27,6 @@
 #include <device_component.h>
 #include <device_owner.h>
 #include <io_mmu.h>
-#include <io_mmu_domain_registry.h>
 #include <irq_controller.h>
 
 namespace Driver {
@@ -59,8 +58,7 @@ class Driver::Session_component
 
 		~Session_component();
 
-		Heap                     &heap();
-		Io_mmu_domain_registry   &domain_registry();
+		Heap &heap();
 
 		bool matches(Device const &) const;
 
@@ -92,6 +90,23 @@ class Driver::Session_component
 		void free_dma_buffer(Ram_dataspace_capability ram_cap) override;
 		addr_t dma_addr(Ram_dataspace_capability) override;
 
+		void with_io_mmu_domain(auto const &fn) { fn(_domain); }
+
+		void for_each_io_mmu(auto const &fn)
+		{
+			_devices.for_each_io_mmu([&] (auto &io_mmu) {
+				bool match = false;
+				_devices.for_each([&] (Device const &dev) {
+					if (matches(dev))
+						dev.with_io_mmu([&] (auto &dev_io_mmu) {
+							if (dev_io_mmu.name == io_mmu.name())
+								match = true; });
+				});
+
+				if (match) fn(io_mmu);
+			});
+		}
+
 	private:
 
 		friend class Root;
@@ -105,17 +120,18 @@ class Driver::Session_component
 		                                             _cap_quota_guard()  };
 		Heap                          _md_alloc    { _env_ram, _env.rm() };
 		Registry<Device_component>    _device_registry { };
-		Io_mmu_domain_registry        _domain_registry { };
 		Dynamic_rom_session           _rom_session { _env.ep(), _env.ram(),
 		                                             _env.rm(), *this    };
 		bool                          _info;
 		Policy_version                _version;
 		Dma_allocator                 _dma_allocator;
+		Io_mmu::Domain               &_domain;
 
 		Device_capability _acquire(Device &device);
 		void              _release_device(Device_component &dc);
 		void              _free_dma_buffer(Dma_buffer &buf);
 
+		Io_mmu::Domain & _create_domain();
 		bool _dma_remapable() const;
 
 		/*

@@ -14,6 +14,7 @@
  */
 
 /* Genode includes */
+#include <base/attached_io_mem_dataspace.h>
 #include <base/log.h>
 #include <dataspace/client.h>
 #include <region_map/client.h>
@@ -21,6 +22,7 @@
 #include <util/retry.h>
 
 /* local includes */
+#include <device.h>
 #include <kernel_io_mmu.h>
 
 using namespace Driver;
@@ -115,68 +117,65 @@ void Kernel_io_mmu::Device_pd::remove_range(Io_mmu::Range const &range)
 }
 
 
-void Kernel_io_mmu::Device_pd::enable_pci_device(
-	Io_mem_dataspace_capability const io_mem_cap,
-    Pci::Bdf                    const &bdf)
+Kernel_io_mmu::Device_pd::Device_pd(Env &env, Ram_quota_guard &ram_guard,
+                                    Cap_quota_guard &cap_guard,
+                                    Allocator &md_alloc)
+
+:
+	Io_mmu::Domain(md_alloc),
+	_pd(env, Pd_connection::Device_pd()),
+	_address_space(env, _pd, ram_guard, cap_guard)
 {
-	_address_space.attach(io_mem_cap, {
-		.size       = 0x1000,  .offset    = { },
-		.use_at     = { },     .at        = { },
-		.executable = { },     .writeable = true
-	}).with_result(
-		[&] (Region_map::Range range) {
-
-			/* trigger eager mapping of memory */
-			_pd.map(Pd_session::Virt_range { range.start, range.num_bytes });
-
-			/* try to assign pci device to this protection domain */
-			if (!_pd.assign_pci(range.start, Pci::Bdf::rid(bdf)))
-				log("Assignment of PCI device ", bdf, " to device PD failed, no IOMMU?!");
-
-			/* we don't need the mapping anymore */
-			_address_space.detach(range.start);
-		},
-		[&] (Region_map::Attach_error) {
-			error("failed to attach PCI device to device PD"); }
-	);
+	_pd.ref_account(env.pd_session_cap());
 }
 
 
-void Kernel_io_mmu::Device_pd::disable_pci_device(Pci::Bdf const &)
+void Kernel_io_mmu::enregister(Device const &device, Domain &domain)
+{
+	Device_pd &dpd = static_cast<Device_pd&>(domain);
+
+	device.for_pci_config([&] (Device::Pci_config const &cfg) {
+		Attached_io_mem_dataspace io_mem { _env, cfg.addr, 0x1000 };
+		Pci::Bdf bdf {cfg.bus_num, cfg.dev_num, cfg.func_num};
+
+		dpd._address_space.attach(io_mem.cap(), {
+			.size       = 0x1000,  .offset    = { },
+			.use_at     = { },     .at        = { },
+			.executable = { },     .writeable = true
+		}).with_result(
+			[&] (Region_map::Range range) {
+
+				/* trigger eager mapping of memory */
+				dpd._pd.map(Pd_session::Virt_range { range.start, range.num_bytes });
+
+				/* try to assign pci device to this protection domain */
+				if (!dpd._pd.assign_pci(range.start, Pci::Bdf::rid(bdf)))
+					log("Assignment of PCI device ", bdf, " to device PD failed, no IOMMU?!");
+
+				/* we don't need the mapping anymore */
+				dpd._address_space.detach(range.start);
+			},
+			[&] (Region_map::Attach_error) {
+				error("failed to attach PCI device to device PD"); }
+		);
+	});
+}
+
+
+void Kernel_io_mmu::deregister(Device const &, Domain &)
 {
 	warning("Cannot unassign PCI device from device PD (not implemented by kernel).");
 }
 
 
 
-Kernel_io_mmu::Device_pd::Device_pd(Env                        &env,
-                                    Ram_quota_guard            &ram_guard,
-                                    Cap_quota_guard            &cap_guard,
-                                    Kernel_io_mmu              &io_mmu,
-                                    Allocator                  &md_alloc,
-                                    Registry<Dma_buffer> const &buffer_registry)
-
-:
-	Io_mmu::Domain(io_mmu, md_alloc),
-	_pd(env, Pd_connection::Device_pd()),
-	_address_space(env, _pd, ram_guard, cap_guard)
-{
-	_pd.ref_account(env.pd_session_cap());
-
-	buffer_registry.for_each([&] (Dma_buffer const &buf) {
-		add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap); });
-}
-
-
 Io_mmu::Domain &
 Kernel_io_mmu::create_domain(Allocator                  &md_alloc,
                              Ram_allocator              &,
-                             Registry<Dma_buffer> const &buffer_registry,
                              Ram_quota_guard            &ram_guard,
                              Cap_quota_guard            &cap_guard)
 {
-	return *new (md_alloc) Device_pd(_env, ram_guard, cap_guard, *this, md_alloc,
-	                                 buffer_registry);
+	return *new (md_alloc) Device_pd(_env, ram_guard, cap_guard, md_alloc);
 }
 
 
@@ -189,4 +188,4 @@ Kernel_io_mmu::Kernel_io_mmu(Env                     &env,
 { };
 
 
-Kernel_io_mmu::~Kernel_io_mmu() { _destroy_domains(); }
+Kernel_io_mmu::~Kernel_io_mmu() { }
