@@ -1,9 +1,3 @@
-#
-# \brief  VFS stress test
-# \author Emery Hemingway
-# \date   2015-08-30
-#
-
 build {
 	core lib/ld init timer lib/vfs
 	test/vfs_stress
@@ -28,48 +22,44 @@ catch { exec $mke2fs -F bin/ext2.raw }
 create_boot_directory
 
 install_config {
-<config>
-	<affinity-space width="3" height="2" />
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="vfs_stress" ram="32M">
-		<config depth="32" threads="1">
-			<vfs> <fs/> </vfs>
-		</config>
-	</start>
-	<start name="vfs_block" ram="34M">
-		<provides><service name="Block"/></provides>
-		<config>
-			<vfs>
-				<ram/>
-				<import>
-					<rom name="ext2.raw"/>
-				</import>
-			</vfs>
-			<default-policy root="/" file="ext2.raw" block_size="512"
-			                writeable="yes"/>
-		</config>
-	</start>
-	<start name="vfs" caps="200" ram="24M">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs> <rump fs="ext2fs" ram="20M"/> </vfs>
-			<default-policy root="/" writeable="yes"/>
-		</config>
-	</start>
-</config> }
+config
++ affinity-space | width: 3 | height: 2
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start vfs_stress | ram: 32M
+  + config | depth: 32 | threads: 1
+    + vfs | + fs
+
++ start vfs_block | ram: 34M
+  + provides | + service Block
+  + config
+    + default-policy | root: / | file: ext2.raw | block_size: 512 | writeable: yes
+    + vfs
+      + ram
+      + import | + rom ext2.raw
+
++ start vfs | caps: 200 | ram: 24M
+  + provides | + service File_system
+  + config
+    + vfs | + rump | fs: ext2fs | ram: 20M
+    + default-policy | root: / | writeable: yes
+-
+}
 
 build_boot_image [list {*}[build_artifacts] ext2.raw]
 

@@ -12,52 +12,51 @@ build {
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="vfs_block" ram="2M">
-		<provides><service name="Block"/></provides>
-		<config>
-			<vfs>
-				<rom name="fs.iso"/>
-			</vfs>
-			<default-policy file="/fs.iso" block_size="2048"
-			                writeable="no"/>
-		</config>
-	</start>
-	<start name="vfs" caps="200" ram="20M">
-		<provides><service name="File_system"/></provides>
-		<config>
-			<vfs> <rump fs="cd9660" ram="10M" writeable="no"/> </vfs>
-			<policy label_prefix="fs_rom" root="/" writeable="no"/>
-		</config>
-	</start>
-	<start name="fs_rom" ram="2M">
-		<provides><service name="ROM"/></provides>
-	</start>
-	<start name="test-iso">
-		<config/>
-		<route>
-			<service name="ROM" label_prefix=""><child name="fs_rom"/></service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>
-</config>}
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start vfs_block | ram: 2M
+  + provides | + service Block
+  + config
+    + vfs | + rom fs.iso
+    + default-policy | file: /fs.iso | block_size: 2048 | writeable: no
+
++ start vfs | caps: 200 | ram: 20M
+  + provides | + service File_system
+  + config
+    + vfs | + rump | fs: cd9660 | ram: 10M | writeable: no
+    + policy | label_prefix: fs_rom | root: / | writeable: no
+
++ start fs_rom | ram: 2M
+  + provides | + service ROM
+
++ start test-iso
+  + config
+  + route
+    + service ROM | label_prefix: | + child fs_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 #
 # Check used commands
