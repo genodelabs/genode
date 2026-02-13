@@ -1,105 +1,98 @@
-<runtime ram="80M" caps="1000" binary="init">
+runtime | ram: 80M | caps: 1000 | binary: init
 
-	<requires>
-		<file_system label="report" writeable="no"/>
-		<file_system label="target" writeable="yes"/>
-		<timer/>
-		<rtc/>
-	</requires>
++ requires
+  + file_system | label: report | writeable: no
+  + file_system | label: target | writeable: yes
+  + timer
+  + rtc
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-			<service name="File_system"/>
-			<service name="Rtc"/>
-		</parent-provides>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
+    + service File_system
+    + service Rtc
 
-		<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<default caps="100"/>
+  + default | caps: 100
 
-		<start name="vfs" caps="150" ram="12M">
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs>
-					<tar name="bash-minimal.tar" />
-					<tar name="coreutils.tar" />
-					<dir name="dev">
-						<zero/> <null/> <log/> <rtc/>
-					</dir>
-					<dir name="pipe"> <pipe/> </dir>
-					<dir name="rw">     <fs label="target -> /"/> </dir>
-					<dir name="report"> <fs label="report -> /"/> </dir>
-					<dir name="tmp"> <ram /> </dir>
-					<inline name=".bash_profile">
-						while true; do
-							export VERSION=`printf "%(%T)T"`
-							mkdir "/rw/$VERSION"
-							cp -r /report/* "/rw/$VERSION/"
-							sleep 60
-						done
-					</inline>
-				</vfs>
-				<policy label_prefix="vfs_rom" root="/"/>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-			<route>
-				<service name="File_system" label_prefix="target ->"> <parent identity="target"/> </service>
-				<service name="File_system" label_prefix="report ->"> <parent identity="report"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
+  + start vfs | caps: 150 | ram: 12M
+    + provides | + service File_system
+    + route
+      + service File_system | label_prefix: target -> | + parent | identity: target
+      + service File_system | label_prefix: report -> | + parent | identity: report
+      + any-service                                   | + parent
+    + config
+      + vfs
+      | + tar bash-minimal.tar
+      | + tar coreutils.tar
+      | + dir dev
+      |   + zero
+      |   + null
+      |   + log
+      |   + rtc
+      | + dir pipe   | + pipe
+      | + dir rw     | + fs | label: target -> /
+      | + dir report | + fs | label: report -> /
+      | + dir tmp    | + ram
+      | + inline .bash_profile
+      |   :
+      |   : while true; do
+      |   : export VERSION=`printf "%(%T)T"`
+      |   : mkdir "/rw/$VERSION"
+      |   : cp -r /report/* "/rw/$VERSION/"
+      |   : sleep 60
+      |   : done
+      |   :
+      + policy | label_prefix: vfs_rom | root: /
+      + default-policy                 | root: / | writeable: yes
 
-		<start name="vfs_rom" ram="16M">
-			<binary name="fs_rom"/>
-			<provides> <service name="ROM"/> </provides>
-			<config/>
-			<route>
-				<service name="File_system"> <child name="vfs"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
+  + start vfs_rom | ram: 16M
+    + binary fs_rom
+    + provides | + service ROM
+    + config
+    + route
+      + service File_system | + child vfs
+      + any-service         | + parent
 
-		<start name="/bin/bash" caps="450" ram="28M">
-			<exit propagate="yes"/>
-			<config>
-				<libc stdin="/dev/null" stdout="/dev/null"
-				      stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
-				<vfs> <fs/> </vfs>
-				<arg value="bash"/>
-				<arg value="--login"/>
-				<env name="TERM">screen</env>
-				<env name="PATH">/bin</env>
-				<env name="HOME">/</env>
-			</config>
-			<route>
-				<service name="File_system"> <child name="vfs"/> </service>
-				<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-				<service name="ROM" label_last="/bin/bash"> <child name="vfs_rom"/> </service>
-				<service name="ROM" label_prefix="/bin">    <child name="vfs_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+  + start /bin/bash | caps: 450 | ram: 28M
+    + exit | propagate: yes
+    + config
+    | + libc | stdin: /dev/null | stdout: /dev/null | stderr: /dev/log
+    |        | rtc:   /dev/rtc  | pipe:   /pipe
+    | + vfs | + fs
+    | + arg bash
+    | + arg --login
+    | + env TERM | : screen
+    | + env PATH | : /bin
+    | + env HOME | : /
+    + route
+      + service File_system                 | + child vfs
+      + service ROM | label_suffix: .lib.so | + parent
+      + service ROM | label_last: /bin/bash | + child vfs_rom
+      + service ROM | label_prefix: /bin    | + child vfs_rom
+      + any-service
+        + parent
+        + any-child
 
-	</config>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="init"/>
-		<rom label="fs_rom"/>
-		<rom label="posix.lib.so"/>
-		<rom label="bash-minimal.tar"/>
-		<rom label="coreutils.tar"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_pipe.lib.so"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: init
+  + rom | label: fs_rom
+  + rom | label: posix.lib.so
+  + rom | label: bash-minimal.tar
+  + rom | label: coreutils.tar
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_pipe.lib.so
+-
