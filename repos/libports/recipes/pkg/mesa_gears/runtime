@@ -1,37 +1,33 @@
-<runtime ram="52M" caps="400" binary="gears">
+runtime | ram: 52M | caps: 400 | binary: gears
 
-	<requires>
-		<gui/>
-		<gpu/>
-		<timer/>
-		<rom label="mesa_gpu.lib.so"/>
-	</requires>
++ requires
+  + gui
+  + gpu
+  + timer
+  + rom | label: mesa_gpu.lib.so
 
-	<content>
-		<rom label="egl.lib.so"/>
-		<rom label="expat.lib.so"/>
-		<rom label="gears"/>
-		<rom label="glapi.lib.so"/>
-		<rom label="init"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libdrm.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="mesa.lib.so"/>
-		<rom label="stdcxx.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_gpu.lib.so"/>
-		<rom label="zlib.lib.so"/>
-	</content>
++ content
+  + rom | label: egl.lib.so
+  + rom | label: expat.lib.so
+  + rom | label: gears
+  + rom | label: glapi.lib.so
+  + rom | label: init
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libdrm.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: mesa.lib.so
+  + rom | label: stdcxx.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_gpu.lib.so
+  + rom | label: zlib.lib.so
 
-	<config>
-		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
-		<vfs>
-			<dir name="dev">
-				<log/> <inline name="rtc">2000-01-01 00:00</inline> <gpu/>
-			</dir>
-		</vfs>
-		<env name="GALLIUM_HUD">fps</env>
-	</config>
-
-</runtime>
++ config
+  + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc
+  + env GALLIUM_HUD | : fps
+  + vfs
+    + dir dev
+      + log
+      + inline rtc | : 2000-01-01 00:00
+      + gpu
+-

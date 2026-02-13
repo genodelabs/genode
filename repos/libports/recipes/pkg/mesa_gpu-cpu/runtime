@@ -1,53 +1,38 @@
-<runtime ram="20M" caps="300" binary="init">
+runtime | ram: 20M | caps: 300 | binary: init
 
-	<provides>
-		<rom/>
-	</provides>
++ provides | + rom
 
-	<requires>
-		<rm/>
-	</requires>
++ requires | + rm
 
-	<content>
-		<rom label="mesa_gpu-softpipe.lib.so"/>
-		<rom label="cached_fs_rom"/>
-		<rom label="init"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-	</content>
++ content
+  + rom | label: mesa_gpu-softpipe.lib.so
+  + rom | label: cached_fs_rom
+  + rom | label: init
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
 
-	<config>
++ config
+  + service ROM | + default-policy | + child cached_fs_rom | label: mesa_gpu-softpipe.lib.so
 
-		<service name="ROM">
-			<default-policy>
-				<child name="cached_fs_rom" label="mesa_gpu-softpipe.lib.so"/>
-			</default-policy>
-		</service>
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
 
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
+  + start vfs | caps: 100 | ram: 5M
+    + provides | + service File_system
+    + config
+      + vfs | + rom mesa_gpu-softpipe.lib.so
+      + default-policy | root: / | writeable: no
 
-		<start name="vfs" caps="100" ram="5M">
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs>
-					<rom name="mesa_gpu-softpipe.lib.so"/>
-				</vfs>
-				<default-policy root="/" writeable="no"/>
-			</config>
-		</start>
-
-		<start name="cached_fs_rom" caps="100" ram="8M">
-			<provides> <service name="ROM"/> </provides>
-			<config/>
-		</start>
-	</config>
-
-</runtime>
+  + start cached_fs_rom | caps: 100 | ram: 8M
+    + provides | + service ROM
+    + config
+-

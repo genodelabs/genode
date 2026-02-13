@@ -1,52 +1,44 @@
-<runtime ram="6M" caps="400" binary="init">
+runtime | ram: 6M | caps: 400 | binary: init
 
-	<provides> <rtc/> </provides>
++ provides
+  + rtc
 
-	<requires> <timer/> <irq/> <io_port/> </requires>
++ requires
+  + timer
+  + irq
+  + io_port
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="init"/>
-		<rom label="pc_rtc"/>
-		<rom label="system_rtc"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: init
+  + rom | label: pc_rtc
+  + rom | label: system_rtc
 
-	<config>
++ config
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
+  + default | caps: 150 | ram: 2M
 
-		<default caps="150" ram="2M"/>
+  + service Rtc | + default-policy | + child system_rtc
 
-		<service name="Rtc">
-			<default-policy> <child name="system_rtc"/> </default-policy> </service>
+  + start pc_rtc
+    + provides | + service Rtc
+    + config
+    + route | + any-service | + parent
 
-		<start name="pc_rtc">
-			<provides> <service name="Rtc"/> </provides>
-			<config/>
-			<route>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="system_rtc">
-			<provides> <service name="Rtc"/> </provides>
-			<config/>
-			<route>
-				<service name="Rtc"> <child name="pc_rtc"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-	</config>
-
-</runtime>
+  + start system_rtc
+    + provides | + service Rtc
+    + config
+    + route
+      + service Rtc | + child pc_rtc
+      + any-service | + parent
+-

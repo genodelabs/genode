@@ -1,14 +1,13 @@
-<runtime ram="8M" caps="400" binary="init" config="ntp_rtc.config">
+runtime | ram: 8M | caps: 400 | binary: init | config: ntp_rtc.config
 
-	<requires> <nic/> </requires>
-	<provides> <rtc/> </provides>
++ requires | + nic
 
-	<content>
-		<rom label="sntp_client"/>
-		<rom label="report_rom"/>
-		<rom label="dummy_rtc"/>
-		<rom label="ntp_rtc.config"/>
-		<rom label="init"/>
-	</content>
++ provides | + rtc
 
-</runtime>
++ content
+  + rom | label: sntp_client
+  + rom | label: report_rom
+  + rom | label: dummy_rtc
+  + rom | label: ntp_rtc.config
+  + rom | label: init
+-

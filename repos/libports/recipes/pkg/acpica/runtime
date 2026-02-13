@@ -1,21 +1,23 @@
-<runtime ram="10M" caps="300" binary="acpica">
+runtime | ram: 10M | caps: 300 | binary: acpica
 
-	<requires>
-		<io_mem/>
-		<io_port/>
-		<platform/>
-		<rom label="platform_info"/>
-		<rom label="system"/>
-		<report/>
-		<timer/>
-	</requires>
++ requires
+  + io_mem
+  + io_port
+  + platform
+  + rom | label: platform_info
+  + rom | label: system
+  + report
+  + timer
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="acpica"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: acpica
 
-	<config reset="yes" poweroff="yes" report="yes" report_period_ms="20000"
-	        use_gpe="no" sleep="yes"/>
-
-</runtime>
++ config
+         reset:            yes
+         poweroff:         yes
+         report:           yes
+         report_period_ms: 20000
+         use_gpe:          no
+         sleep:            yes
+-
