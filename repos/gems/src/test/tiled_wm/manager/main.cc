@@ -71,7 +71,7 @@ void Test::Manager::handle_content_request()
 	content_request_rom.update();
 
 	Name requested_app =
-		content_request_rom.xml().attribute_value("name", Name());
+		content_request_rom.node().attribute_value("name", Name());
 
 	if (!requested_app.valid()) return;
 
@@ -101,7 +101,7 @@ void Test::Manager::handle_overlay_request()
 	overlay_request_rom.update();
 
 	bool const request_visible =
-		overlay_request_rom.xml().attribute_value("visible", false);
+		overlay_request_rom.node().attribute_value("visible", false);
 
 	if (request_visible == overlay_visible) return;
 
