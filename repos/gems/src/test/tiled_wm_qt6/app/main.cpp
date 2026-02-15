@@ -31,7 +31,7 @@ struct Main
 
 	QString name_from_config()
 	{
-		Name name = config.xml().attribute_value("name", Name("no name"));
+		Name name = config.node().attribute_value("name", Name("no name"));
 
 		return QString(name.string());
 	}
