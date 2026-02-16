@@ -1,4 +1,4 @@
-runtime
+runtime | ram: 16M | caps: 100
 + content
   + rom | label: ld.lib.so
   + rom | label: vfs.lib.so
