@@ -160,6 +160,7 @@ Const_byte_range_ptr Hid_node::_validated(Const_byte_range_ptr const &bytes)
 	char const control_mask = ~0x1f;
 	char next = bytes.start[0];
 	enum { START, ACCEPT, REJECT } tabs { };
+	bool observed_top_level = _letter(next) ? 1 : 0;
 	for (unsigned n = 1; n < bytes.num_bytes; n++) {
 		char const curr = next;
 		next = bytes.start[n];
@@ -171,6 +172,18 @@ Const_byte_range_ptr Hid_node::_validated(Const_byte_range_ptr const &bytes)
 		if (!(curr & control_mask)) {
 			if (curr == '\n' && _minus(next)) /* end marker */
 				return { bytes.start, n + 1 };
+
+			/* reject HID data with more than one top-level node */
+			if (curr == '\n' && _letter(next)) {
+				if (observed_top_level) {
+					static bool warned_once;
+					if (!warned_once)
+						warning("ambigious top-level node:\n", Cstring(bytes.start, bytes.num_bytes));
+					warned_once = true;
+					break;
+				}
+				observed_top_level = true;
+			}
 
 			if (curr == '\n')                   continue;
 			if (curr == '\r' && next == '\n')   continue;
