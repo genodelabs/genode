@@ -400,7 +400,7 @@ proc check_config_in_run_dir { binary_name config_path { max_depth 5 }} {
 	}
 	incr max_depth -1
 
-	if {[file size $config_path] > 0} {
+	if {[file size $config_path] == 0} {
 		return
 	}
 
@@ -452,15 +452,17 @@ proc check_config_in_run_dir { binary_name config_path { max_depth 5 }} {
 			set binary $child
 			set     cmd [genode_dir]/tool/hid
 			lappend cmd subnodes "config | + start $child | + config"
-			lappend cmd ">" $tmp_file
 			set result ""
 			if {[catch {exec {*}$cmd $config_path } result]} {
 				puts stderr "Error: failed to obtain config for '$child'"
 				puts stderr $result
 				if {[error_at_any_line $result]} { exit 1 }
 			}
-
-			if {[file size $tmp_file] > 0} {
+			if {$result != ""} {
+				# traverse into sub config
+				set fd [open $tmp_file w]
+				puts $fd $result
+				close $fd
 				check_config_in_run_dir $binary [run_dir]/sub_config.tmp $max_depth
 			} else {
 				# child has no inline config
