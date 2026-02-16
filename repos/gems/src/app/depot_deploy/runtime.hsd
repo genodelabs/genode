@@ -37,7 +37,14 @@ schema runtime
   + node capture
   + node play
   + node record
-  + node platform
+  + node platform | + attr label | type: any | default:
+  + node pin_state
+  + node pin_control
+  + node io_mem
+  + node io_port
+  + node irq
+  + node trace
+  + node vm
 
 + node requires
   + node | category: service
