@@ -117,8 +117,10 @@ proc qt6_start_nodes { } {
   + start timer | ram: 1M
     + provides | + service Timer
 
-  . toggle key mappings depending on the numlock state
   + start numlock_remap_rom | ram: 1M
+    .
+    . toggle key mappings depending on the numlock state
+    .
     + binary rom_filter
     + provides | + service ROM
     + config

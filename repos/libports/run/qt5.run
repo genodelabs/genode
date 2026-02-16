@@ -17,34 +17,34 @@ config
   } [qt5_start_nodes] {
   + start qt_launchpad | caps: 650 | ram: 80M
     + config
-      + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
-      + vfs
-        + dir dev
-          + log
-          + inline rtc | : 2018-01-01 00:01
-        + dir pipe | + pipe
-        + tar qt5_dejavusans.tar
-        + tar qt5_libqgenode.tar
-      + launcher calculatorform | ram_quota: 30M | caps: 200
-        + config
-          + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
-          + vfs
-            + dir dev
-              + log
-              + inline rtc | : 2018-01-01 00:01
-            + dir pipe | + pipe
-            + tar qt5_dejavusans.tar
-            + tar qt5_libqgenode.tar
-      + launcher tetrix | ram_quota: 40M | caps: 200
-        + config
-          + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
-          + vfs
-            + dir dev
-              + log
-              + inline rtc | : 2018-01-01 00:01
-            + dir pipe | + pipe
-            + tar qt5_dejavusans.tar
-            + tar qt5_libqgenode.tar
+    | + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+    | + vfs
+    |   + dir dev
+    |     + log
+    |     + inline rtc | : 2018-01-01 00:01
+    |   + dir pipe | + pipe
+    |   + tar qt5_dejavusans.tar
+    |   + tar qt5_libqgenode.tar
+    | + launcher calculatorform | ram_quota: 30M | caps: 200
+    |   + config
+    |     + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+    |     + vfs
+    |       + dir dev
+    |         + log
+    |         + inline rtc | : 2018-01-01 00:01
+    |       + dir pipe | + pipe
+    |       + tar qt5_dejavusans.tar
+    |       + tar qt5_libqgenode.tar
+    | + launcher tetrix | ram_quota: 40M | caps: 200
+    |   + config
+    |     + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+    |     + vfs
+    |       + dir dev
+    |         + log
+    |         + inline rtc | : 2018-01-01 00:01
+    |       + dir pipe | + pipe
+    |       + tar qt5_dejavusans.tar
+    |       + tar qt5_libqgenode.tar
     + route
       + service Gui                                     | + child wm
       + service Report | label: calculatorform -> shape | + child pointer | label: wm -> qt_launchpad -> calculatorform -> shape
