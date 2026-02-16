@@ -11,37 +11,34 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/test-qt6_core_cmake
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="IRQ"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-	</parent-provides>
+config | verbose: yes
+  + parent-provides
+    + service ROM
+    + service LOG
+    + service RM
+    + service CPU
+    + service PD
+    + service IRQ
+    + service IO_PORT
+    + service IO_MEM
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-	<default caps="100" ram="1M"/>
+  + default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
+  + start timer
+    + provides | + service Timer
 
-	<start name="test-qt_core_cmake" ram="10M">
-		<config>
-			<vfs>
-				<dir name="dev"> <log/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-		</config>
-	</start>
-</config>}
+  + start test-qt_core_cmake | ram: 10M
+    + config
+      + vfs
+        + dir dev | + log
+      + libc | stdout: /dev/log | stderr: /dev/log
+-
+}
 
 build_boot_image [build_artifacts]
 

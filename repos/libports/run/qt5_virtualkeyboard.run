@@ -8,45 +8,39 @@ import_from_depot [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_virtualkeyboard_example
 
 install_config {
-<config>
-	<parent-provides>
-		} [qt5_parent_provides] {
-	</parent-provides>
-	<default caps="300"/>
-	<default-route>
-		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
-	</default-route>
-	} [qt5_start_nodes] {
-	<start name="basic" caps="500" ram="100M">
-		<config>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<inline name="rtc">2018-01-01 00:01</inline>
-				</dir>
-				<dir name="pipe"> <pipe/> </dir>
-				<tar name="qt5_dejavusans.tar"/>
-				<tar name="qt5_declarative_qml.tar"/>
-				<tar name="qt5_libqgenode.tar"/>
-				<tar name="qt5_libqsvg.tar"/>
-				<tar name="qt5_libqtvirtualkeyboardplugin.tar"/>
-				<tar name="qt5_quickcontrols2_qml.tar"/>
-				<tar name="qt5_virtualkeyboard_qml.tar"/>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
-		</config>
-		<route>
-			<service name="Gui"> <child name="wm"/> </service>
-			<service name="Report" label="shape">
-				<child name="pointer" label="wm -> basic -> shape"/>
-			</service>
-			<service name="ROM" label="mesa_gpu.lib.so">
-				<parent label="mesa_gpu-softpipe.lib.so" />
-			</service>
-			<any-service> <parent /> <any-child/> </any-service>
-		</route>
-	</start>
-</config>
+config
+  + parent-provides
+    } [qt5_parent_provides] {
+  + default | caps: 300
+  + default-route
+    + any-service
+      + parent
+      + child | name: wm
+      + any-child
+  } [qt5_start_nodes] {
+  + start basic | caps: 500 | ram: 100M
+    + config
+      + vfs
+        + dir dev
+          + log
+          + inline rtc | : 2018-01-01 00:01
+        + dir pipe | + pipe
+        + tar qt5_dejavusans.tar
+        + tar qt5_declarative_qml.tar
+        + tar qt5_libqgenode.tar
+        + tar qt5_libqsvg.tar
+        + tar qt5_libqtvirtualkeyboardplugin.tar
+        + tar qt5_quickcontrols2_qml.tar
+        + tar qt5_virtualkeyboard_qml.tar
+      + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+    + route
+      + service Gui                             | + child wm
+      + service Report | label: shape           | + child pointer | label: wm -> basic -> shape
+      + service ROM    | label: mesa_gpu.lib.so | + parent        | label: mesa_gpu-softpipe.lib.so
+      + any-service
+        + parent
+        + any-child
+-
 }
 
 build_boot_image [qt5_boot_modules]
