@@ -130,8 +130,13 @@ void Launchpad::process_config(Genode::Node const &config_node)
 				/* copy configuration into new dataspace */
 				Attached_dataspace attached(_env.rm(), config_ds);
 
-				Node(config_node,
-				     Byte_range_ptr(attached.local_addr<char>(), attached.size()));
+				Generator::generate(attached.bytes(), "config", [&] (Generator &g) {
+					g.node_attributes(config_node);
+					Generator::Max_depth const max_depth { 20 };
+					if (!g.append_node_content(config_node, max_depth))
+						warning(*name, ": config structure exceeds max depth");
+				}).with_error([&] (Buffer_error) {
+					warning("unable to generate child config for launcher:\n", node); });
 			}
 		});
 
