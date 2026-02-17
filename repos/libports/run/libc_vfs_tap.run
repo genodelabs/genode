@@ -50,7 +50,7 @@ install_config {
 			<vfs>
 				<dir name="dev">
 					<log/>
-					<tap name="tap0" mac="02:02:00:00:00:20"/>
+					<tap name="tap0" mac="02:02:00:00:00:20" mode="uplink"/>
 				</dir>
 			</vfs>
 		</config>
@@ -84,7 +84,6 @@ compare_output_to {
 [init -> tap_uplink_client] MAC address 02:02:00:00:00:20
 [init -> tap_uplink_client] Successfully opened device tap0
 [init -> tap_uplink_client] MAC address 02:02:00:00:00:21
-[init -> tap_uplink_client] Warning: unsupported ioctl (request=0x4008745c)
 [init -> tap_uplink_client] Warning: TAPGIFINFO failed
 }
 
@@ -92,7 +91,6 @@ set output $original_output
 grep_output {\[init -> tap_nic_client\].*}
 compare_output_to {
 [init -> tap_nic_client] Successfully opened device tap0
-[init -> tap_nic_client] Warning: unsupported ioctl (request=0x4008745c)
 [init -> tap_nic_client] Warning: TAPGIFINFO failed
 }
 
