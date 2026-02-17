@@ -306,7 +306,7 @@ proc nic_bridge_start_node { } { return [join [list {
 + start bridge | ram: 5M | priority: -1
   + binary nic_bridge
   + provides | + service Nic
-  + config | } nic_bridge_config_attr {
+  + config | } [nic_bridge_config_attr] {
     + default-policy
   + route
     + service Nic | + child nic_router
