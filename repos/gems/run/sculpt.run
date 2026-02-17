@@ -1031,10 +1031,10 @@ set pkg_index [read $fd]
 close $fd
 
 # filter 'pkg' attribute
-set pattern {(\<pkg[^\>]+?path=")([^/]+)(")}
-while {[regexp $pattern $pkg_index dummy head pkg tail]} {
+set pattern { pkg [|] path: ([^/ |]+) }
+while {[regexp $pattern $pkg_index dummy pkg]} {
 	set pkg_path [depot_user]/pkg/[current_pkg $pkg]
-	regsub $pattern $pkg_index "$head$pkg_path$tail" pkg_index
+	regsub $pattern $pkg_index " pkg | path: $pkg_path " pkg_index
 }
 
 # write filtered pkg index into the depot
