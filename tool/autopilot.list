@@ -27,6 +27,7 @@ kernel_time
 libc_integration
 libc_vfs_fs_ext2
 libc_vfs_fs_fat
+libc_vfs_tap
 lighttpd_fetchurl
 log_core
 lwip
