@@ -44,6 +44,7 @@ schema runtime
   + node io_port
   + node irq
   + node trace
+  + node vm
 
 + node requires
   + node | category: service
