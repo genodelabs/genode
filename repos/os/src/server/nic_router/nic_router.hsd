@@ -34,7 +34,7 @@ schema config
   + attr label_last   | type: any | default:
 
 + node nic-client
-  + attr label  | type: any
+  + attr label  | type: any | default:
   + attr domain | type: domain
 
 + category l3_rule
@@ -95,16 +95,16 @@ schema config
     + attr port    | type: port
     + attr domain  | type: domain
     + attr to      | type: ipv4
-    + attr to_port | type: port
+    + attr to_port | type: port | default: 0
 
   + node udp-forward
     + attr port    | type: port
     + attr domain  | type: domain
     + attr to      | type: ipv4
-    + attr to_port | type: port
+    + attr to_port | type: port | default: 0
 
   + node nat
-    + attr icmp-ids  | type: num_ports
+    + attr icmp-ids  | type: num_ports | default: 0
     + attr tcp-ports | type: num_ports | default: 0
     + attr udp-ports | type: num_ports | default: 0
     + attr domain    | type: domain
