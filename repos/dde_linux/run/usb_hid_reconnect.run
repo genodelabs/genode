@@ -18,103 +18,93 @@ import_from_depot [depot_user]/src/[base_src] \
 build { server/event_dump }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="report_rom">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no">
-			<default-policy report="usb -> usb -> devices"/>
-		</config>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="usb" caps="1500" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<provides> <service name="Usb"/> </provides>
-		<route>
-			<service name="ROM" label="config">
-				<parent label="drivers.config"/> </service>
-			<service name="Timer">    <child name="timer"/> </service>
-			<service name="Report">   <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="usb_hid" caps="180" ram="11M">
-		<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
-		<route>
-			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
-			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
-			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
-			<service name="ROM" label="report"> <child name="report_rom"/> </service>
-			<service name="Event"> <child name="event_dump"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="dynamic_rom" ram="4M">
-		<provides> <service name="ROM"/> </provides>
-		<config verbose="no">
-			<rom name="capslock">
-				<inline> <capslock enabled="no"/> </inline>
-				<sleep milliseconds="250" />
-				<inline> <capslock enabled="yes"/> </inline>
-				<sleep milliseconds="250" />
-			</rom>
-			<rom name="numlock">
-				<inline> <numlock enabled="no"/> </inline>
-				<sleep milliseconds="500" />
-				<inline> <numlock enabled="yes"/> </inline>
-				<sleep milliseconds="500" />
-			</rom>
-			<rom name="scrlock">
-				<inline> <scrlock enabled="no"/> </inline>
-				<sleep milliseconds="1000" />
-				<inline> <scrlock enabled="yes"/> </inline>
-				<sleep milliseconds="1000" />
-			</rom>
-		</config>
-		<route>
-			<service name="ROM">   <parent/>             </service>
-			<service name="CPU">   <parent/>             </service>
-			<service name="PD">    <parent/>             </service>
-			<service name="LOG">   <parent/>             </service>
-			<service name="Timer"> <child name="timer"/> </service>
-		</route>
-	</start>
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + default-policy | report: usb -> usb -> devices
 
-	<start name="event_dump">
-		<provides> <service name="Event"/> </provides>
-		<config/>
-	</start>
-</config>}
++ start usb | caps: 1500 | ram: 32M | managing_system: yes
+  + binary init
+  + provides | + service Usb
+  + route
+    + service ROM    | label: config | + parent | label: drivers.config
+    + service Timer                  | + child timer
+    + service Report                 | + child report_rom
+    + any-service
+      + parent
+
++ start usb_hid | caps: 180 | ram: 11M
+  + config | capslock_led: rom | numlock_led: rom | scrlock_led: rom
+  + route
+    + service ROM   | label: capslock | + child dynamic_rom
+    + service ROM   | label: numlock  | + child dynamic_rom
+    + service ROM   | label: report   | + child report_rom
+    + service ROM   | label: scrlock  | + child dynamic_rom
+    + service Event                   | + child event_dump
+    + service Timer                   | + child timer
+    + service Usb                     | + child usb
+    + any-service                     | + parent
+
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: no
+  | + rom capslock
+  |   + inline | + capslock | enabled: no
+  |   + sleep  | milliseconds: 250
+  |   + inline | + capslock | enabled: yes
+  |   + sleep  | milliseconds: 250
+  | + rom numlock
+  |   + inline | + numlock | enabled: no
+  |   + sleep  | milliseconds: 500
+  |   + inline | + numlock | enabled: yes
+  |   + sleep  | milliseconds: 500
+  | + rom scrlock
+  |   + inline | + scrlock | enabled: no
+  |   + sleep  | milliseconds: 1000
+  |   + inline | + scrlock | enabled: yes
+  |   + sleep  | milliseconds: 1000
+  + route
+    + service Timer | + child timer
+    + any-service   | + parent
+
++ start event_dump
+  + provides | + service Event
+  + config
+-}
 
 #
 # Define USB host controller config
 #
 set fd [open [run_dir]/genode/usb_host.config w]
 puts $fd {
-<config bios_handoff="no">
-	<report devices="yes"/>
-	<policy label_prefix="usb_hid"> <device class="0x3"/> </policy>
-</config>}
+config | bios_handoff: no
+  + report | devices: yes
+  + policy | label_prefix: usb_hid | + device | class: 0x3
+-}
 close $fd
 
 build_boot_image [build_artifacts]
