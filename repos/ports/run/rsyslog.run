@@ -1,0 +1,123 @@
+assert {[have_spec x86_64]}
+assert {[have_spec nova] || [have_spec hw] || [have_spec linux]}
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_import \
+                  [depot_user]/src/vfs_jitterentropy \
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/openssl \
+                  [depot_user]/src/zlib \
+                  [depot_user]/pkg/system_rtc-[board] \
+                  [depot_user]/src/libestr/0.1.11-2025-10-09 \
+                  [depot_user]/src/libfastjson/1.2304.0-2025-10-09 \
+                  [depot_user]/src/rsyslog/8.2502.0-2025-10-09
+
+#
+# Generate config
+#
+append config {
+config | verbose: yes
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start system_rtc | caps: 400 | ram: 6M
+  + binary init
+  + provides
+    + service Rtc
+    + service Report
+  + route
+    + service ROM     | label: config | + parent | label: system_rtc.config
+    + service Timer                   | + child timer
+    + service CPU                     | + parent
+    + service IO_MEM                  | + parent
+    + service IO_PORT                 | + parent
+    + service IRQ                     | + parent
+    + service LOG                     | + parent
+    + service PD                      | + parent
+    + service RM                      | + parent
+    + service ROM                     | + parent
+
++ start vfs | caps: 150 | ram: 24M
+  + provides | + service File_system
+  + config
+  | + vfs
+  |   + ram
+  |   + import
+  |     + dir test_imfile
+  |       . line with single whitespace to trigger \n generation in HID
+  |       + inline infile
+  |         : Hello rsyslog!
+  |         :  
+  |   + dir dev
+  |     + dir pipe | + pipe
+  |   + dir var
+  |     + dir spool
+  |       + dir rsyslog
+  |         + ram
+  |     + dir run
+  |       + dir log | + ram
+  | + default-policy | root: / | writeable: yes
+
++ start rsyslogd | caps: 520 | ram: 64M
+  + config | ld_verbose: true | verbose: yes
+  | + arg | value: rsyslogd
+  | + arg | value: -n
+  | + arg | value: -iNONE
+  | + libc | stdout: /dev/log | stderr: /dev/log
+  |        | rtc: /dev/rtc | socket: /socket | pipe: /dev/pipe
+  |        | rng: /dev/random
+  | + vfs
+  |   + dir dev
+  |     + jitterentropy random
+  |     + jitterentropy urandom
+  |     + log
+  |     + null
+  |     + rtc
+  |   + dir etc
+  |     + inline rsyslog.conf
+  |       : module(load="imfile" PollingInterval="2")
+  |       :
+  |       : input(type="imfile" File="/test_imfile/infile"
+  |       :       Tag="test_tag" Severity="error"
+  |       :       Facility="local7")
+  |       :
+  |       : global(workDirectory="/test_imfile")
+  |       : action(type="omfile" File="/dev/log")
+  |       :
+  |       : *.* ~
+  |   + fs
+  + route
+    + service File_system | + child vfs
+    + service Rtc         | + child system_rtc
+    + service Timer       | + child timer
+    + any-service         | + parent
+-}
+
+install_config $config
+
+build_boot_image [build_artifacts]
+
+run_genode_until {.*Hello rsyslog!.*} 30

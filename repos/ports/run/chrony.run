@@ -1,0 +1,198 @@
+#
+# \brief  Test for using chrony
+# \author Roland Baer
+# \date   2021-12-29
+#
+# Note: To get a recent certificate run the following command on a linux system
+#       with openssl installed:
+# $ openssl s_client -showcerts ptbtime1.ptb.de:4460 </dev/null
+#       From the given output select the certificate from Let's Encrypt
+#       (or whatever is the root of the given certificate chain).
+#
+# This run-script attempts to download the current .crt and to make it
+# available as ROM automatically.
+#
+
+#
+# For the moment limit the tested platforms as the test might
+# take a few minutes to finish, even in the good case.
+#
+assert {[have_spec x86_64]}
+assert {[have_board pc]}
+assert {[have_spec nova] || [have_spec hw]}
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/pkg/system_rtc-[board] \
+                  [depot_user]/src/gmp \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_jitterentropy \
+                  [depot_user]/src/vfs_lxip \
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/nettle/3.7-2026-01-14 \
+                  [depot_user]/src/gnutls/3.6.16-2025-10-02 \
+                  [depot_user]/src/chrony/4.6.1-2025-10-02
+
+#
+# Generate config
+#
+
+append config {
+config | verbose: yes | prio_levels: 2
+
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start nic | caps: 1500 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM    | label: config | + parent | label: drivers.config
+    + service Timer                  | + child timer
+    + service Uplink                 | + child nic_router
+    + any-service                    | + parent
+
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+    + policy | label_suffix: set_rtc | report: chrony_daemon -> set_rtc
+
++ start rtc
+  + binary pc_rtc
+  + config | verbose: yes | allow_setting_rtc: yes
+  + provides | + service Rtc
+  + route
+    + service ROM   | label: set_rtc | + child report_rom
+    + service Timer                  | + child timer
+    + any-service                    | + parent
+
++ start nic_router | caps: 120 | ram: 5M
+  + provides
+    + service Nic
+    + service Uplink
+  + config
+    + policy | label_prefix: chrony_daemon | domain: server
+    + policy | label_prefix: nic           | domain: uplink
+    + domain uplink
+      + nat
+        | domain:    server
+        | tcp-ports: 16384
+        | udp-ports: 16384
+        | icmp-ids:  16384
+    + domain server | interface: 10.0.3.1/24 | verbose_packets: yes
+      + tcp | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + udp | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+      + dhcp-server
+        | ip_first:          10.0.3.2
+        | ip_last:           10.0.3.3
+        | ip_lease_time_sec: 600
+        + dns-server | ip: 8.8.8.8
+
++ start system_rtc
+  + provides | + service Rtc
+  + config | verbose: yes | allow_setting_rtc: true
+  + route
+    + service ROM   | label: set_rtc | + child report_rom
+    + service Rtc                    | + child rtc
+    + service Timer                  | + child timer
+    + any-service                    | + parent
+
++ start chrony_daemon | caps: 320 | ram: 64M | priority: -1
+  + binary chronyd
+  + config | ld_verbose: yes | verbose: yes
+  | + env GNUTLS_DEBUG_LEVEL | : 10
+  | + arg chronyd
+  | + arg -d
+  | + arg -d
+  | + arg -4
+  | + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc
+  |        | socket: /socket | pipe: /pipe | rng: /dev/random
+  | + vfs
+  |   + dir dev
+  |     + jitterentropy random
+  |     + jitterentropy urandom
+  |     + log
+  |     + null
+  |     + rtc
+  |   + dir socket | + lxip | dhcp: yes
+  |   + dir pipe | + pipe
+  |   + dir etc
+  |   | + inline chrony.conf
+  |   |   :
+  |   |   : server ptbtime1.ptb.de nts
+  |   |   : ntstrustedcerts /etc/cert_lets_encrypt.crt
+  |   |   : makestep 1.0 3
+  |   |   : rtcsync
+  |   |   : driftfile /var/run/chrony/drift
+  |   |   : logdir /var/log
+  |   |   : log tracking
+  |   |   :
+  |   | + rom cert_lets_encrypt.crt
+  |   |   . see note on top to update certificate
+  |   + dir var
+  |     + dir run
+  |      + dir chrony
+  |        + inline chronyd.pid
+  |        + inline chronyd.sock
+  |        + inline drift
+  |     + dir log
+  |       + inline tracking.log
+  + route
+    + service Nic   | + child nic_router
+    + service Rtc   | + child system_rtc
+    + service Timer | + child timer
+    + any-service
+      + parent
+      + any-child
+-}
+
+install_config $config
+
+#
+# These three awk rules print all lines of the second certificate,
+# including '-----BEGIN...' and '-----END...'. The first rule enables
+# dumping, while the second flags the end of the certificate block.
+# The third rules prints all lines belonging to the certificate and
+# disables dumping in case the end flag is set.
+#
+exec openssl s_client -showcerts ptbtime1.ptb.de:4460 </dev/null 2> /dev/null | \
+     awk "/BEGIN/ {end=0; cert++; if(cert == 2) dump=1} /END/ {end=1} {if(dump) print \$0; if(end) dump=0}" \
+     > bin/cert_lets_encrypt.crt
+
+build_boot_image [list {*}[build_artifacts] cert_lets_encrypt.crt]
+
+#
+# Execute test case
+#
+
+# qemu config
+append qemu_args " -nographic "
+
+append_qemu_nic_args "hostfwd=tcp::12865-:12865,hostfwd=tcp::49153-:49153"
+
+run_genode_until {.*init -> rtc] set time to.*} 600

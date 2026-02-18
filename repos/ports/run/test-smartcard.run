@@ -1,0 +1,108 @@
+#
+# Smartcard test
+#
+# NOTE: The vendor id and product id of the USB card reader to be used must be
+#       configured for the application and for the USB driver.
+#
+
+assert {[have_spec x86_64]}
+assert {![have_include power_on/qemu]}
+assert {![have_spec linux]}
+
+#
+# Please configure your reader's vendor and product IDs here
+#
+proc smartcard_vendor_id {}  { return "0x04e6" }
+proc smartcard_product_id {} { return "0x5116" }
+
+#
+# Build
+#
+
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host-[board] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libusb \
+                  [depot_user]/src/vfs_libusb \
+                  [depot_user]/pkg/test-smartcard/2025-11-17
+
+install_config {
+config
+
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 200 | ram: 2M
+
++ start timer
+  + provides | + service Timer
+
++ start report_rom | caps: 120 | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + default-policy | report: usb -> usb -> devices
+  + route
+    + any-service | + parent
+
++ start usb | caps: 1500 | ram: 32M | managing_system: yes
+  + binary init
+  + provides | + service Usb
+  + route
+    + service ROM    | label: config | + parent | label: drivers.config
+    + service Report                 | + child report_rom
+    + service Timer                  | + child timer
+    + any-service                    | + parent
+
++ start test-smartcard | caps: 250 | ram: 5M
+  + config
+    + vfs
+    | + dir dev
+    |   + inline rtc | : 2018-01-01 00:01
+    |   + libusb
+    |   + log
+    | + dir pipe | + pipe
+    | + dir ifd-ccid.bundle
+    |   + dir Contents
+    |     + rom Info.plist
+    + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc | pipe: /pipe
+    + env LIBUSB_DEBUG | . log libusb errors
+      : 1
+-}
+
+#
+# Define USB host controller config
+#
+append usb_config {
+config | bios_handoff: no
+  + policy | label: test-smartcard ->
+    + device | vendor_id: } [smartcard_vendor_id] { | product_id: } [smartcard_product_id] {
+-
+}
+set fd [open [run_dir]/genode/usb_host.config w]
+puts $fd $usb_config
+close $fd
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -device qemu-xhci,id=xhci "
+append qemu_args " -device usb-ccid,bus=xhci.0 "
+# see https://www.qemu.org/docs/master/system/devices/ccid.html for info about fake-smartcard
+append qemu_args " -device ccid-card-emulated,backend=certificates,cert1=id-cert,cert2=signing-cert,cert3=encryption-cert,db=fake-smartcard "
+
+run_genode_until { Response: 62 0A 82 01 38 83 02 3F 00 8A 01 05 90 00} 30
