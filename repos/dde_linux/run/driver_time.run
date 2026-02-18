@@ -11,40 +11,43 @@ build $build_components
 create_boot_directory
 
 append config {
-<config verbose="yes" prio_levels="4">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="TRACE"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config | verbose: yes | prio_levels: 4
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+  + service TRACE
 
-	<start name="test-driver_time" ram="2M" priority="-1"/>}
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start test-driver_time | ram: 2M | priority: -1}
 
 append_if $use_top config {
-	<start name="top" ram="2M">
-		<config period_ms="40000"/>
-		<route>
-			<service name="TRACE"> <parent label=""/> </any-service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>}
+
++ start top | ram: 2M
+  + config | period_ms: 40000
+  + route
+    + service TRACE | + parent | label:
+    + any-service
+      + parent
+      + any-child}
 
 append config {
-</config>}
+-}
 
 install_config $config
 
