@@ -201,7 +201,7 @@ proc wifi_start_nodes { } { return [join [list {
   + provides | + service Platform
   + config | + policy | label_prefix: nic | info: yes | + pci | class: WIFI
   + route
-    + service ROM | label: devices | | + child report_rom
+    + service ROM | label: devices | + child report_rom
     + any-service
       + parent
       + any-child
@@ -215,7 +215,8 @@ proc wifi_start_nodes { } { return [join [list {
       + ram
       + import
         + inline wifi_config
-          + network | } [wifi_config] {
+          + wifi_config
+            + network | } [wifi_config] {
 
 + start config_rom | ram: 4M | priority: -1
   + binary fs_rom
