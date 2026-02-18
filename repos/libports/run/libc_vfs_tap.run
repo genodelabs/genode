@@ -12,6 +12,9 @@ install_config {
 config | verbose: yes
 + parent-provides
   + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
   + service PD
   + service RM
   + service CPU
