@@ -131,9 +131,9 @@ proc append_if {condition var args} {
 ##
 # Append element to list only if 'condition' is satisfied
 #
-proc lappend_if {condition var string} {
+proc lappend_if {condition var args} {
 	upvar $var up_var
-	if {$condition} { lappend up_var $string }
+	if {$condition} { lappend up_var {*}$args }
 }
 
 
