@@ -113,15 +113,14 @@ build_boot_image [build_artifacts]
 append qemu_args "  -nographic "
 append_qemu_nic_args "hostfwd=tcp::5555-:80"
 
-run_genode_until {.*Start the server loop.*\n} 30
-
 if {[have_include "power_on/qemu"]} {
+	run_genode_until {.*Start the server loop.*\n} 30
 	set uri "http://localhost:5555/"
 } else {
 	set match_string "nic_router. .uplink. dynamic IP config: interface .*\n"
+	run_genode_until $match_string 30
 	regexp $match_string $output ip_addr
 	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $ip_addr ip_addr
-
 	set uri "http://$ip_addr:80/"
 }
 
