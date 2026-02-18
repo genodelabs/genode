@@ -81,7 +81,8 @@ config
     |   + dir Contents
     |     + rom Info.plist
     + libc | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc | pipe: /pipe
-    + env LIBUSB_DEBUG | : 1 | . log libusb errors
+    + env LIBUSB_DEBUG | . log libusb errors
+      : 1
 -}
 
 #
