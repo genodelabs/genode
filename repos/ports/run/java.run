@@ -1,0 +1,77 @@
+if {![have_spec x86_64] && ![have_spec arm_v7] ||
+	[expr [have_spec sel4] && ![have_spec x86_64]]} {
+	assert {false} "Java is not supported on this platform. Valid platforms are x86_64 and arm_v7a."
+}
+
+build { core lib/ld init timer }
+
+create_boot_directory
+
+import_from_depot [depot_user]/pkg/jdk
+
+install_config {
+config
+
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start java | caps: 600 | ram: 96M
+  + config | ld_verbose: no
+  | + arg /bin/java
+  | + arg -XX:+NeverActAsServerClassMachine
+  | + arg -XX:+UnlockDiagnosticVMOptions
+  | + arg -XX:-ImplicitNullChecks
+  | + arg -XX:+CITime
+  | x arg -Xcomp
+  | x arg -XX:+PrintCompilation
+  | + arg -jar
+  | + arg hello.jar
+  | + libc | stdin:  /dev/null | stdout: /dev/log | stderr: /dev/log | rtc: /dev/rtc
+  | + vfs | rtc: /dev/rtc
+  |   + dir dev
+  |     + inline rtc | : 2000-01-01 00:00
+  |     + log
+  |     + null
+  |   + dir bin | + rom java
+  |   + dir lib
+  |     + rom java.lib.so
+  |     + inline jvm.cfg
+  |       : -server KNOWN
+  |       : -client IGNORE
+  |       :
+  |     + dir server | + rom jvm.lib.so
+  |   + dir modules | + tar classes.tar
+  |   + tar hello.tar
+  |   + rom zip.lib.so
+  |   + rom nio.lib.so
+  |   + rom net.lib.so
+  + route
+    + service ROM | label: zip.lib.so | + parent | label: jzip.lib.so
+    + service ROM | label: net.lib.so | + parent | label: jnet.lib.so
+    + any-service
+      + parent
+      + any-child
+-}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic -serial mon:stdio "
+
+run_genode_until "child \"java\" exited with exit value 0" 60
