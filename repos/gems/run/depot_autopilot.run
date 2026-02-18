@@ -205,11 +205,11 @@ proc test_pkgs_start_nodes { } {
 	foreach test_pkg $test_pkgs {
 		if {[skip_test $test_pkg]} {
 			append result {
-			    + start } $test_pkg { | skip: yes }
+			  | + start } $test_pkg { | skip: yes }
 		} else {
 			set pkg "[depot_user]/pkg/$test_pkg/[_current_depot_archive_version pkg $test_pkg]"
 			append result {
-			    + start } $test_pkg { | pkg: } $pkg
+			  | + start } $test_pkg { | pkg: } $pkg
 		}
 	}
 	return $result
@@ -289,6 +289,11 @@ proc prepare_to_run_genode { } {
 	set depot_tar_size [file size [run_dir]/genode/depot.tar]
 	puts "Depot archive has a size of $depot_tar_size bytes \
 	      ($depot_tar_wo_src_size bytes without sources)"
+
+	set quoted_previous_results {}
+	foreach line [split $previous_results "\n"] {
+		append quoted_previous_results "\n  |   : $line" }
+	append quoted_previous_results "\n  |"
 
 	#
 	# Install the root-init config
@@ -376,13 +381,11 @@ proc prepare_to_run_genode { } {
 		  |   + service File_system | label: gcov -> depot -> /    | + parent
 		  |   + service File_system | label_suffix: gcov_data -> / | + parent
 		  | + previous-results
-		  |   |                time_sec:  } [expr ($previous_time_ms + 999) / 1000] {
-		  |   |                succeeded: } $previous_succeeded {
-		  |   |                skipped:   } $previous_skipped {
-		  |   |                failed:    } $previous_failed {
-		  |   } [string map {\n {      : }}  $previous_results] {
-		  |
-		  | } [test_pkgs_start_nodes] {
+		  |                    time_sec:  } [expr ($previous_time_ms + 999) / 1000] {
+		  |                    succeeded: } $previous_succeeded {
+		  |                    skipped:   } $previous_skipped {
+		  |                    failed:    } $previous_failed {
+		  |} "$quoted_previous_results" [test_pkgs_start_nodes] {
 		  |
 		  + route
 		    + service PD  | unscoped_label: depot_autopilot | + parent
