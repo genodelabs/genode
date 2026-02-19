@@ -1,0 +1,551 @@
+
+
+                       ================================
+                       Human-inclined data (HID) syntax
+                       ================================
+
+                                Norman Feske
+
+
+The syntax for human-inclined data (HID) described in this document has been
+specifically designed for the joyful use of the Genode OS Framework.
+Structurally, it mirrors the concepts of XML. Data is expressed as a hierarchy
+of nodes where each node can have attributes. Like XML, data can be validated
+against a schema. Syntactically, however, HID promotes calmness and clarity.
+There are no quoting characters, no quoting rules, no keywords, and no braces.
+Its few syntactic rules allow for both tabular or tree-like expression of data,
+thereby fostering a literate configuration style.
+
+HID has been inspired by XML (structure and validation), pstree (clarifying
+scope aided by pipe characters), and Forth (eschewing conventional syntactic
+decor).
+
+
+Overview
+########
+
+Structure
+=========
+
+HID consists of a single top-level node that starts with its _node type_ and
+is closed by a '-' marker. The node type and the end marker appear at
+separate lines.
+
+! config
+! -
+
+A node can host sub nodes denoted by a leading '+' followed by a space.
+Further nesting requires at least two leading spaces for each nesting level.
+
+! config
+!
+! + default-route
+!   + any-service
+!     + parent
+!     + any-child
+! -
+
+In the example, 'default-route' is a sub node of 'config',
+'any-service' is a sub node of 'default-route',
+and 'parent' as well as 'any-child' are sub nodes of 'any-service.
+
+Node names
+==========
+
+A node can have a name that appears after the node type, separated by
+space.
+
+! config
+!
+! + default-route
+!   + any-service
+!     + parent
+!     + any-child
+!
+! + start osci
+! -
+
+In the example, the 'start' node is named "osci".
+
+Attributes
+==========
+
+A node can have tag-value attribute definitions.
+Each attribute definition consists of a tag followed by a colon and space
+followed by its value, and appears at a separate line indented at least at the
+level of its node.
+
+! config
+!        verbose: yes
+!        arch:    x86_64
+!
+! + default-route
+!   + any-service
+!     + parent
+!     + any-child
+!
+! + start osci
+!   ram: 8M
+!   pkg: nfeske/pkg/rom_osci/2025-12-12
+! -
+
+In the example, 'verbose' and 'arch' are attributes of the 'config' node
+whereas 'ram' and 'pkg' are attributes of the 'start' node.
+Note that the indentation gives a little room for creative freedom. The
+attributes of 'config' are indented in a roomy way whereas the 'start'
+attributes appear more densely.
+
+Technically, a node name is merely a shorthand for the value of a node's
+'name' attribute.
+
+Compacted lines
+===============
+
+Two subsequent lines can be merged into one using '|' as delimiter whenever
+the indentation of the second line is higher than the first line.
+
+For example,
+! config
+!        verbose: yes
+!        arch:    x64_64
+could be written as
+! config
+!          verbose: yes
+!                         arch: x64_64
+or in the compacted form
+! config | verbose: yes | arch: x64_64
+
+The '|' character splits one line into multiple segments where each segment
+denotes a separate line with its indentation retained from the segment.
+Note that '|' delimits the preceding attribute value.
+Hence, '|' characters cannot appear in attribute values.
+
+Tabular arrangement
+~~~~~~~~~~~~~~~~~~~
+
+The merging of lines can be leveraged for compacting nested nodes.
+
+For example,
+! + route
+!   + service ROM
+!     label: recording
+!     + child record_rom
+!   + service Gui
+!     + child wm
+!   + any-service
+!     + parent
+could be written as
+! + route
+!   + service ROM
+!                   label: recording
+!                                      + child record_rom
+!   + service Gui
+!                                      + child wm
+!   + any-service
+!                                      + parent
+and thus can be compacted to
+! + route
+!   + service ROM | label: recording | + child record_rom
+!   + service Gui                    | + child wm
+!   + any-service                    | + parent
+
+This tabular style conveys well the from-to relationship between the
+outer 'service' nodes and the routing targets given as inner node.
+
+Visual scoping
+~~~~~~~~~~~~~~
+
+At the beginning of a line, '|' characters effectively split emptiness into
+empty segments, which do not have any meaning. Without meaning, however, they
+give room for creative freedom, in particular for reinforcing the notion of
+scope.
+
+! config | verbose: yes | arch: x86_64
+! .
+! .
+! .
+! + start osci | ram: 8M | pkg: nfeske/pkg/rom_osci/2025-12-12
+!   + config
+!   |        fps:        50
+!   |        phase_lock: no
+!   |        width:      720
+!   |        background: #1a2831
+!   |        color:      #ffefdf
+!   |
+!   | + channel | label: mic_left  | color: #ff6633 | v_pos: 0.25
+!   | + channel | label: mic_right | color: #cc7777 | v_pos: 0.75
+!   + route
+!     + service ROM | label: recording | + child record_rom
+!     + service Gui                    | + child wm
+!     + any-service                    | + parent
+! -
+
+In the example, the attributes of the inner 'config' node stand out as most
+prominent. They are deliberately being laid out in a form-like fashion to
+invite tweaking. In contrast, the channel nodes benefit from a tabular
+style of attribute definitions. The scope of the inner 'config' is clarified
+by using leading '|' characters, which also happens to give the sibling node
+'route' a visual anchor point.
+
+Comments
+========
+
+Lines starting with a '.' followed by a space are comments describing the
+preceding node or attribute. Comments capture the entire line. So any
+character including '|' can appear in comments.
+
+! + start osci | ram: 8M | pkg: nfeske/pkg/rom_osci/2025-12-12
+!   .
+!   . Oscilloscope that visualizes time-series values obtained from a
+!   . ROM session labeled 'recording'
+!   .
+!   + config
+!   |        fps:        50
+!   |        phase_lock: no    | . use 'yes' for more stability
+!   |        width:      720
+!   |        background: #1a2831
+!   |        color:      #ffefdf
+!   .
+!   .
+
+In the example, a multi-line comment explains the purpose of the 'start'
+node whereas a trailing comment - separated by the '|' delimiter - annotates
+the 'phase_lock' attribute.
+
+Quoted content
+==============
+
+Textual data of any form can be embedded in a node by prepending each line
+with a ':' character. Content must be separated from the ':' character with a
+single space.
+
+! + arg bash | . command name presented in argv[0]
+! + arg -c
+!   : while true; do
+!   :  read -p '> ' -e; history -s $REPLY; pcalc $REPLY;
+!   : done
+!
+! + env TERM  | : screen
+! + env PATH  | : /bin
+! + env SHELL | : bash
+! + env HOME  | : /
+
+In the example, a multi-line command is passed as '-c' argument to a bash
+shell whereas the compacted form is used to express the values of environment
+variables. Like a comment, quoted content captures the entire line including
+'|' characters. The script passed as '-c' argument could use pipes.
+
+Disabled sub nodes
+==================
+
+A sub node can be disabled by replacing the leading '+' by an 'x'. This has
+an effect similar to commenting-out the entire node and its sub structure.
+
+! x arg -c
+!   : while true; do
+!   :  read -p '> ' -e; history -s $REPLY; pcalc $REPLY;
+!   : done
+
+In the example, the '-c' argument would be omitted.
+
+Note that even though disabling a node excludes it from interpretation,
+it is still subjected to schema validation described in Section [Validation].
+
+File extension
+==============
+
+HID data files are suffixed with '.hid'.
+HID schema-definition files are suffixed with '.hsd'.
+
+
+Syntax
+######
+
+* Letters are case-sensitive.
+
+* Node types and attribute-tag names start with a lower-case letter (a-z) and
+  continue with lower-case letters (a-z), digits (0-9), underscores (_), and
+  minus (-) characters.
+
+* An attribute tag is a tag name followed by a colon (:).
+
+* A sub node starts with '+' followed by a space followed by a node type.
+  A disabled sub node starts with 'x' followed by a space followed by a node
+  type.
+
+* Attribute values can contain spaces and any printable UTF-8 characters
+  except '|'.
+
+* Leading and trailing space around an attribute value is not part of the value.
+
+* A node type can be followed by a node name separated by space.
+  A node name is an attribute value.
+
+* Quoted content and comments can contain spaces and any printable UTF-8
+  characters. Quoted content may contain tabs and '|'.
+
+* Attribute values must be separated from the tag with at least one space.
+
+* When '|' is used as delimiter, it must be enclosed with at least one space.
+
+* Comment text must be separated from the leading '.' character with a space.
+
+* Quoted content must be separated from the leading ':' character with a space.
+
+* Comment lines must not appear above the top-level node.
+
+
+Validation
+##########
+
+Schema definition
+=================
+
+The structure of HID-formatted data can be described in the form of a
+HID schema definition (.hsd).
+
+A schema is expressed in HID syntax with the top-level node 'schema' named
+after the top-level node of the described HID data format.
+The 'schema' top-level node may contain sub nodes of the following types.
+
+Attribute-value types
+---------------------
+
+A 'type' node defines the grammar of an attribute value by specifying a
+regular expression as quoted content.
+
+! + type any  | : .*
+! + type bool | : yes|no
+
+Attributes
+----------
+
+An 'attr' node defines an attribute with the tag given as 'attr' name,
+a value type specified as 'type' attribute, and an optional default value
+specified as 'default' attribute.
+In the absence of a default, the attribute is mandatory.
+
+! + attr verbose | type: bool | default: no
+
+In the example, 'verbose' is an optional attribute. If not specified, it has
+the value 'no'.
+
+Node types
+----------
+
+A 'node' node defines one type of sub nodes acceptable in the current scope.
+The 'node' name denotes the type of the sub node.
+A 'node' can host 'attr' and 'node' sub nodes.
+With the attribute 'optional' set to 'no', the sub node must be present.
+With the attribute 'multiple' set to 'no', only one instance is allowed.
+
+! + node start
+!   + attr name | type: any
+!   + node binary | multiple: no
+!     + attr name | type: any
+
+In the example, any number 'start' nodes are allowed. Each start node
+must have a name and can optionally have one 'binary' sub node. If a
+'binary' is present, it must have a name.
+
+Quoted and arbitrary content
+----------------------------
+
+A 'quote' node declares that quoted content is acceptable in the current
+scope. An 'anything' node is an escape hatch declaring that the
+current scope may host arbitrary sub nodes.
+
+Node categories
+---------------
+
+A 'category' node can have one or more 'node' sub nodes that fulfill
+the role of a category of nodes.
+
+! + category route_target
+!   + node parent
+!   + node any-child
+!   + node child   | + attr name | type: any
+!
+! + category route
+!   + node any-service
+!     + node | category: route_target
+!   + node service | + attr name | type: any
+!     + node | category: route_target
+!
+! + node start
+!   + route
+!     + node | category: route
+
+In the example, the 'route' sub nodes of the 'start' node may host any
+number of 'any-service' or named 'service' nodes. Those nodes, in turn, may
+host any number of 'parent', 'any-child', or named 'child' nodes.
+
+Schema definition for schema definitions
+----------------------------------------
+
+! schema schema
+! + type id   | : [a-z][a-z0-9_-]*
+! + type bool | : yes|no
+! + category attr
+!   + node attr
+!     + attr name    | type: id
+!     + attr type    | type: id
+!     + attr default | type: any | default:
+! + category node
+!   + node node
+!     + attr name     | type: id   | default:
+!     + attr category | type: id   | default:
+!     + attr multiple | type: bool | default: yes
+!     + attr optional | type: bool | default: yes
+!     + node | category: attr
+!     + node | category: node
+!     + node anything
+!     + node quote
+! + attr name | type: id
+! + node type
+!   + attr name | type: id
+!   + anything
+! + node category
+!   + attr name | type: id
+!   + node | category: node
+! + node | category: attr
+! + node | category: node
+! -
+
+
+Offline versus runtime interpretation
+=====================================
+
+Offline tooling shall reject the entire HID data in the presence of any
+syntactic violation or the presence of duplicated attribute tags.
+
+When evaluated at runtime, the syntactic rules can be relaxed as follows.
+
+* In the presence of duplicated attribute tags for a node, the first
+  attribute value takes precedence.
+
+* The lack of space around '|' delimiters or in front of attribute
+  values is accepted.
+
+* A line that is syntactically wrong (e.g., a second top-level node) is ignored.
+
+_Rationale: The relaxed rules reduce the validity check at runtime from a full_
+_parsing pass to a search for the end marker._
+
+
+Tooling
+#######
+
+HID-processing tool
+===================
+
+A tool for processing HID is provided by the Genode repository at _/tool/hid_.
+It allows for converting XML to HID and vice versa.
+It also offers commands for schema validation as well as the querying and
+modifying HID files.
+
+Usage
+-----
+
+! hid [-i] [--import-xml] <command> [<options>] <input-file>
+
+With the option '-i' specified, the '<input-file>' is modified in place.
+
+By specifying '-' as '<input-file>', the tool reads from stdin.
+
+Available commands
+------------------
+
+:'hid [-i] format <input-file>':
+
+  Print formatted HID data. Alternatively to the HID syntax used
+  by default, the output format can be defined via
+  '--output-xml' to print HID structure as XML.
+
+:'hid subnodes <node-path> <input-file>':
+
+  Query nodes from HID structure. The '<node-path>' describes the
+  targeted sub trees within the hierarchy as a sequence of HID
+  nodes separated by '| +'.
+
+  Each HID node can be followed by optional attribute filters
+  in the form of '| <tag>: <value>', which are interpreted as
+  conditions for the match. If multiple attributes are specified,
+  each condition must apply.
+
+  Example:
+
+  $ hid subnodes 'config | + start terminal | + route' <input-file>
+
+  Prints the 'route' sub node of the 'start' node named 'terminal'.
+
+:'hid get <attr-path> <input-file>':
+
+  Query attribute value(s) from HID structure. The '<attr-path>'
+  consists of a '<node-path>' followed by '| : <tag>' denoting the
+  tag to retrieve.
+
+  Example:
+
+  ! $ hid get 'config | + start | : name' <input-file>
+
+  Prints the name of each 'start' node found in 'config'.
+
+:'hid [-i] set <attr-def> <input-file>':
+
+  Set the attribute value(s) specified by '<attr-def>', which is
+  a '<node-path>' followed by the delimiter '| :' followed by
+  one or more attribute definitions. Each definition has the
+  form '<tag>: <value>' and is separated from the next one by '|'.
+
+  Example:
+
+  ! $ hid set 'config | + start vfs | : caps: 100 | ram: 16M' <input-file>
+
+  Sets the attributes 'caps' and 'ram' of the 'start' node named
+  'vfs' to the values 100 and 16M respectively.
+
+:'hid [-i] remove <node-path>':
+
+  Remove the node(s) specified by the '<node-path>'.
+
+  Example:
+
+  ! $ hid remove 'config | + start | + route' <input-file>
+
+  Removes all 'route' sub nodes from each 'start' node hosted
+  at the 'config'.
+
+:'hid [-i] disable <node-path>':
+
+  Mark nodes specified by <node-path> as disabled, which turns the
+  node anchor from '+' to 'x'.
+
+  Example:
+
+  ! $ hid disable 'config | + start terminal' <input-file>
+
+  Turns the node anchor of the terminal's 'start' node to an 'x'.
+
+:'hid [-i] enable <node-path>':
+
+  Revert the enabled state of nodes addressed by the <node-path>.
+
+:'hid check [--hsd-dir <hsd-dir>] [--schema <hsd-file>] <input-file>':
+
+  Validate the consistency of '<input-file>'
+
+  With no schema specified, the command looks out for syntax
+  violations and ambiguous attributes. By specifying a schema,
+  those basic checks are supplemented with the validation against
+  the structural and grammatical rules described in the <hsd-file>.
+
+
+Vim syntax highlighting
+=======================
+
+:preliminary version of a hid.vim syntax file:
+
+  [https://github.com/genodelabs/genode/tree/master/tool/vim]
+
+
