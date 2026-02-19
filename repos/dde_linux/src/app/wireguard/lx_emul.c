@@ -24,7 +24,6 @@
 void __icmp_send(struct sk_buff * skb_in,int type,int code,__be32 info,const struct inet_skb_parm * opt)
 {
 	printk("Warning: sending ICMP not supported\n");
-	kfree_skb(skb_in);
 }
 
 
