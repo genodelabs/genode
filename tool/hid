@@ -1574,7 +1574,7 @@ append help_msg $short_usage_msg {
 
       $ hid subnodes 'config | + start terminal | + route' <input-file>
 
-      Prints the 'route' subnode of the 'start' node named 'terminal'.
+      Prints the 'route' sub node of the 'start' node named 'terminal'.
 
     hid get <attr-path> <input-file>
 
@@ -1633,7 +1633,7 @@ append help_msg $short_usage_msg {
       Validate the consistency of <input-file>
 
       With no schema specified, the command looks out for syntax
-      violations and ambigouos attributes. By specifying a schema,
+      violations and ambiguous attributes. By specifying a schema,
       those basic checks are supplemented with the validation against
       the structural and grammatical rules described in the <hsd-file>.
 }
