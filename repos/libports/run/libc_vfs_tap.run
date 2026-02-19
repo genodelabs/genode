@@ -25,7 +25,7 @@ config | verbose: yes
     + parent
     + any-child
 
-+ default | caps: 100 | ram: 1M
++ default | caps: 120 | ram: 1M
 
 + start timer
   + provides | + service Timer
