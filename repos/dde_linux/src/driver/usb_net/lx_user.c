@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2023 Genode Labs GmbH
+ * Copyright (C) 2023-2026 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2 or later.
@@ -40,7 +40,6 @@ void lx_user_init(void)
 
 void lx_user_handle_io(void)
 {
-	lx_emul_usb_client_ticker();
 	lx_emul_nic_handle_io();
 }
 
@@ -133,6 +132,8 @@ int lx_wdm_read(void *args)
 		lx_emul_task_schedule(true);
 	}
 
+	do_exit(0);
+
 	return 0;
 }
 
@@ -159,6 +160,9 @@ int lx_wdm_write(void *args)
 		lx_wdm_schedule_read(wdm_data->handle);
 		lx_emul_task_schedule(true);
 	}
+
+	do_exit(0);
+
 	return 0;
 }
 
@@ -182,6 +186,138 @@ int lx_wdm_device(void *args)
 	}
 
 	lx_emul_task_schedule(true);
+
 	//XXX: close
+	do_exit(0);
+
 	return 0;
+}
+
+
+/*
+ * USB option
+ */
+
+#include <genode_c_api/terminal.h>
+#include "usb_option.h"
+
+#include <linux/poll.h>
+
+
+static
+void _usb_serial_write(struct file *file, struct genode_const_buffer buffer)
+{
+	if (!file) return;
+
+	loff_t tmp = 0;
+	kernel_write(file, buffer.start, buffer.num_bytes, &tmp);
+}
+
+
+static
+unsigned long _usb_serial_read(struct file *file, struct genode_buffer buffer)
+{
+	if (!file) return 0;
+
+	if (!(vfs_poll(file, NULL) & EPOLLIN)) return 0;
+
+	loff_t tmp = 0;
+	ssize_t ret = kernel_read(file, buffer.start, buffer.num_bytes, &tmp);
+
+	return ret > 0 ? ret : 0;
+}
+
+
+void read_fn(struct genode_terminal_read_ctx *_file, struct genode_const_buffer buffer)
+{
+	struct file *file = (struct file *)_file;
+	_usb_serial_write(file, buffer);
+}
+
+
+static void process_output_bytes(struct genode_terminal *terminal,
+                                 struct lx_option *option)
+{
+	genode_terminal_read(terminal, read_fn,
+	                     (struct genode_terminal_read_ctx *)&option->file);
+}
+
+
+static void process_input_bytes(struct genode_terminal *terminal,
+                                struct lx_option *option)
+{
+	char buf[1000];
+
+	struct genode_buffer read_buffer = { .start     = buf,
+	                                     .num_bytes = sizeof(buf) };
+
+	unsigned long num_bytes = _usb_serial_read(&option->file, read_buffer);
+
+	struct genode_const_buffer write_buffer = { .start     = buf,
+	                                            .num_bytes = num_bytes };
+
+	unsigned long written = genode_terminal_write(terminal, write_buffer);
+
+	if (written != num_bytes)
+		printk("truncated terminal write - %ld of %ld bytes written", written, num_bytes);
+}
+
+
+static int _option_task(void *_option)
+{
+	struct lx_option *option = (struct lx_option *)_option;
+
+	char label[16];
+
+	snprintf(label, sizeof(label), "ttyUSB%d", MINOR(option->dev));
+
+	struct genode_terminal_args args = { .label = label };
+
+	struct genode_terminal *terminal = genode_terminal_create(&args);
+
+	while (option->run) {
+
+		process_output_bytes(terminal, option);
+		process_input_bytes(terminal, option);
+
+		lx_emul_task_schedule(true);
+	}
+
+	genode_terminal_destroy(terminal);
+
+	kfree(option);
+
+	do_exit(0);
+
+	return 0;
+}
+
+
+static LIST_HEAD(lx_options);
+
+void lx_option_create_session(struct lx_option *option)
+{
+	option->run  = true;
+	option->task = lx_user_new_usb_task(_option_task, option, "option");
+
+	INIT_LIST_HEAD(&option->list);
+	list_add_tail(&option->list, &lx_options);
+}
+
+
+void lx_option_destroy_session(struct lx_option *option)
+{
+	option->run = false;
+
+	list_del(&option->list);
+	lx_emul_task_unblock(option->task);
+}
+
+
+void lx_option_handle_io(void)
+{
+	/* poll all */
+	struct lx_option *option;
+	list_for_each_entry(option, &lx_options, list) {
+		lx_emul_task_unblock(option->task); }
 }

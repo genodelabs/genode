@@ -18,20 +18,22 @@ NIC configuration
 
 Configuration snippet:
 
-!start usb_net | ram: 10M
-!+ config | mac: 2e:60:90:0c:4e:01 | configuration: 2
-!+ route
-!  + service Uplink | + child nic_router
-!  + any-service
-!    + parent
-!    + any-child
-!-
+start usb_net | ram: 10M
++ config | mac: 2e:60:90:0c:4e:01 | configuration: 2
+  + device | vendor_id: 0x0b95 | product_id: 0x1790 | mac:02:00:00:00:01:01
+  + device | vendor_id: 0x0bda | product_id: 0x8156 | configuration: 2
++ route
+  + service Uplink
+    + child nic_router
+  ...
+-
 
 The driver connects as an Uplink client to Genode's network infrastructure.
 
-The 'mac' can be used to configure the hardware address on devices that support
-setting it and for devices that do not offer a hardware address (a random
-address will be used otherwise).
+The config-node takes an arbitrary number of devices nodes where the
+'mac' attribute can be used to configure the hardware address on devices
+that support setting it and for devices that do not offer a hardware address (a
+random address will be used otherwise).
 
 The 'configuration' attribute allows for setting the desired configuration
 profile of the USB device in case there is more than one profile. In case it is
@@ -44,23 +46,62 @@ LTE modem configuration
 Currently there is support for MBIM (Mobile Broadband Interface Model) devices.
 
 Tested devices:
-Huawai ME906s      (P/V: 12d1:15c1) - "configuration=3" for 'usb_net'
-Fibocom L830-EB-00 (P/V: 2cb7:0210) - automatically detected
 
-!start usb_net | ram: 10M
-!+ provides | + service Terminal
-!+ config | mac: 02:00:00:00:01:01 | configuration: 3
-!+ route
-!  + service Uplink | + child nic_router
-!  + any-service
-!    + parent
-!    + any-child
-!-
+Huawai ME906s      (V/P: 12d1:15c1) - "configuration=3" for 'usb_net'
+Fibocom L830-EB-00 (V/P: 2cb7:0210) - automatically detected
+Quectel EG25-G     (V/P: 2c7c:0125) - AT+QCFG="usbnet",2 -> AT-command needs to
+                                      executed once
+
+start usb_nic | ram: 10M
++ provides
+  + service Terminal
++ config
+  + device | vendor_id: 0x12d1 | product_id: 0x15c1 | configuration: 3
++ route
+  + service Uplink
+    + child nic_router
+ ...
+-
 
 In case the driver finds a MBIM capable device it will announce a terminal
 session which is used as the control channel (wireless communication device
 class - CDC WDM).
 
-An example scenario can be found in Genode World
-(_src/app/mbimcli_). Once a data connection is established via the Terminal
-session, the Uplink session is used to transfer Ethernet frames.
+An example scenario can be found in Genode (_repos/ports/run/mbimcli.run_) which
+uses mbimcli from Genode World (network/mbimcli). Once a data connection is
+established via the Terminal session, the Uplink session is used to transfer
+Ethernet frames.
+
+
+Option driver
+~~~~~~~~~~~~~
+
+In case the LTE modems provides UARTs (e.g.,for the  AT-command interface or for
+debugging), the integrated option driver will initialize the UARTs as ttyUSB<n>
+devices and will try to establish a Terminal-connection for each UART. Most of
+the time it is sufficient to only route the desired UART to something
+meaningful, unneeded or all UARTs can be routed to the black_hole:
+
++ start black_hole | ram: 2M
+  + provides
+  | + service Terminal
+  + config
+  | + terminal
+  + route
+    + service Timer | + child timer
+    + any-service   | + parent
+
++ start usb_net | ram: 16M | caps: 200
+  + provides
+  | + service Terminal
+  + config
+  + route
+    + service Terminal | label: ttyUSB3 | + child terminal_crosslink
+    + service Terminal                  | + child black_hole
+  ...
+-
+
+In the example above ttyUSB3 is routed to to the terminal_crosslink, all other
+ones to the black_hole.
+
+An example can be found in _repos/dde_linux/run/usb_modem_serial.run_

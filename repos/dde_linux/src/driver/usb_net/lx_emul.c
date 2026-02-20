@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2023 Genode Labs GmbH
+ * Copyright (C) 2023-2026 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2 or later.
@@ -85,6 +85,15 @@ unsigned long _copy_from_user(void * to,const void __user * from,unsigned long n
 	memcpy(to, from, n);
 	return 0;
 }
+
+
+unsigned long raw_copy_from_user(void *to, const void * from, unsigned long n)
+{
+	memcpy(to, from, n);
+	return 0;
+}
+
+
 #else
 unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n);
 unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n)
@@ -103,6 +112,15 @@ unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 	memcpy(to, from, n);
 	return 0;
 }
+
+
+unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n)
+{
+	memcpy(to, from, n);
+	return 0;
+}
+
+
 #else
 unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
 unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n)
@@ -141,4 +159,117 @@ void usb_notify_add_device(struct usb_device * udev)
 		int err = usb_set_configuration(udev, config);
 		if (err) printk("set configuration failed: %d\n", err);
 	}
+}
+
+
+/*
+ * USB-option driver
+ */
+#include "usb_option.h"
+
+int nonseekable_open(struct inode *inode, struct file *filp)
+{
+	filp->f_mode &= ~(FMODE_LSEEK | FMODE_PREAD | FMODE_PWRITE);
+	return 0;
+}
+
+
+int fasync_helper(int, struct file *, int, struct fasync_struct **)
+{
+	return 1;
+}
+
+
+void kill_fasync(struct fasync_struct **, int, int) { }
+
+
+void cdev_init(struct cdev *p, struct file_operations const *fops)
+{
+	memset(p, 0, sizeof(*p));
+	INIT_LIST_HEAD(&p->list);
+	p->ops = fops;
+}
+
+
+struct cdev *cdev_alloc(void)
+{
+	struct lx_option *option = kzalloc(sizeof(struct lx_option), GFP_KERNEL);
+	if (option)
+		INIT_LIST_HEAD(&option->cdev.list);
+
+	return &option->cdev;
+}
+
+
+#ifndef USB_SERIAL_TTY_MAJOR
+#define USB_SERIAL_TTY_MAJOR 188
+#endif
+
+int cdev_add(struct cdev *cdev, dev_t dev, unsigned count)
+{
+	struct lx_option *option = container_of(cdev, struct lx_option, cdev);
+
+	option->cdev.dev   = dev;
+	option->cdev.count = count;
+
+	/* we only handle USB-serial ttys */
+	if (MAJOR(dev) != USB_SERIAL_TTY_MAJOR) return 0;
+
+	/*
+	 * Do it here once, because we only want to initialize tty/terminal when USB-serial
+	 * devices are present
+	 */
+	static bool once = true;
+	if (once) {
+		tty_init();
+		n_tty_init();
+		lx_option_init();
+		once = false;
+	}
+
+	option->inode.i_rdev = dev;
+
+	option->file.f_mode  = FMODE_READ | FMODE_WRITE | FMODE_CAN_READ |
+	                       FMODE_CAN_WRITE | FMODE_STREAM;
+	option->file.f_inode = &option->inode;
+	option->dev = dev;
+
+	struct file_operations const *fops = fops_get(option->cdev.ops);
+	replace_fops(&option->file, fops);
+
+	int err = option->file.f_op->open(&option->inode, &option->file);
+	if (err < 0) return err;
+
+	struct termios2 new_termios;
+	option->file.f_op->unlocked_ioctl(&option->file, TCGETS2, (unsigned long)&new_termios);
+	new_termios.c_cflag  &= ~CBAUD;
+	new_termios.c_cflag  |= CBAUDEX;
+	new_termios.c_lflag  &= ~(ECHO | ICANON | ISIG | IEXTEN);
+	new_termios.c_ispeed  = 115200;
+	new_termios.c_ospeed  = 115200;
+	option->file.f_op->unlocked_ioctl(&option->file, TCSETS2, (unsigned long)&new_termios);
+
+	/* create Terminal session */
+	lx_option_create_session(option);
+
+	return 0;
+}
+
+
+void cdev_del(struct cdev *cdev)
+{
+	struct lx_option *option = container_of(cdev, struct lx_option, cdev);
+
+	if (MAJOR(option->dev) != USB_SERIAL_TTY_MAJOR) {
+		kfree(option);
+		return;
+	}
+
+	int err = option->file.f_op->release(&option->inode, &option->file);
+	if (err) {
+		printk("%s:%d: release failed %d\n", __func__, __LINE__, err);
+		return;
+	}
+
+	lx_option_destroy_session(option);
 }

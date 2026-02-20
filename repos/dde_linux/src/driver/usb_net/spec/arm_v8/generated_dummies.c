@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2026-01-28
+ * \date   2026-02-24
  */
 
 #include <lx_emul.h>
@@ -36,6 +36,14 @@ const char * __clk_get_name(const struct clk * clk)
 struct cpumask __cpu_active_mask;
 
 
+#include <linux/fs.h>
+
+void __f_setown(struct file * filp,struct pid * pid,enum pid_type type,int force)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <net/ipv6.h>
 
 int __ipv6_addr_type(const struct in6_addr * addr)
@@ -55,6 +63,14 @@ struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number
 #include <asm-generic/percpu.h>
 
 unsigned long __per_cpu_offset[NR_CPUS] = {};
+
+
+#include <linux/percpu-rwsem.h>
+
+bool __sched __percpu_down_read(struct percpu_rw_semaphore * sem,bool try,bool freeze)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/printk.h>
@@ -113,6 +129,14 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 }
 
 
+#include <linux/fs.h>
+
+int alloc_chrdev_region(dev_t * dev,unsigned baseminor,unsigned count,const char * name)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/async.h>
 
 async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
@@ -140,6 +164,59 @@ int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 #include <linux/filter.h>
 
 void bpf_warn_invalid_xdp_action(const struct net_device * dev,const struct bpf_prog * prog,u32 act)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/console.h>
+
+struct tty_driver * console_device(int * index)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/console.h>
+
+struct hlist_head console_list;
+
+
+#include <linux/console.h>
+
+void console_list_lock(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/console.h>
+
+void console_list_unlock(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/console.h>
+
+void console_lock(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/console.h>
+
+void console_unlock(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/fs.h>
+
+ssize_t copy_splice_read(struct file * in,loff_t * ppos,struct pipe_inode_info * pipe,size_t len,unsigned int flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -254,6 +331,19 @@ int ethtool_op_get_ts_info(struct net_device * dev,struct kernel_ethtool_ts_info
 }
 
 
+#include <linux/vt_kern.h>
+
+int fg_console, last_console, want_console;
+
+
+#include <linux/fs.h>
+
+int file_f_owner_allocate(struct file * file)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/capability.h>
 
 bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap)
@@ -262,9 +352,25 @@ bool file_ns_capable(const struct file * file,struct user_namespace * ns,int cap
 }
 
 
+#include <linux/pid.h>
+
+struct pid * find_vpid(int nr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/rcuwait.h>
 
 void finish_rcuwait(struct rcuwait * w)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/file.h>
+
+void fput(struct file * file)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -289,6 +395,14 @@ int get_option(char ** str,int * pint)
 #include <linux/gfp.h>
 
 bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/signal.h>
+
+int group_send_sig_info(int sig,struct kernel_siginfo * info,struct task_struct * p,enum pid_type type)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -445,6 +559,38 @@ void irq_work_tick(void)
 }
 
 
+#include <linux/tty.h>
+
+int is_current_pgrp_orphaned(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/fs.h>
+
+ssize_t iter_file_splice_write(struct pipe_inode_info * pipe,struct file * out,loff_t * ppos,size_t len,unsigned int flags)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/fdtable.h>
+
+int iterate_fd(struct files_struct * files,unsigned n,int (* f)(const void *,struct file *,unsigned),const void * p)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/signal.h>
+
+int kill_pgrp(struct pid * pid,int sig,int priv)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/kobject.h>
 
 int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
@@ -540,14 +686,6 @@ void net_selftest_get_strings(u8 * data)
 #include <net/netlink.h>
 
 int nla_put(struct sk_buff * skb,int attrtype,int attrlen,const void * data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/fs.h>
-
-loff_t noop_llseek(struct file * file,loff_t offset,int whence)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -758,6 +896,30 @@ void phylink_suspend(struct phylink * pl,bool mac_wol)
 }
 
 
+#include <linux/pid.h>
+
+struct task_struct * pid_task(struct pid * pid,enum pid_type type)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pid.h>
+
+pid_t pid_vnr(struct pid * pid)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/devpts_fs.h>
+
+int ptm_open_peer(struct file * master,struct tty_struct * tty,int flags)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
 void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
 {
@@ -783,6 +945,38 @@ bool rcuref_get_slowpath(rcuref_t * ref)
 #include <linux/rtnetlink.h>
 
 void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,u32 portid,const struct nlmsghdr * nlh)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/signal.h>
+
+int send_signal_locked(int sig,struct kernel_siginfo * info,struct task_struct * t,enum pid_type type)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/seq_file.h>
+
+void seq_printf(struct seq_file * m,const char * f,...)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/seq_file.h>
+
+void seq_putc(struct seq_file * m,char c)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/seq_file.h>
+
+int seq_write(struct seq_file * seq,const void * data,size_t len)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -831,6 +1025,11 @@ void sock_edemux(struct sk_buff * skb)
 bool static_key_initialized;
 
 
+#include <linux/sched/task.h>
+
+rwlock_t tasklist_lock;
+
+
 #include <linux/tcp.h>
 
 struct sk_buff * tcp_get_timestamping_opt_stats(const struct sock * sk,const struct sk_buff * orig_skb,const struct sk_buff * ack_skb)
@@ -850,6 +1049,14 @@ void tick_broadcast(const struct cpumask * mask)
 #include <net/udp_tunnel.h>
 
 const struct udp_tunnel_nic_ops *udp_tunnel_nic_ops;
+
+
+#include <linux/fs.h>
+
+void unregister_chrdev_region(dev_t from,unsigned count)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 extern void update_group_capacity(struct sched_domain * sd,int cpu);

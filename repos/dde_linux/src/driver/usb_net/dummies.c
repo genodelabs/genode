@@ -584,3 +584,33 @@ void nohz_balance_enter_idle(int cpu)
 	lx_emul_trace(__func__);
 }
 #endif
+
+/*
+ * USB options
+ */
+
+struct tty_driver *console_driver;
+
+#include <linux/fs.h>
+
+int register_chrdev_region(dev_t from,unsigned count,const char * name)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/vt_kern.h>
+int vty_init(const struct file_operations *console_fops)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/pid.h>
+
+void put_pid(struct pid * pid)
+{
+	lx_emul_trace(__func__);
+}

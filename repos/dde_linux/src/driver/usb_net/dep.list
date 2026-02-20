@@ -361,6 +361,7 @@ drivers/usb/core/hub.h
 drivers/usb/core/otg_productlist.h
 drivers/usb/core/phy.h
 drivers/usb/core/usb.h
+drivers/usb/serial/usb-wwan.h
 include/acpi/acbuffer.h
 include/acpi/acconfig.h
 include/acpi/acexcep.h

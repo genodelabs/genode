@@ -27,6 +27,7 @@
 
 /* C-interface */
 #include <usb_net.h>
+#include <usb_option.h>
 
 using namespace Genode;
 
@@ -63,8 +64,15 @@ struct Main
 
 	void handle_signal()
 	{
-		lx_user_handle_io();
+		/* process URBs first */
+		lx_emul_usb_client_ticker();
 		Lx_kit::env().scheduler.execute();
+
+		/* handle nic/terminal */
+		lx_user_handle_io();
+		lx_option_handle_io();
+		Lx_kit::env().scheduler.execute();
+
 		genode_uplink_notify_peers();
 	}
 
