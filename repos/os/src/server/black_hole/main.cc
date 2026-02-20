@@ -35,6 +35,7 @@
 #include "play.h"
 #include "record.h"
 #include "log.h"
+#include "terminal.h"
 
 
 /***************
@@ -63,6 +64,7 @@ struct Black_hole::Main
 	Genode::Constructible<Play_root>       play_root      { };
 	Genode::Constructible<Record_root>     record_root    { };
 	Genode::Constructible<Log_root>        log_root       { };
+	Genode::Constructible<Terminal_root>   terminal_root  { };
 
 	Main(Genode::Env &env) : env(env)
 	{
@@ -119,6 +121,10 @@ struct Black_hole::Main
 		if (_config_rom.node().has_sub_node("log")) {
 			log_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*log_root));
+		}
+		if (_config_rom.node().has_sub_node("terminal")) {
+			terminal_root.construct(env, heap);
+			env.parent().announce(env.ep().manage(*terminal_root));
 		}
 
 		if (_config_rom.node().has_sub_node("uplink_client")) {
