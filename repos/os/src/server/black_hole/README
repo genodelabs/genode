@@ -16,26 +16,30 @@ in the configuration of the component.
 * Play
 * Record
 * Log
+* Terminal
 
-<config>
-	<audio_in/>
-	<audio_out/>
-	<capture/>
-	<event/>
-	<nic/>
-	<uplink/>
-	<rom/>
-	<gpu/>
-	<usb/>
-	<play/>
-	<record/>
-	<log/>
-</config>
+HID-configuration snippet:
+
++ config
+  + audio_in
+  + audio_out
+  + capture
+  + event
+  + nic
+  + uplink
+  + rom
+  + gpu
+  + usb
+  + play
+  + record
+  + log
+  + terminal
+-
 
 Black hole optionally requests the following sessions as client.
 
 * Uplink client
 
-<config>
-	<uplink_client/>
-</config>
++ config
+  + uplink_client
+-
