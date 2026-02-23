@@ -1,0 +1,439 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 26.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+With version 26.02, we celebrate a new human-friendly way of interacting with
+configurations and other structured data. Our custom designed human-inclined
+data (HID) format evolved during two years of experimentation and practical
+evaluation, while having taken each single use case encountered in the
+Genode-based Sculpt OS as input. With the final touches, tooling, and
+documentation added during the release cycle, Genode 26.02 finalizes the
+format and consistently replaces the use of XML by HID
+(Section [Human-inclined data (HID) format by default]).
+
+Speaking of transitions, as planned on our
+[https://genode.org/about/road-map - roadmap], we completed the first half of
+the project's migration from GitHub to Codeberg.
+Section [Migration from GitHub to Codeberg] describes the intermediate state
+and provides practical guidance for users and contributors.
+
+The technical topics of the release revolve around the progressive update of
+our Linux device-driver environment (DDE-Linux) to kernel version 6.18
+(Section [Linux device-driver environment]), usability improvements of the Goa
+SDK (Section [Goa SDK]), input-event processing (Section [Event filter]), and
+code rigidity
+(Sections [API refinements] and [Execution on bare hardware (base-hw)]).
+
+Feature-wise, version 26.02 further cultivates the genode-world repository as
+designated place for ported 3rd-party software, adding the port of Git as
+stepping stone on our way towards self-hosted development on Sculpt OS
+(Section [Software provided via the Genode-world repository]).
+
+
+Human-inclined data (HID) format by default
+###########################################
+
+Throughout the past year, we have thoroughly
+[https://genode.org/documentation/release-notes/25.08#Consideration_of_a_lean_alternative_to_XML - evaluated]
+the potential replacement of XML by a custom alternative optimized for human
+use and understanding. As part of the evaluation, we published an
+[https://genodians.org/nfeske/2025-10-30-sculpt-human - experimental variant]
+of Sculpt OS to gather practical experience and feedback, which in turn
+allowed us to gradually refine the format into its final form over the past
+few months. With the current release, we have now switched the Genode OS
+framework to the new HID format by default.
+
+:Human-inclined data (HID) documentation:
+
+  [https://genode.org/documentation/hid]
+
+[image hid_osci_example]
+  Genode's new way of textual configuration
+
+The switch entails all run scripts, Sculpt OS, the Goa SDK, all automated
+tests, and all depot packages provided by Genode's main repository.
+It goes without saying that such a
+[https://github.com/genodelabs/genode/issues/5786 - transition] would have been
+unrealistic without adequate tooling. This is where our HID-processing tool at
+_tool/hid_ came into play, which we enhanced iteratively since October. The
+tool has not only become able to convert between XML and HID but to retain
+comments of different kinds. It thereby largely reduced the conversion work to
+final retouching, supplementing human taste and intent as a post-processing
+step.
+
+The HID tool has also become the natural solution for validating data against
+schema definitions. Driven by concisely expressed data schemas that blend
+formalism with human-readable documentation, the new 'check' command aids the
+offline validation of configurations. Genode's run tool leverages this
+facility whenever a schema (.hsd) for a given component exists, providing a
+safety guardrail similar to the formerly used .xsd files.
+
+The HID-based .hsd files lend themselves to become hosts for documentation
+that is traditionally kept in README files. Hence, over time, we plan to
+replace free-form READMEs by semi-formal yet human-readable .hsd files. This,
+however, is not today. At the current time, the README files of the framework
+still speak of XML. This will be rectified in concert with the revision of the
+Genode books in the upcoming release 26.05 in May.
+
+Note that even though XML is no longer used by the framework, Genode will
+retain support for XML in addition to HID until version 26.08 as scheduled for
+August.
+
+
+Migration from GitHub to Codeberg
+#################################
+
+As outlined in our [https://genode.org/about/road-map - road map], we migrated
+all but the main (genode.git) repository from GitHub to Codeberg. From now on,
+you will find all genode-* repositories as well as the Goa repository at
+
+:Genode Labs at Codeberg:
+
+  [https://codeberg.org/genodelabs]
+
+Along with the git repositories, all issues, pull requests, and comments have
+been migrated as well. The repositories at GitHub have been made read-only and
+therefore will not receive any updates. In the course of the migration, we have
+also changed the name of the default branches from "master" to "main".
+
+In order to adapt to these changes on your side, we advise you to switch to the
+current master branch in your clone of https://github.com/genodelabs/genode.git
+and follow the instructions that are printed by any build command. For Goa, you
+can trigger the migration with the following commands:
+
+! goa update-goa master
+! goa versions
+
+Note that the migration to Codeberg implies a few more changes for contributors:
+Contributors must create an account at codeberg.org. It is possible to link
+the new account to your GitHub account. This enables Codeberg to associate
+your former comments (entered on GitHub) to your new account on Codeberg (i.e.,
+you may use different user names on both platforms). In case you forked any
+repository on GitHub, you should consider creating a new fork on Codeberg and
+manually pushing your branches and tags to the new fork to restore the state of
+the forked repository as it was on GitHub. The following instructions serve as
+a guideline:
+
+! git clone --bare https://github.com/<user>/<repo> bare_clone
+! cd bare_clone
+! git branch -m master main
+! git remote set-url origin ssh://git@codeberg.com/<user>/<repo>
+! git push --mirror
+
+Codeberg uses Forgejo and has a very similar UI compared to GitHub. However,
+there are a few changes when it comes to referencing issues and commits. On
+Github, you are able to push a commit referencing an issue via '#<issue-number>'
+to your fork and this commit will be shown in the corresponding issue of the
+original repository from which you forked. On Codeberg, however, you must
+explicitly mention the repository where the issue resides via, e.g.,
+'genodelabs/goa#<issue-number>'. Similarly, if you want to reference a commit
+from a fork in an issue comment, you must name the fork explicitly, e.g.,
+'jschlatow/goa@<commit-hash>'.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+API refinements
+===============
+
+New 'Align' argument type
+-------------------------
+
+The 'Align' type defined at _util/misc_math.h_ is meant to be used as argument
+for aligned allocations and replaces the former use of basic unsigned values.
+Typical argument values AT_PAGE, AT_16_BYTES, AT_MWORD are now defined by the
+public API. Whenever an alignment value is passed around, the type name
+fittingly describes the purpose of the parameter. When using a specific
+alignment, the notion '{ .log2 = 10 }' nicely expresses the meaning of 10
+as a 2^n exponent.
+
+Removal of memset
+-----------------
+
+Raw memory-clearing via 'memset' has arguably been a rarity throughout the
+framework. As almost all of these calls used to specify 0 as fill character,
+we have now replaced 'memset' by 'bzero'. The latter has a narrower interface
+and no return value. Still, calls of 'bzero' rightfully remain a rarity.
+
+Removed diag session argument
+-----------------------------
+
+Core's diag feature had been a useful debugging aid during the introduction of
+cap-quota accounting and trading around
+[https://genode.org/documentation/release-notes/17.05#Assignment_and_trading_of_capability_quota - version 17.05].
+Given that the feature has remained unused ever since, we have removed it.
+
+Removed UART session interface
+------------------------------
+
+The UART session interface was introduced in
+[https://genode.org/documentation/release-notes/12.11#New_UART_session_interface - version 12.11]
+to extend the terminal session interface with the ability of setting the baud
+rate. This was long before the configuration-based
+[https://genode.org/documentation/genode-foundations/25.05/components/Component_configuration.html#Server-side_policy_selection - server-side policy selection]
+became the predominant pattern for out-of-band concerns like this. Since the
+split of session interfaces between terminal and UART is no longer justified,
+the UART session got removed now.
+
+VFS library
+-----------
+
+The VFS infrastructure at _include/vfs/_ has now become part of the 'Genode::'
+namespace, which alleviates the need to prefix Genode types inside the 'Vfs'.
+
+Each VFS file-system type now lives in a dedicated namespace prefixed with
+'Vfs_', which includes the 'Genode' and 'Genode::Vfs' namespaces. This gives
+each VFS plugin a natural place for custom types, flattening the type
+hierarchy in cases where a compound file system is constructed.
+
+
+Linux device-driver environment
+===============================
+
+This release features the first step of updating the Linux version of our
+device-driver environment to a recent 6.18 LTS release. In particular, we
+updated all 'virt_linux'-based components. This includes the TCP/IP stack,
+USB-client-device drivers like 'usb_hid', 'usb_net', and 'usb_serial' as well
+as our WireGuard port. The 'usb_serial' component has now become available for
+ARMv8.
+
+Changes to the internal structuring within Linux prompted us to adapt our
+Linux emulation environment and guard those changes with kernel version checks
+to keep them compatible with components that for the moment still rely on an
+older Linux release.
+
+We also decided to drop support for ARMv6, which only concerns support for the
+Raspberry Pi 1, as this platform has not seen much use in recent years and its
+practical relevance is debatable.
+
+As of now, the update of 'virt_linux' to 6.18.5 is complete, while the update
+of 'pc_linux' is at the starting block. We consider bumping the LTS version
+during this line of work to closely track the current LTS release.
+
+
+TCP/IP
+======
+
+Genode's libc expects correct error values when using POSIX sockets. These
+error values are obtained through the _vfs_ip_-plugin which communicates
+directly with both IP stacks (lwIP and lxip). Up until now, we have tried to
+tunnel all socket errors through the file-system session which led - because
+of the limited error states of the session - to heuristics and emulation at
+the libc side. Because both IP-stacks now implement the socket C-API, and
+therefore, return unified error codes, we changed this behavior by writing the
+error codes to a dedicated error file for each socket. The libc now retrieves
+a socket error from the file and translates it to the corresponding libc
+errno. This change results in improved compliance with the POSIX standard.
+Additionally, we made sure that both IP-stacks return consistent results while
+also enhancing our testing infrastructure with common usage patterns like
+_recv_ with MSG_PEEK set on a non-blocking socket as used for connection
+status testing.
+
+
+Event filter
+============
+
+The global-key feature of the Nitpicker GUI server facilitates the
+implementation of global key combinations, for example, the window manager's
+KEY_SCREEN shortcuts. While the global key is pressed, all subsequent input
+events are passed to the configured handler of the global key until all keys
+are released. This effectively removes those input events from the event
+stream of the current focused component. Thus, an outside observer cannot
+detect key combinations while leaving the event stream unmodified and usable
+by the focused Nitpicker client. An example use case of such an observer would
+be a global screen lock that is activated whenever Win+L is pressed while the
+Win key is also handled by clients (e.g., a virtual machine).
+
+In this release, we enhanced the event-filter component to support the
+reporting of _shortcuts_ if configured key combinations are observed. The key
+events are preserved for further processing (they are not filtered out).
+
+! + report
+!   + shortcut screenshot
+!     + key KEY_LEFTMETA
+!     + key KEY_S
+!   + shortcut screenlock
+!     + key KEY_LEFTMETA
+!     + key KEY_L
+
+The example configuration declares two shortcut reports named screenlock and
+screenshot. The event filter creates two report sessions labeled after the
+shortcut names and reports each occurrence of the combinations. The report
+provides the shortcut 'name' and a unique 'serial' number as attributes as
+follows.
+
+! shortcut screenshot | serial: 7
+! -
+
+Report observers must record the last observed serial number for comparison on
+later report updates. The first serial number and future changes of its value
+shall be interpreted as shortcut events. Note that reports missing a valid
+'serial' attribute must be ignored.
+
+
+Software provided via the Genode-world repository
+#################################################
+
+Housekeeping
+------------
+
+The runtime files of the Goa projects maintained within the
+[https://codeberg.org/genodelabs/genode-world - Genode-world] repository have
+been converted from XML to HID.
+
+In addition, the run scripts currently used for CI testing also received the
+HID treatment and - to clarify their role - have been moved to Genode's
+_repos/ports/run/_. The legacy portion of the Genode-world repository is
+slated for removal in summer of 2026.
+
+New port of Git
+---------------
+
+The Git version control system is an essential tool in our Genode development
+workflow. Following our roadmap towards self-hosted development on Sculpt OS,
+we have now added a
+[https://codeberg.org/genodelabs/genode-world/src/branch/main/devel/git - port]
+to the genode-world repository.
+
+Seoul VMM
+---------
+
+The Seoul VMM got adjusted to become interoperable with the Goa SDK. All
+Genode-specific code located in genode-world has been moved to the Seoul
+source repository and a make-based build environment was crafted. The new
+[https://codeberg.org/genodelabs/genode-world/src/branch/main/vmm/seoul - Goa project]
+imports this modified Seoul repository and uses a 'Makefile' to build the VMM.
+
+FIO benchmark
+-------------
+
+A port of the well-known _flexible I/O tester_ joins the Genode-world
+repository. Among others, it is used to exercise the I/O aspects of our POSIX
+runtime.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Genode's custom kernel now exports additional information when collecting
+execution times of subjects in the system via the TRACE service. Beforehand,
+execution times of all threads got collected. Now when using hardware-assisted
+virtualization, the CPU usage of virtual CPUs is tracked too.
+Moreover, subject properties of the new scheduler introduced in
+[https://genode.org/documentation/release-notes/25.08#Kernel_scheduling_for_fairness_and_low_latency - release 25.08]
+are also getting exposed. Namely, the weights and warp values of the
+individual threads and virtual CPUs.
+
+The effort to steadily keep and enhance the code quality of our custom
+kernel presses on, this time by reworking the kernel's internal interrupt
+representation, as well as the allocation of hardware-based address space
+identifiers. A failure of the latter gets now reflected to upper layers of
+the system.
+
+
+Linux
+=====
+
+For test-driving interactive system scenarios on Linux, Genode employs the
+[https://github.com/genodelabs/genode/tree/master/repos/os/src/driver/framebuffer/sdl - fb_sdl]
+component as pseudo display and input driver. In
+[https://genode.org/documentation/release-notes/23.11#Linux - version 23.11],
+it received an update to [https://wiki.libsdl.org/SDL2 - SDL2]. The current
+release [https://github.com/genodelabs/genode/pull/5784 - adds] principal
+support for [https://wiki.libsdl.org/SDL3 - SDL3].
+Whereas the time-tested version 2 is still used by default, version 3 can now
+be selected by setting the environment variable GENODE_FB_SDL_VERSION to 3
+at build time.
+
+
+Build system and tooling
+########################
+
+Goa SDK
+=======
+
+Following the spirit of this release, we converted all examples provided
+in the Goa repository from XML to HID, and made HID the new default.
+Furthermore, we integrated schema validation of _runtime_ files, _index_ files,
+runtime configs (against init.hsd) and component configs (determined by
+depot-provided .hsd files).
+
+With the move of genode-world towards Goa, we also reflected on the structure
+of Goa's project directories. Since day one, Goa provided for multiple pkg
+definitions in a single Goa project as subdirectories under _pkg/_, which has
+rarely been used in practice. We therefore removed the substructure of the
+_pkg/_ directory so that the _runtime_, _archives_, and _README_ files are now
+supposed to be placed in the _pkg/_ directory directly. In the meantime, Goa
+has been enabled to detect, build, and export Goa projects that are referenced
+as dependencies. Dependent runtimes can therefore be hosted in arbitrary
+subdirectories instead. For instance, a _test/_ subdirectory can be used for
+defining a Goa project as a test case for the parent project. This test case
+can be run by executing 'goa run -C test' from the parent directory. Note that
+the name and hierarchy of the subdirectory is arbitrary. However, we actually
+decided to give any _test/_ directory a special meaning: Whenever Goa is run
+recursively via 'goa -r', it ignores any project that has a _/test/_ path
+element so that test cases can be easily ignored for publishing. For running
+tests, we added the '--only-tests' command-line switch that inverts this
+logic.
+
+With the scenario of nested Goa projects in mind, we also removed the
+possibility to modify the project name and directory via _goarc_ files, which
+did not make much sense anymore. If needed, one may resort to symlinks instead.
+
+Last but not least, we reflected on the way how Goa passes the required linker
+flags and libraries to 3rd-party build systems. So far, we used environment
+variables such as 'LDFLAGS' and 'LIBS' to achieve this. Yet, not all 3rd-party
+projects, especially projects with custom _configure_ scripts, make use of
+these variables. We eventually found
+[https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html - GCC spec files]
+to be a robust alternative to environment variables that reduce the need for
+patching. We already applied the new approach to Goa's support for autoconf,
+make, cmake, qmake, and cargo.
+
+Note that not all the aforementioned changes entered Goa's _25.10_ branch. In
+order to maintain compatibility with Sculpt 25.10 and corresponding Goa
+projects, we omitted the switch towards using HID by default and the
+flattening of the _pkg/_ directory from the _25.10_ branch and only added it
+to the _main_ branch. You may conveniently switch between both branches with
+the following commands:
+
+! goa update-goa main
+! goa update-goa 25.10
+
+
+Run-tool support for AMT TLS
+============================
+
+With newer versions of Intel's Active Management Technology (AMT), using TLS
+is mandatory. So we extended our run-tool plugins that deal with AMT to
+capture serial messages as well as to power-cycle the machine in question.
+
+The RUN_OPT flag '--wsman-tls' switches turn on TLS when set to 'yes', the
+default is 'no'.
+
+The RUN_OPT flag '--amtterm-tls' enables the use of TLS when set to 'yes', the
+default is 'no'. As TLS SoL requires the host's certificate, downloading and
+placing it into the build directory beforehand is vital.
+
+The following command can be used to obtain the certificate:
+
+! openssl s_client -connect <host>:16993 < /dev/null | openssl x509 > <host>.cert
+
+It might also be necessary to activate the serial redirection. The following
+command illustrates how to perform this operation using the 'wsman-cli'
+program:
+
+! wsman --https --endpoint https://admin:<password>@<host>:16993 \
+!       --noverifypeer --noverifyhost \
+!       put http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService \
+!       -k ListenerEnabled=true
