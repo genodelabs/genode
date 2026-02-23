@@ -1,0 +1,195 @@
+#
+# \brief  Test of fetchurl with MBIM device
+# \author Sebastian Sumpf
+# \date   2023-08-17
+#
+
+assert {[have_recipe pkg/test_usb_host-[board]]} \
+	"Recipe for 'pkg/test_usb_host-[board]' not available."
+
+proc ip_stack { } { return lxip }
+
+proc socket_fs_plugin { } {
+	return " + [ip_stack] | dhcp: yes"
+}
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/black_hole \
+                  [depot_user]/pkg/test_usb_host-[board] \
+                  [depot_user]/src/curl \
+                  [depot_user]/src/fetchurl \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libiconv \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/openssl \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/usb_net \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_[ip_stack] \
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/ffi \
+                  [depot_user]/src/zlib \
+                  [depot_user]/src/libmbim/1.34.0-2026-02-11 \
+                  [depot_user]/src/mbimcli/2026-02-13 \
+                  [depot_user]/src/glib/2.85.4-2025-08-25 \
+
+build { }
+
+install_config {
+config
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
++ default | caps: 200
++ default-route
+  + any-service
+    + parent
+    + any-child
++ start timer | ram: 1M
+  + provides
+    + service Timer
++ start report_rom | ram: 2M
+  + provides
+  | + service Report
+  | + service ROM
+  + config | verbose: yes
+  | + policy | label:  nic_router -> config
+  |          | report: mbimcli -> nic_router.config
+  + route
+    + any-service
+      + parent
++ start black_hole | ram: 2M
+  + provides
+  | + service Terminal
+  + config
+  | + terminal
+  + route
+    + service Timer
+    | + child timer
+    + any-service
+      + parent
++ start usb_net | ram: 16M
+  + provides
+  | + service Terminal
+  | config | mac: 02:00:00:00:01:01 | configuration: 3
+  | + device | vendor_id: 0x12d1 | product_id: 0x15c1 | configuration: 3
+  |   . MIBM config profile is 3 for Huawei ME906e, 0 lets Linux driver choose config
+  + route
+    + service Terminal | + child black_hole
+    + any-service
+      + parent
+      + any-child
++ start usb | ram: 32M | caps: 1500 | managing_system: yes
+  + binary init
+  + provides
+  | + service Usb
+  + route
+    + service ROM | label: config
+    | + parent | label: drivers.config
+    + service Timer | + child timer
+    + any-service
+      + parent
++ start nic_router | ram: 16M | caps: 500
+  + provides
+  | + service Nic
+  | + service Uplink
+  + route
+    + service ROM | label: config | + child report_rom
+    + any-service
+      + parent
+      + any-child
++ start mbimcli | ram: 32M | caps: 500
+  + config | ld_verbose: false
+  | + network | apn: internet | user: internet | password: | pin: XXXX
+  | + vfs
+  | | + dir dev
+  | | | + log
+  | | | + inline rtc
+  | | | | : 2020-08-05 00:01
+  | | | + dir pipe
+  | | | | + pipe
+  | | | + terminal cdc-wdm0 | raw: yes
+  | | + ram
+  | + libc | stdout: /dev/log | stderr: /dev/log
+  |        | rtc:    /dev/rtc | pipe:   /dev/pipe
+  + route
+    + service Report   | + child report_rom
+    + service Terminal | + child usb_net
+    + any-service
+      + parent
+      + any-child
++ start fetchurl | ram: 32M | caps: 500
+  + config
+  | + report | progress: yes
+  | + vfs
+  | | + dir dev
+  | | | + log
+  | | | + null
+  | | | + inline rtc
+  | | | | : 2000-01-01 00:00
+  | | | + inline random
+  | | |   : 0123456789012345678901234567890123456789
+  | | + dir socket
+  | | | } [socket_fs_plugin] {
+  | | + dir pipe
+  | |   + pipe
+  | + libc |  stdout: /dev/log    | stderr: /dev/log | rtc:/dev/rtc
+  | |      |  arng:   /dev/random | pipe:   /pipe    | socket: /socket
+  | + fetch | url: https://genode.org/about/LICENSE | path: /dev/log | retry: 3
+  + route
+    + service Nic    | + child nic_router
+    + service Report | + child report_rom
+    + any-service
+      + parent
+      + any-child
+-
+}
+
+#
+# Define USB host controller config
+#
+# * Quectel EG-25g
+# * Huawai ME906e
+#
+# Change to your modem and adjust "configuration" for 'usb_net'
+#
+set config {
+config | bios_handoff: no
+  + policy | label_prefix: usb_net
+    + device | vendor_id: 0x2c7c | product_id: 0x125
+    + device | vendor_id: 0x12d1 | product_id: 0x15c1
+-
+}
+
+set fd [open [run_dir]/genode/usb_host.config w]
+puts $fd $config
+close $fd
+
+build_boot_image [build_artifacts]
+
+if {[have_include "power_on/qemu"]} {
+	if { [expr ![info exists env(BUS)] || ![info exists env(DEVICE)]] } {
+		puts stderr "BUS and/or DEVICE environment variables not found."
+		exit 1
+	}
+
+	puts "Using BUS $env(BUS) DEVICE $env(DEVICE)"
+
+	append qemu_args " -nographic  "
+	append qemu_args " -usb -device nec-usb-xhci,id=xhci "
+	append qemu_args " -device usb-host,hostbus=$env(BUS),hostaddr=$env(DEVICE),bus=xhci.0 "
+}
+
+run_genode_until {child "fetchurl" exited with exit value 0} 120
