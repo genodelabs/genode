@@ -539,6 +539,24 @@ void Component::construct(Genode::Env &env)
 			if (dev_name("dev3") != ":")    fail("unexpected name of dev3");
 		});
 
+	with_generated("empty_quoted_lines",
+
+		[&] (Hid_generator &g) {
+			g.append_quoted("\nfoo\n");
+			g.append_quoted("\n");
+			g.append_quoted("bar\n");
+		},
+		[&] (Node const &node) {
+			log("node: ", node);
+			unsigned num_lines = 0;
+			node.for_each_quoted_line([&] (auto const &) {
+				num_lines++; });
+
+			unsigned const expected_lines = 5;
+			if (num_lines != expected_lines)
+				fail("wrong number of lines (expected: ", expected_lines, ", got: ", num_lines, ")");
+		});
+
 	log("--- End of HID-parser test ---");
 	env.parent().exit(0);
 }
