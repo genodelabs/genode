@@ -50,6 +50,11 @@ struct Main
 
 	void handle_signal()
 	{
+		/* process ready URBs before handling the Terminal-session */
+		lx_emul_usb_client_ticker();
+		Lx_kit::env().scheduler.execute();
+
+		/* handle Terminal I/O */
 		lx_user_handle_io();
 		Lx_kit::env().scheduler.execute();
 	}

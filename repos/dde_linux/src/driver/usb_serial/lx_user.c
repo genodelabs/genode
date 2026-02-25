@@ -91,7 +91,5 @@ void lx_user_init(void)
 
 void lx_user_handle_io(void)
 {
-	lx_emul_usb_client_ticker();
-
 	if (user_task) lx_emul_task_unblock(user_task);
 }
