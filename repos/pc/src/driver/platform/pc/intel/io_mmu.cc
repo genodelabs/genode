@@ -393,7 +393,7 @@ void Intel::Io_mmu::enregister(Device const &device, Driver::Io_mmu::Domain &dom
 	Domain &intel_domain = static_cast<Domain&>(domain);
 
 	Pci::Bdf bdf;
-	device.for_pci_config([&] (Device::Pci_config const &cfg) {
+	device.with_pci_config([&] (Device::Pci_config const &cfg) {
 		bdf = Pci::Bdf{ cfg.bus_num, cfg.dev_num, cfg.func_num }; });
 
 	Domain_id cur_domain = (intel_domain._level_4)
@@ -426,7 +426,7 @@ void Intel::Io_mmu::deregister(Device const &device, Driver::Io_mmu::Domain &dom
 {
 	Domain &intel_domain = static_cast<Domain&>(domain);
 	Pci::Bdf bdf;
-	device.for_pci_config([&] (Device::Pci_config const &cfg) {
+	device.with_pci_config([&] (Device::Pci_config const &cfg) {
 		bdf = Pci::Bdf{ cfg.bus_num, cfg.dev_num, cfg.func_num }; });
 
 	root_table().remove_context(bdf, intel_domain._translation_table_phys);

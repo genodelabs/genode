@@ -104,7 +104,7 @@ void Driver::pci_intel_graphics_info(Device::Pci_config const &cfg,
 
 	/* find host bridge */
 	model.for_each([&] (Device const &dev) {
-		dev.for_pci_config([&] (Device::Pci_config const &cfg) {
+		dev.with_pci_config([&] (Device::Pci_config const &cfg) {
 			if (cfg.bus_num || cfg.dev_num || cfg.func_num)
 				return;
 

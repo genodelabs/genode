@@ -313,7 +313,7 @@ Device_component::Device_component(Registry<Device_component> &registry,
 					Io_port_range(_io_port_range_registry, idx, range); });
 		});
 
-		device.for_pci_config([&] (Device::Pci_config const &cfg)
+		device.with_pci_config([&] (Device::Pci_config const &cfg)
 		{
 			_with_reserved_quota_for_session<Io_mem_session>(session, [&] {
 				Pci::Bdf bdf { cfg.bus_num, cfg.dev_num, cfg.func_num };

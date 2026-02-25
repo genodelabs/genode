@@ -145,21 +145,21 @@ struct Config_helper
 
 void Driver::pci_enable(Env &env, Device const &dev)
 {
-	dev.for_pci_config([&] (Device::Pci_config const &pc) {
+	dev.with_pci_config([&] (Device::Pci_config const &pc) {
 		Config_helper(env, dev, pc).enable(); });
 }
 
 
 void Driver::pci_disable(Env &env, Device const &dev)
 {
-	dev.for_pci_config([&] (Device::Pci_config const &pc) {
+	dev.with_pci_config([&] (Device::Pci_config const &pc) {
 		Config_helper(env, dev, pc).disable(); });
 }
 
 
 void Driver::pci_apply_quirks(Env &env, Device const &dev)
 {
-	dev.for_pci_config([&] (Device::Pci_config const &pc) {
+	dev.with_pci_config([&] (Device::Pci_config const &pc) {
 		Config_helper(env, dev, pc).apply_quirks(); });
 }
 
@@ -279,7 +279,7 @@ bool Driver::pci_device_matches(Node const &policy, Device const &dev)
 		bool check_dev_vendor = node.has_attribute("vendor_id") &&
 		                        node.has_attribute("device_id");
 
-		dev.for_pci_config([&] (Device::Pci_config const &cfg)
+		dev.with_pci_config([&] (Device::Pci_config const &cfg)
 		{
 			if ((pci_class_code_alias(cfg.class_code) == class_code) ||
 			    (check_dev_vendor && vendor_id == cfg.vendor_id && device_id == cfg.device_id))
@@ -296,7 +296,7 @@ void Driver::pci_device_specific_info(Device const &dev,
                                       Device_model &model,
                                       Generator    &g)
 {
-	dev.for_pci_config([&] (Device::Pci_config const &cfg)
+	dev.with_pci_config([&] (Device::Pci_config const &cfg)
 	{
 		Driver::pci_intel_graphics_info(cfg, env, model, g);
 		Driver::pci_virtio_info(dev, cfg, env, g);
@@ -307,7 +307,7 @@ void Driver::pci_device_specific_info(Device const &dev,
 void Driver::pci_resume_bridges(Env &env, Device_model &devices)
 {
 	devices.for_each([&](Device &device) {
-		device.for_pci_config([&](Device::Pci_config const &pc) {
+		device.with_pci_config([&](Device::Pci_config const &pc) {
 
 			if (!pc.bridge)
 				return;

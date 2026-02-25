@@ -464,7 +464,7 @@ void Driver::Device_model::_acquire_io_mmus()
 					return;
 
 				/* enable default mappings for corresponding pci devices */
-				device.for_pci_config([&] (Device::Pci_config const &cfg) {
+				device.with_pci_config([&] (Device::Pci_config const &cfg) {
 					io_mmu.enable_default_mappings(
 						{cfg.bus_num, cfg.dev_num, cfg.func_num});
 				});

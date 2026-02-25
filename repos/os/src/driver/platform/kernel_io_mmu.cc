@@ -134,7 +134,7 @@ void Kernel_io_mmu::enregister(Device const &device, Domain &domain)
 {
 	Device_pd &dpd = static_cast<Device_pd&>(domain);
 
-	device.for_pci_config([&] (Device::Pci_config const &cfg) {
+	device.with_pci_config([&] (Device::Pci_config const &cfg) {
 		Attached_io_mem_dataspace io_mem { _env, cfg.addr, 0x1000 };
 		Pci::Bdf bdf {cfg.bus_num, cfg.dev_num, cfg.func_num};
 

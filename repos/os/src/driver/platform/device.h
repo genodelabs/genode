@@ -374,7 +374,7 @@ class Driver::Device : private List_model<Device>::Element
 				fn(p.name, p.value); });
 		}
 
-		void for_pci_config(auto const &fn) const
+		void with_pci_config(auto const &fn) const
 		{
 			/*
 			 * we allow only one PCI config per device,
