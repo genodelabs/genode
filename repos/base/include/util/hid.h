@@ -165,6 +165,16 @@ class Genode::Hid_node : Noncopyable
 					}
 				}
 
+				/* COMMENT or RAW prefix followed by newline */
+				else if (bytes.num_bytes == 1) {
+
+					Prefix const prefix = Prefix::from_char(bytes.start[0]);
+
+					if (prefix.line_delimited())
+						_with_skipped(bytes, 1, [&] (Span const &remain) {
+							fn(prefix, remain, Span(nullptr, 0)); });
+				}
+
 				/* other content, i.e., attribute */
 				bytes.cut('|', [&] (Span const &head, Span const &tail) {
 					fn({ Prefix::OTHER }, head, tail); });
@@ -184,7 +194,7 @@ class Genode::Hid_node : Noncopyable
 				while (num_bytes)
 					_with_segment({ .first = first }, { start, num_bytes },
 						[&] (Prefix prefix, Span const &seg, Span const &remain) {
-							if (seg.num_bytes && prefix.type != Prefix::COMMENT)
+							if (seg.start >= line.start && prefix.type != Prefix::COMMENT)
 								fn(prefix, Indent { unsigned(seg.start - line.start) }, seg);
 							start     = remain.start;
 							num_bytes = remain.num_bytes;
