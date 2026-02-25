@@ -4,6 +4,39 @@
                                ===========
 
 
+Genode OS Framework release 26.02 | 2026-02-26
+##############################################
+
+| Version 26.02 replaces XML with the custom-designed HID configuration
+| format, completes the first half of the project's migration from
+| GitHub to Codeberg, updates DDE-Linux-based protocol stacks to Linux kernel
+| version 6.18, and further cultivates the genode-world repository as
+| designated place for ported 3rd-party software.
+
+After almost two decades of relying on XML, the framework has now switched to
+the custom designed human-inclined data (HID) format. Structurally, it mirrors
+the time-tested concepts of representing data as a hierarchy of nodes where
+each node can have attributes. Like XML, data can be validated against schema
+definitions. Syntactically, however, HID promotes calmness and clarity, and
+specifically fosters the joyful use of text as an interactive user interface
+of Sculpt OS.
+
+As a second major transition, the release marks the halfway point of the
+project's migration from GitHub to Codeberg.
+All source repositories and discussions except for the main repository have
+been successfully moved over to our new host. This includes the Goa SDK, the
+genode-world repository, all hardware-specific supplements, and the books. The
+release documentation linked below provides guidance for users and
+contributors.
+
+On the technical side, the highlights of the release are the gradual update
+of our Linux device-driver environment to kernel version 6.18, new
+input-processing capabilities, and continuous improvements of the Goa SDK.
+
+Please find all the details and background information covered in the
+[https:/documentation/release-notes/26.02 - release documentation of version 26.02...]
+
+
 Road Map for 2026 | 2026-01-27
 ##############################
 
