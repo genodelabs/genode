@@ -555,10 +555,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		/**
 		 * Io_mmu interface for default mappings
 		 */
-		void add_default_range(Range const &, addr_t) override;
-		void default_mappings_complete() override;
-		void enable_default_mappings(Pci::Bdf const &bdf) override {
-			_default_mappings.enable_device(bdf, _default_domain); }
+		void add_default_range(Range const &, addr_t);
+		void default_mappings_complete();
 
 		void apply_default_mappings(Pci::Bdf const &bdf) {
 			_default_mappings.copy_stage2(_managed_root_table, bdf); }
@@ -636,7 +634,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 		Io_mmu(Env                            &env,
 		       Io_mmu_devices                 &io_mmu_devices,
-		       Registry<Irq_controller> const &irq_controllers,
+		       Device_model                   &devices,
 		       Device::Name             const &name,
 		       Device::Io_mem::Range           range,
 		       Translation_table_registry     &table_registry,
@@ -688,8 +686,7 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 		{ }
 
 		void create(Allocator &alloc, Io_mmu_devices &io_mmu_devices,
-		            Registry<Irq_controller> const &irq_controllers,
-		            Device const &device) override
+		            Device const &device, Device_model &devices) override
 		{
 			using Range = Device::Io_mem::Range;
 
@@ -706,8 +703,8 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 				try {
 					if (idx == 0)
 						new (alloc) Intel::Io_mmu(_env, io_mmu_devices,
-						                          irq_controllers, device.name(), range,
-						                          _table_registry, _table_allocator,
+						                          devices, device.name(),
+						                          range, _table_registry, _table_allocator,
 						                          _domain_allocator, irq_number);
 				} catch (...) {
 					error("Intel::Io_mmu failed to initialize - ", device.name());

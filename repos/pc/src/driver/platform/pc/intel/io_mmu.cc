@@ -448,7 +448,7 @@ void Intel::Io_mmu::iotlb_flush(Driver::Io_mmu::Domain &domain)
 
 Intel::Io_mmu::Io_mmu(Env                            &env,
                       Io_mmu_devices                 &io_mmu_devices,
-                      Registry<Irq_controller> const &irq_controllers,
+                      Device_model                   &devices,
                       Device::Name             const &name,
                       Device::Io_mem::Range           range,
                       Translation_table_registry     &table_registry,
@@ -484,10 +484,42 @@ Intel::Io_mmu::Io_mmu(Env                            &env,
 	}
 
 	/* Access to the irq controllers are required for IRQ remapping */
-	irq_controllers.for_each([&](auto const &) {
+	devices.for_each_irq_controller([&](auto const &) {
 		/* this flag will be overwritten by _init if IO-MMU has no support */
 		_remap_irqs = true;
 	});
 
 	_init();
+
+	/*
+	 * Insert all default mappings (reserved memory of devices)
+	 */
+	devices.for_each([&] (auto const &device) {
+		device.with_io_mmu([&] (auto const &io_mmu) {
+
+			if (io_mmu.name != _name)
+				return;
+
+			if (device.owned() && device.type() != "ioapic")
+				error("IOMMU detected for device already in use!");
+
+			bool has_reserved_mem = false;
+			device.for_each_reserved_memory([&] (unsigned,
+			                                     Io_mmu::Range range) {
+				add_default_range(range, range.start);
+				has_reserved_mem = true;
+			});
+
+			if (!has_reserved_mem)
+				return;
+
+			/* enable default mappings for corresponding pci devices */
+			device.with_pci_config([&] (Device::Pci_config const &cfg) {
+				_default_mappings.enable_device({cfg.bus_num, cfg.dev_num,
+				                                 cfg.func_num}, _default_domain);
+			});
+		});
+	});
+
+	default_mappings_complete();
 }

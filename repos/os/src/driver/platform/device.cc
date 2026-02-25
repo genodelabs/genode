@@ -446,58 +446,18 @@ void Driver::Device_model::_acquire_io_mmus()
 	if (_kernel_io_mmu.constructed())
 		return;
 
-	auto init_default_mappings = [&] (auto &io_mmu) {
-		for_each([&] (auto const &device) {
-			device.with_io_mmu([&] (auto const &im) {
-
-				if (im.name != io_mmu.name())
-					return;
-
-				if (device.owned())
-					error("IOMMU detected for device already in use!");
-
-				bool has_reserved_mem = false;
-				device.for_each_reserved_memory([&] (unsigned,
-				                                     Io_mmu::Range range) {
-					io_mmu.add_default_range(range, range.start);
-					has_reserved_mem = true;
-				});
-
-				if (!has_reserved_mem)
-					return;
-
-				/* enable default mappings for corresponding pci devices */
-				device.with_pci_config([&] (Device::Pci_config const &cfg) {
-					io_mmu.enable_default_mappings(
-						{cfg.bus_num, cfg.dev_num, cfg.func_num});
-				});
-			});
-		});
-	};
-
+	bool io_mmu_avail = false;
 	_io_mmu_factories.for_each([&] (auto &factory) {
 
 		for_each([&] (auto &dev) {
-			if (dev.owned())
+			if (dev.owned() || !factory.matches(dev))
 				return;
 
-			if (factory.matches(dev)) {
-				dev.acquire(*this);
-				factory.create(_heap, _io_mmus, _irq_controllers, dev);
-
-				_io_mmus.for_each([&] (auto &io_mmu_dev) {
-					if (io_mmu_dev.name() == dev.name())
-						init_default_mappings(io_mmu_dev);
-				});
-			}
+			dev.acquire(*this);
+			factory.create(_heap, _io_mmus, dev, *this);
+			io_mmu_avail = true;
 		});
 
-	});
-
-	bool io_mmu_avail = false;
-	_io_mmus.for_each([&] (auto &io_mmu) {
-		io_mmu.default_mappings_complete();
-		io_mmu_avail = true;
 	});
 
 	/*
@@ -517,13 +477,11 @@ void Driver::Device_model::_acquire_irq_controller()
 	_irq_controller_factories.for_each([&] (auto &factory) {
 
 		for_each([&] (auto &dev) {
-			if (dev.owned())
+			if (dev.owned() || !factory.matches(dev))
 				return;
 
-			if (factory.matches(dev)) {
-				dev.acquire(*this);
-				factory.create(_heap, _irq_controllers, dev);
-			}
+			dev.acquire(*this);
+			factory.create(_heap, _irq_controllers, dev);
 		});
 
 	});

@@ -30,6 +30,7 @@ namespace Driver
 	using namespace Genode;
 
 	class Device;
+	class Device_model;
 	class Io_mmu;
 	class Io_mmu_factory;
 
@@ -106,15 +107,6 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 		virtual void suspend() { }
 		virtual void resume() { }
 
-		/* interface for adding default mappings (used for reserved memory) */
-		virtual void add_default_range(Range const &, addr_t) { }
-
-		/* interface for activating default mappings for certain device */
-		virtual void enable_default_mappings(Pci::Bdf const &) { }
-
-		/* interface for completing default mappings (enabled IOMMU) */
-		virtual void default_mappings_complete() { }
-
 		/* interface for mapping/unmapping interrupts */
 		virtual void     unmap_irq(Pci::Bdf const &, unsigned) { }
 		virtual Irq_info map_irq(Pci::Bdf const &, Irq_info const &info, Irq_config const &) {
@@ -163,10 +155,8 @@ class Driver::Io_mmu_factory : private Genode::Registry<Io_mmu_factory>::Element
 
 		bool matches(Device const &dev);
 
-		virtual void create(Allocator &,
-		                    Io_mmu_devices &,
-		                    Registry<Irq_controller> const &,
-		                    Device const &) = 0;
+		virtual void create(Allocator &, Io_mmu_devices &io_mmu_devices,
+		                    Device const &, Device_model &) = 0;
 };
 
 
