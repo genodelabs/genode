@@ -81,8 +81,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				uint32_t const _supported_page_sizes;
 
 				Table_allocator   _table_allocator;
-				Domain_allocator &_domain_allocator;
-				Domain_id         _domain_id         { _domain_allocator.alloc() };
+				Domain_id   const _domain_id;
 				Irq_allocator    &_irq_allocator;
 
 				addr_t _translation_table_phys {
@@ -121,7 +120,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				Domain(Allocator                  &md_alloc,
 				       Env                        &env,
 				       Ram_allocator              &ram_alloc,
-				       Domain_allocator           &domain_allocator,
+				       Domain_id                   domain_id,
 				       Irq_allocator              &irq_allocator,
 				       Translation_table_registry &table_registry,
 				       bool                        level_4,
@@ -136,7 +135,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 					_coherent_page_walk(coherent_page_walk),
 					_supported_page_sizes(supported_page_sizes),
 					_table_allocator(_env, md_alloc, ram_alloc, 2),
-					_domain_allocator(domain_allocator),
+					_domain_id(domain_id),
 					_irq_allocator(irq_allocator) { }
 
 				~Domain() override
@@ -147,8 +146,6 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 					else
 						_table_allocator.destruct<Level_3_translation_table>(
 							_translation_table_phys);
-
-					_domain_allocator.free(_domain_id);
 				}
 		};
 
@@ -187,8 +184,9 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		Irq_allocator            _irq_allocator    { };
 
 		Report_helper            _report_helper    { _table_registry };
-		Domain_allocator         _domain_allocator;
-		Domain_id                _default_domain   { _domain_allocator.alloc() };
+		Domain_allocator        &_domain_allocator;
+
+		Domain_id _default_domain { _domain_allocator.alloc(_max_domain()) };
 
 		/**
 		 * For a start, we keep a distinct root table for every hardware unit.
@@ -410,8 +408,8 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			struct Info : Bitfield<12,52> { };
 		};
 
-		uint32_t _max_domains() {
-			return 1 << (4 + read<Capability::Domains>()*2); }
+		Domain_id _max_domain() {
+			return (1 << (4 + read<Capability::Domains>()*2)) - 1; }
 
 		template <typename BIT>
 		void _global_command(bool set)
@@ -608,12 +606,21 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 			return *new (md_alloc)
 				Intel::Io_mmu::Domain(md_alloc, _env, ram_alloc,
-				                      _domain_allocator, _irq_allocator,
-				                      _table_registry,
+				                      _domain_allocator.alloc(_max_domain()),
+				                      _irq_allocator, _table_registry,
 				                      read<Capability::Sagaw_4_level>(),
 				                      coherent_page_walk(),
 				                      supported_page_sizes());
 		}
+
+		void destroy_domain(Allocator              &md_alloc,
+		                    Driver::Io_mmu::Domain &domain) override
+		{
+			Domain &intel_domain = static_cast<Domain&>(domain);
+			_domain_allocator.free(intel_domain._domain_id),
+			destroy(md_alloc, &intel_domain);
+		}
+
 
 		void enregister(Device const &device,
 		                Driver::Io_mmu::Domain &domain) override;
@@ -634,6 +641,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		       Device::Io_mem::Range           range,
 		       Translation_table_registry     &table_registry,
 		       Context_table_allocator        &table_allocator,
+		       Domain_allocator               &domain_allocator,
 		       unsigned                        irq_number);
 
 		~Io_mmu()
@@ -670,6 +678,8 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 		/* We use a single allocator for context tables for all IOMMU devices */
 		Context_table_allocator &_table_allocator { _table_array.alloc() };
 
+		Domain_allocator _domain_allocator { };
+
 	public:
 
 		Io_mmu_factory(Genode::Env &env, Registry<Driver::Io_mmu_factory> &registry)
@@ -696,10 +706,9 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 				try {
 					if (idx == 0)
 						new (alloc) Intel::Io_mmu(_env, io_mmu_devices,
-						                          irq_controllers, device.name(),
-						                          range,
-						                          _table_registry,
-						                          _table_allocator, irq_number);
+						                          irq_controllers, device.name(), range,
+						                          _table_registry, _table_allocator,
+						                          _domain_allocator, irq_number);
 				} catch (...) {
 					error("Intel::Io_mmu failed to initialize - ", device.name());
 				}

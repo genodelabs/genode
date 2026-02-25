@@ -136,10 +136,7 @@ class Driver::Ioapic_factory : public Driver::Irq_controller_factory
 			if (!remap)
 				return;
 
-			unsigned iommu_idx = 0;
-			device.for_each_io_mmu([&] (Device::Io_mmu const &iommu) {
-				if (iommu_idx++) return;
-
+			device.with_io_mmu([&] (Device::Io_mmu const &iommu) {
 				device.for_each_io_mem([&] (unsigned idx, Range range, Device::Pci_bar, bool)
 				{
 					try {
@@ -150,7 +147,7 @@ class Driver::Ioapic_factory : public Driver::Irq_controller_factory
 						warning("Access to IO-APIC failed - ", device.name());
 					}
 				});
-			}, [] () { /* empty fn */ });
+			});
 		}
 };
 

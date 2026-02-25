@@ -128,6 +128,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 		/* Create a Io_mmu::Domain object */
 		virtual Domain & create_domain(Allocator&, Ram_allocator&,
 		                               Ram_quota_guard&, Cap_quota_guard&) = 0;
+		virtual void destroy_domain(Allocator &, Domain &) = 0;
 
 		virtual void enregister(Device const &, Domain &) {};
 		virtual void deregister(Device const &, Domain &) {};

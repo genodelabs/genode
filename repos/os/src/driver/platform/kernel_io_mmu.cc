@@ -179,6 +179,13 @@ Kernel_io_mmu::create_domain(Allocator                  &md_alloc,
 }
 
 
+void Kernel_io_mmu::destroy_domain(Allocator &, Driver::Io_mmu::Domain &)
+{
+	error(__func__,
+	      " for kernel controlled IOMMU domain should never be called!");
+}
+
+
 Kernel_io_mmu::Kernel_io_mmu(Env                     &env,
                              Io_mmu_devices           &io_mmu_devices,
                              Device_name        const &name)

@@ -60,6 +60,8 @@ class Driver::Kernel_io_mmu : public Io_mmu
 			Ram_quota_guard            &ram_guard,
 			Cap_quota_guard            &cap_guard) override;
 
+		void destroy_domain(Allocator &, Driver::Io_mmu::Domain &) override;
+
 		void enregister(Device const &, Domain &) override;
 		void deregister(Device const &, Domain &) override;
 };

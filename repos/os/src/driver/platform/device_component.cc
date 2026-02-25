@@ -37,10 +37,11 @@ void Driver::Device_component::_release_resources()
 				});
 			});
 		} else {
-			_io_mmu_registry.for_each([&] (Io_mmu &io_mmu) {
-				if (_pci_config.constructed())
+			_with_io_mmu([&] (Io_mmu &io_mmu) {
+				_with_pci_config([&] (auto &pci_config) {
 					_devices.with_io_mmu(io_mmu.name, [&] (Driver::Io_mmu &io_mmu_dev) {
-						io_mmu_dev.unmap_irq(_pci_config->bdf, irq.remapped_nbr); });
+						io_mmu_dev.unmap_irq(pci_config.bdf, irq.remapped_nbr); });
+				});
 			});
 		}
 
@@ -50,8 +51,7 @@ void Driver::Device_component::_release_resources()
 	_io_port_range_registry.for_each([&] (Io_port_range &iop) {
 		destroy(_session.heap(), &iop); });
 
-	_io_mmu_registry.for_each([&] (Io_mmu &io_mmu) {
-		destroy(_session.heap(), &io_mmu); });
+	_io_mmu.destruct();
 
 	_reserved_mem_registry.for_each([&] (Io_mem &iomem)
 	{
@@ -63,7 +63,7 @@ void Driver::Device_component::_release_resources()
 		destroy(_session.heap(), &iomem);
 	});
 
-	if (_pci_config.constructed()) _pci_config.destruct();
+	_pci_config.destruct();
 
 	_session.ram_quota_guard().replenish(Ram_quota{_ram_quota});
 	_session.cap_quota_guard().replenish(Cap_quota{_cap_quota});
@@ -137,7 +137,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 		if (iommu_name != "")
 			map_fn(iommu_name);
 		else
-			_io_mmu_registry.for_each([&] (Io_mmu const &io_mmu) {
+			_with_io_mmu([&] (Io_mmu const &io_mmu) {
 				map_fn(io_mmu.name);
 			});
 
@@ -154,17 +154,11 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 				return;
 
 			if (!irq.shared && !irq.irq.constructed()) {
-				addr_t   pci_cfg_addr = 0;
-				Pci::Bdf bdf { 0, 0, 0 };
 				if (irq.type != Irq_session::TYPE_LEGACY) {
-					if (_pci_config.constructed()) {
-						pci_cfg_addr = _pci_config->addr;
-						bdf          = _pci_config->bdf;
-					} else
-						error("MSI(-x) detected for device without pci-config!");
-
-					irq.irq.construct(_env, irq.number, pci_cfg_addr, irq.type,
-					                  Pci::Bdf::rid(_pci_config->bdf));
+					_with_pci_config([&] (auto &pci_config) {
+						irq.irq.construct(_env, irq.number, pci_config.addr,
+						                  irq.type, Pci::Bdf::rid(pci_config.bdf));
+					});
 				} else
 					irq.irq.construct(_env, irq.number, irq.mode, irq.polarity);
 
@@ -175,10 +169,12 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 				 * base-hw as it never touches the upper 32bit after the initial setup.
 				 */
 				Irq_session::Info info = irq.irq->info();
-				if (pci_cfg_addr && info.type == Irq_session::Info::MSI)
-					pci_msi_enable(_env, *this, pci_cfg_addr,
-					               remapped_irq("", bdf, irq, info, Irq_config::Invalid()).session_info,
-					               irq.type);
+				if (info.type == Irq_session::Info::MSI)
+					_with_pci_config([&] (auto &pci_config) {
+						pci_msi_enable(_env, *this, pci_config.addr,
+						               remapped_irq("", pci_config.bdf, irq, info,
+						                            Irq_config::Invalid()).session_info,
+						               irq.type); });
 				else
 					_devices.for_each_irq_controller([&] (Irq_controller &controller) {
 						if (!controller.handles_irq(irq.number)) return;
@@ -333,10 +329,9 @@ Device_component::Device_component(Registry<Device_component> &registry,
 			});
 		});
 
-		device.for_each_io_mmu(
-			[&] (Driver::Device::Io_mmu const &io_mmu) {
-				new (session.heap()) Io_mmu(_io_mmu_registry, io_mmu.name);
-		}, [] () { /* ignore */ });
+		device.with_io_mmu([&] (Driver::Device::Io_mmu const &io_mmu) {
+			_io_mmu.construct(io_mmu.name);
+		});
 
 	} catch(...) {
 		_release_resources();

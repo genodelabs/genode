@@ -97,15 +97,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 				idx(idx), range(range) {}
 		};
 
-		struct Io_mmu : Registry<Io_mmu>::Element
-		{
-			Device::Name name;
-
-			Io_mmu(Registry<Io_mmu> &registry, Device::Name const &name)
-			:
-				Registry<Io_mmu>::Element(registry, *this),
-				name(name) {}
-		};
+		struct Io_mmu { Device::Name name; };
 
 		struct Pci_config
 		{
@@ -148,7 +140,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		Registry<Io_mem>                    _io_mem_registry {};
 		Registry<Io_port_range>             _io_port_range_registry {};
 		Registry<Io_mem>                    _reserved_mem_registry {};
-		Registry<Io_mmu>                    _io_mmu_registry {};
+		Constructible<Io_mmu>               _io_mmu {};
 		Constructible<Pci_config>           _pci_config {};
 
 		void _release_resources();
@@ -156,6 +148,12 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		template <typename SESSION>
 		void _with_reserved_quota_for_session(Driver::Session_component &session,
 		                                      auto const &fn);
+
+		void _with_pci_config(auto const &fn) {
+			if (_pci_config.constructed()) { fn(*_pci_config); } }
+
+		void _with_io_mmu(auto const &fn) {
+			if (_io_mmu.constructed()) { fn(*_io_mmu); } }
 
 		/*
 		 * Noncopyable

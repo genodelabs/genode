@@ -448,7 +448,10 @@ void Driver::Device_model::_acquire_io_mmus()
 
 	auto init_default_mappings = [&] (auto &io_mmu) {
 		for_each([&] (auto const &device) {
-			device.with_io_mmu(io_mmu.name(), [&] (auto const &) {
+			device.with_io_mmu([&] (auto const &im) {
+
+				if (im.name != io_mmu.name())
+					return;
 
 				if (device.owned())
 					error("IOMMU detected for device already in use!");
@@ -598,7 +601,7 @@ void Driver::Device_model::report_devices(Generator &g) const
 
 void Driver::Device_model::report_iommus(Generator &g) const
 {
-	for_each_io_mmu([&] (Io_mmu const &io_mmu) {
+	_io_mmus.for_each([&] (auto const &io_mmu) {
 		io_mmu.generate(g); });
 }
 

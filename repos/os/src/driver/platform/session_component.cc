@@ -92,7 +92,7 @@ bool Session_component::_dma_remapable() const
 	_devices.for_each([&] (Device const &dev) {
 		if (!matches(dev)) return;
 
-		_devices.with_io_mmu(dev.name(), [&] (auto const &io_mmu) {
+		_devices.with_io_mmu(dev, [&] (auto &io_mmu) {
 			if (io_mmu.mpu()) mpu_present   = true;
 			else              iommu_present = true;
 		});

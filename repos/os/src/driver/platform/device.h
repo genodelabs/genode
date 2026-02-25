@@ -398,22 +398,16 @@ class Driver::Device : private List_model<Device>::Element
 				fn(idx++, mem.range); });
 		}
 
-		void for_each_io_mmu(auto const &fn, auto const &empty_fn) const
+		void with_io_mmu(auto const &fn) const
 		{
-			bool empty = true;
-			_io_mmu_list.for_each([&] (Io_mmu const &io_mmu) {
-				empty = false;
+			/* * we allow only one IOMMU per device */
+			bool found = false;
+			_io_mmu_list.for_each([&] (auto const &io_mmu) {
+				if (found)
+					return;
+				found = true;
 				fn(io_mmu);
 			});
-
-			if (empty)
-				empty_fn();
-		}
-
-		void with_io_mmu(Io_mmu::Name const &name, auto const &fn) const
-		{
-			_io_mmu_list.for_each([&] (auto const &io_mmu) {
-				if (io_mmu.name == name) fn(io_mmu); });
 		}
 
 		void generate(Generator &, bool) const;
@@ -544,9 +538,6 @@ class Driver::Device_model : public Device_owner
 		void for_each_io_mmu(auto const &fn) {
 			_io_mmus.for_each([&] (auto &io_mmu) { fn(io_mmu); }); }
 
-		void for_each_io_mmu(auto const &fn) const {
-			_io_mmus.for_each([&] (auto const &io_mmu) { fn(io_mmu); }); }
-
 		void for_each_irq_controller(auto const &fn) {
 			_irq_controllers.for_each([&] (auto &ic) { fn(ic); }); }
 
@@ -558,20 +549,15 @@ class Driver::Device_model : public Device_owner
 
 		void with_io_mmu(Device::Name const &name, auto const &fn)
 		{
-			for_each_io_mmu([&] (auto &io_mmu) {
+			_io_mmus.for_each([&] (auto &io_mmu) {
 				if (_kernel_io_mmu.constructed() ||
 				    io_mmu.name() == name) fn(io_mmu); });
 		}
 
 		void with_io_mmu(Device const &dev, auto const &fn)
 		{
-			bool found = false;
-			dev.for_each_io_mmu([&] (auto const &im) {
-				if (found)
-					return;
-				found = true;
-				with_io_mmu(im.name, fn);
-			}, [] () { /* ignore */ });
+			dev.with_io_mmu([&] (auto const &im) {
+				with_io_mmu(im.name, fn); });
 		}
 
 		void with_irq_controller(Device::Name const &name, auto const &fn)

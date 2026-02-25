@@ -34,7 +34,7 @@ struct Intel::Domain_id
 
 	enum {
 		INVALID = 0,
-		MAX = (1 << 16)-1
+		MAX = (1 << 8)-1 /* Context_table Domain field limited to 8-bits */
 	};
 
 	bool valid() {
@@ -57,21 +57,16 @@ class Intel::Domain_allocator
 
 		using Bit_allocator = Genode::Bit_allocator<Domain_id::MAX+1>;
 
-		Domain_id      _max_id;
-		Bit_allocator  _allocator { };
+		Bit_allocator _allocator { };
 
 	public:
 
-		Domain_allocator(size_t max_id)
-		: _max_id(max_id)
-		{ }
-
-		Domain_id alloc()
+		Domain_id alloc(Domain_id const max_id)
 		{
 			return _allocator.alloc().convert<Domain_id>(
 				[&] (addr_t const allocated_id) {
 					addr_t const new_id = allocated_id + 1;
-					if (new_id > _max_id.value) {
+					if (new_id > max_id.value) {
 						_allocator.free(allocated_id);
 						throw Out_of_domains();
 					}
