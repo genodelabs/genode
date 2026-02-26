@@ -415,14 +415,6 @@ int drm_writeback_prepare_job(struct drm_writeback_job * job)
 struct irq_chip dummy_irq_chip;
 
 
-#include <linux/mmdebug.h>
-
-void dump_page(const struct page * page,const char * reason)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
@@ -1115,14 +1107,6 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 #include <linux/init.h>
 
 bool initcall_debug;
-
-
-#include <linux/math.h>
-
-unsigned long int_sqrt(unsigned long x)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 extern u64 intel_context_get_total_runtime_ns(struct intel_context * ce);

@@ -1,0 +1,21 @@
+Intel DSB requires to attach a DMA page as write-combined, which is not
+supported by now. Disable the feature for newer display generation beginning
+with 12 to avoid erratic behaviour, e.g:
+
+[init -> runtime -> intel_fb] i915 00:02.0: [drm] *ERROR* [CRTC:108:pipe A] flip_done timed out——
+[init -> runtime -> intel_fb] i915 00:02.0: [drm] *ERROR* flip_done timed out
+[init -> runtime -> intel_fb] i915 00:02.0: [drm] *ERROR* [CRTC:108:pipe A] commit wait timed out
+...
+[init -> runtime -> intel_fb] vmap -- failed, pages are non contiguous count=2
+[init -> runtime -> intel_fb] i915 00:02.0: [drm] [CRTC:185:pipe B] DSB 0 queue setup failed, will fallback to MMIO for display HW programming
+--- src/linux/drivers/gpu/drm/i915/display/intel_display_params.h
++++ src/linux/drivers/gpu/drm/i915/display/intel_display_params.h
+@@ -30,7 +30,7 @@
+ 	param(int, vbt_sdvo_panel_type, -1, 0400) \
+ 	param(int, enable_dc, -1, 0400) \
+ 	param(bool, enable_dpt, true, 0400) \
+-	param(bool, enable_dsb, true, 0600) \
++	param(bool, enable_dsb, false, 0600) \
+ 	param(bool, enable_flipq, false, 0600) \
+ 	param(bool, enable_sagv, true, 0600) \
+ 	param(int, disable_power_well, -1, 0400) \
