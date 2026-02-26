@@ -771,12 +771,12 @@ proc genode_version { } {
 	return $version
 }
 
-set    build_info "build_info"
-append build_info "  genode_version: [genode_version]"
-append build_info "  date:           [build_date]"
-append build_info "  depot_user:     [depot_user]"
-append build_info "  board:          $board_var"
-append build_info "  base:           [depot_user]/bin/[depot_spec]/[base_src]/[_current_depot_archive_version src [base_src]]"
+set    build_info "build_info\n"
+append build_info "  genode_version: [genode_version]\n"
+append build_info "  date:           [build_date]\n"
+append build_info "  depot_user:     [depot_user]\n"
+append build_info "  board:          $board_var\n"
+append build_info "  base:           [depot_user]/bin/[depot_spec]/[base_src]/[_current_depot_archive_version src [base_src]]\n"
 append build_info "-"
 
 set fd [open [run_dir]/genode/build_info w]
