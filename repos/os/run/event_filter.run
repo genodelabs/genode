@@ -519,19 +519,22 @@ config
   + touch-release  | id: 0
   + touch | x: 200 | y: 300
   + touch | x: 220 | y: 300
-+ sleep | ms: 500
++ sleep | ms: 400
++ sleep | ms: 100
 + usb
   + touch-release  | id: 0
   + touch | x: 300 | y: 300
   + touch | x: 310 | y: 300
-+ sleep | ms: 500
++ sleep | ms: 400
++ sleep | ms: 100
 + usb
   + touch | id: 0 | x: 330 | y: 330
   + touch-release | id: 0
   + touch | id: 0 | x: 100 | y: 100
   + touch | id: 1 | x: 110 | y: 100
   + touch | id: 1 | x: 112 | y: 100
-+ sleep | ms: 500
++ sleep | ms: 400
++ sleep | ms: 100
 + usb
   + touch | id: 0 | x: 150 | y: 100
   + touch-release | id: 1
@@ -581,7 +584,8 @@ config
   + touch-release
   + touch | x: 15 | y: 200
   + touch | x: 15 | y: 220
-+ sleep | ms: 500
++ sleep | ms: 400
++ sleep | ms: 100
 + usb
   + touch | x: 15 | y: 400
   + touch-release
