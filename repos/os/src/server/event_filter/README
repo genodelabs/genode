@@ -146,13 +146,23 @@ one of the following filters:
 
   :<rotate>:
 
-    Rotates clockwise (around origin (0,0) by 90, 180, or 270 degrees in
-    attribute 'angle'.
+    Rotates counter-clockwise (around origin (0,0) by 90, 180, or 270
+    degrees in attribute 'angle'. For example with rotate set to 90 degrees,
+    point (0,5) is reported as (-5,0).
 
   :<reorient>:
 
-    Rotates clockwise (like 'rotate') but also translates results for
-    desired target 'width' and 'height' attributes.
+    Rotates counter-clockwise (like 'rotate') but also translates results
+    for desired target 'width' and 'height' attributes effectively moving
+    the pivot point to the lower-left corner after reorientation. The
+    following example, corrects coordinates for a FullHD touchscreen rotated
+    90 degrees counter-clockwise from landscape to portrait orientation.
+
+    ! <reorient angle="90" width="1080" height="1920"/>
+
+    Thus, point (20,10) in the lower-left corner is reported as (1069, 20)
+    in the lower-right corner. For clockwise 90 degree reorientation,
+    'angle' must be set to 270.
 
   :<hflip>/<vflip>:
 
