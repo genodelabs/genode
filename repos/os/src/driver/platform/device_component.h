@@ -59,6 +59,9 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 				Registry<Irq>::Element(registry, *this),
 				idx(idx), number(number), remapped_nbr(number), type(type),
 				polarity(polarity), mode(mode), shared(shared) {}
+
+			Irq_session_capability map(Device_component &);
+			void unmap(Device_component &);
 		};
 
 		struct Io_mem : Registry<Io_mem>::Element
@@ -128,6 +131,8 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		Io_port_session_capability io_port_range(unsigned);
 
 	private:
+
+		friend class Irq;
 
 		Env                                &_env;
 		Session_component                  &_session;

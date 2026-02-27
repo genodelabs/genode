@@ -19,6 +19,105 @@
 
 using Driver::Device_component;
 
+Genode::Irq_session_capability Device_component::Irq::map(Device_component &dc)
+{
+	if (irq.constructed())
+	   return irq->cap();
+
+	if (sirq.constructed())
+	   return sirq->cap();
+
+	using Irq_info   = Driver::Io_mmu::Irq_info;
+	using Irq_config = Irq_controller::Irq_config;
+
+	auto remap = [&] (Device::Name      const &iommu_name,
+	                  Pci::Bdf          const &bdf,
+	                  Irq_session::Info const &info,
+	                  Irq_config        const &config)
+	{
+		Irq_info irq_info { Irq_info::DIRECT, info, number };
+
+		dc._devices.with_io_mmu(iommu_name, [&] (auto &io_mmu) {
+			irq_info = io_mmu.map_irq(bdf, irq_info, config); });
+
+		/* store remapped number at irq object */
+		remapped_nbr = irq_info.irq_number;
+
+		return irq_info;
+	};
+
+	auto remap_legacy_irq = [&] ()
+	{
+		dc._devices.for_each_irq_controller([&] (auto &controller) {
+			if (!controller.handles_irq(number)) return;
+
+			Irq_session::Info const dummy_info {
+				Irq_session::Info::INVALID, 0, 0 };
+			remap(controller.iommu(), controller.bdf(),
+			      dummy_info, controller.irq_config(number));
+
+			/*
+			 * Core/Kernel is and remains in control of the IRQ controller. When
+			 * IRQ remapping is enabled, however, we need to modify the upper 32bit
+			 * of the corresponding redirection table entry. This is save for
+			 * base-hw as it never touches the upper 32bit after the initial setup.
+			 */
+			controller.remap_irq(number, remapped_nbr);
+		});
+	};
+
+	/* Shared legacy interrupt */
+	if (shared) {
+		dc._devices.with_shared_irq(number, [&] (auto &shared_irq) {
+			sirq.construct(dc._env.ep().rpc_ep(), shared_irq, mode, polarity);
+			remap_legacy_irq();
+		});
+		return sirq.constructed() ? sirq->cap() : Irq_session_capability();
+	}
+
+	/* Non-shared legacy interrupt */
+	if (type == Irq_session::TYPE_LEGACY) {
+		irq.construct(dc._env, number, mode, polarity);
+		remap_legacy_irq();
+		return irq->cap();
+	}
+
+	/* Non-shared Msi-(x) interrupt */
+	dc._with_pci_config([&] (auto &pci_config) {
+		irq.construct(dc._env, number, pci_config.addr, type,
+		              Pci::Bdf::rid(pci_config.bdf));
+		Irq_session::Info info = irq->info();
+		dc._with_io_mmu([&] (Io_mmu const &io_mmu) {
+			info = remap(io_mmu.name, pci_config.bdf, info,
+			             Irq_config::Invalid()).session_info;
+		});
+		pci_msi_enable(dc._env, dc, pci_config.addr, info, type);
+	});
+
+	return irq.constructed() ? irq->cap() : Irq_session_capability();
+}
+
+
+void Device_component::Irq::unmap(Device_component &dc)
+{
+	if (type == Irq_session::TYPE_LEGACY)
+		dc._devices.for_each_irq_controller([&] (auto &controller) {
+			if (!controller.handles_irq(number)) return;
+
+			dc._devices.with_io_mmu(controller.iommu(),
+			                        [&] (auto &io_mmu) {
+				io_mmu.unmap_irq(controller.bdf(), remapped_nbr);
+			});
+		});
+	else
+		dc._with_io_mmu([&] (auto &io_mmu) {
+			dc._with_pci_config([&] (auto &pci_config) {
+				dc._devices.with_io_mmu(io_mmu.name, [&] (auto &io_mmu_dev) {
+					io_mmu_dev.unmap_irq(pci_config.bdf, remapped_nbr); });
+			});
+		});
+}
+
 
 void Driver::Device_component::_release_resources()
 {
@@ -28,23 +127,7 @@ void Driver::Device_component::_release_resources()
 	_irq_registry.for_each([&] (Irq &irq) {
 
 		/* unmap IRQ from corresponding remapping table */
-		if (irq.type == Irq_session::TYPE_LEGACY) {
-			_devices.for_each_irq_controller([&] (Irq_controller &controller) {
-				if (!controller.handles_irq(irq.number)) return;
-
-				_devices.with_io_mmu(controller.iommu(), [&] (Driver::Io_mmu &io_mmu_dev) {
-					io_mmu_dev.unmap_irq(controller.bdf(), irq.remapped_nbr);
-				});
-			});
-		} else {
-			_with_io_mmu([&] (Io_mmu &io_mmu) {
-				_with_pci_config([&] (auto &pci_config) {
-					_devices.with_io_mmu(io_mmu.name, [&] (Driver::Io_mmu &io_mmu_dev) {
-						io_mmu_dev.unmap_irq(pci_config.bdf, irq.remapped_nbr); });
-				});
-			});
-		}
-
+		irq.unmap(*this);
 		destroy(_session.heap(), &irq);
 	});
 
@@ -114,38 +197,7 @@ Device_component::io_mem(unsigned idx, Range &range)
 
 Genode::Irq_session_capability Device_component::irq(unsigned idx)
 {
-	using Irq_config = Irq_controller::Irq_config;
-
 	Irq_session_capability cap;
-
-	auto remapped_irq = [&] (Device::Name      const &iommu_name,
-	                         Pci::Bdf          const &bdf,
-	                         Irq                     &irq,
-	                         Irq_session::Info const &info,
-	                         Irq_config        const &config)
-	{
-		using Irq_info = Driver::Io_mmu::Irq_info;
-		Irq_info remapped_irq { Irq_info::DIRECT, info, irq.number };
-
-		auto map_fn = [&] (Device::Name const &name) {
-			_devices.with_io_mmu(name, [&] (Driver::Io_mmu &io_mmu) {
-				remapped_irq = io_mmu.map_irq(bdf, remapped_irq, config);
-			});
-		};
-
-		/* for legacy IRQs, take IOMMU referenced by IOAPIC */
-		if (iommu_name != "")
-			map_fn(iommu_name);
-		else
-			_with_io_mmu([&] (Io_mmu const &io_mmu) {
-				map_fn(io_mmu.name);
-			});
-
-		/* store remapped number at irq object */
-		irq.remapped_nbr = remapped_irq.irq_number;
-
-		return remapped_irq;
-	};
 
 	try {
 		_irq_registry.for_each([&] (Irq &irq)
@@ -153,55 +205,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 			if (irq.idx != idx)
 				return;
 
-			if (!irq.shared && !irq.irq.constructed()) {
-				if (irq.type != Irq_session::TYPE_LEGACY) {
-					_with_pci_config([&] (auto &pci_config) {
-						irq.irq.construct(_env, irq.number, pci_config.addr,
-						                  irq.type, Pci::Bdf::rid(pci_config.bdf));
-					});
-				} else
-					irq.irq.construct(_env, irq.number, irq.mode, irq.polarity);
-
-				/**
-				 * Core/Kernel is and remains in control of the IRQ controller. When
-				 * IRQ remapping is enabled, however, we need to modify the upper 32bit
-				 * of the corresponding redirection table entry. This is save for
-				 * base-hw as it never touches the upper 32bit after the initial setup.
-				 */
-				Irq_session::Info info = irq.irq->info();
-				if (info.type == Irq_session::Info::MSI)
-					_with_pci_config([&] (auto &pci_config) {
-						pci_msi_enable(_env, *this, pci_config.addr,
-						               remapped_irq("", pci_config.bdf, irq, info,
-						                            Irq_config::Invalid()).session_info,
-						               irq.type); });
-				else
-					_devices.for_each_irq_controller([&] (Irq_controller &controller) {
-						if (!controller.handles_irq(irq.number)) return;
-
-						remapped_irq(controller.iommu(), controller.bdf(), irq, info,
-						             controller.irq_config(irq.number));
-						controller.remap_irq(irq.number, irq.remapped_nbr);
-					});
-			}
-
-			if (irq.shared && !irq.sirq.constructed())
-				_devices.with_shared_irq(irq.number,
-				                              [&] (Shared_interrupt &sirq) {
-					irq.sirq.construct(_env.ep().rpc_ep(), sirq,
-					                   irq.mode, irq.polarity);
-
-					_devices.for_each_irq_controller([&] (Irq_controller &controller) {
-						if (!controller.handles_irq(irq.number)) return;
-
-						remapped_irq(controller.iommu(), controller.bdf(), irq,
-						             { Irq_session::Info::INVALID, 0, 0 },
-						             controller.irq_config(irq.number));
-						controller.remap_irq(irq.number, irq.remapped_nbr);
-					});
-				});
-
-			cap = irq.shared ? irq.sirq->cap() : irq.irq->cap();
+			cap = irq.map(*this);
 		});
 	} catch (Service_denied) { error("irq could not be setup ", _device_name); }
 
