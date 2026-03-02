@@ -77,8 +77,11 @@ struct vfsmount * kern_mount(struct file_system_type * type)
 	return m;
 }
 
-
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,14,0)
 struct inode * alloc_inode(struct super_block * sb)
+#else
+struct inode * new_inode_pseudo(struct super_block * sb)
+#endif
 {
 	const struct super_operations *ops = sb->s_op;
 	struct inode *inode;
