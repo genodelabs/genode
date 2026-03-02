@@ -107,8 +107,9 @@ class Core::Ram_dataspace_factory : public Dataspace_owner
 		addr_t dataspace_dma_addr(Ram_dataspace_capability);
 
 		Alloc_ram_result alloc_ram(size_t, Cache);
-		void free_ram(Ram_dataspace_capability);
-		size_t ram_size(Ram_dataspace_capability ds);
+		void   free_ram(Ram_dataspace_capability);
+		void   seal_ram(Ram_dataspace_capability);
+		size_t ram_size(Ram_dataspace_capability);
 };
 
 #endif /* _CORE__INCLUDE__RAM_DATASPACE_FACTORY_H_ */

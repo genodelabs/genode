@@ -180,6 +180,14 @@ void Ram_dataspace_factory::free_ram(Ram_dataspace_capability ds_cap)
 }
 
 
+void Ram_dataspace_factory::seal_ram(Ram_dataspace_capability ds_cap)
+{
+	_ep.apply(ds_cap, [&] (Dataspace_component *c) {
+		if (c && c->owner(*this))
+			c->seal(); });
+}
+
+
 size_t Ram_dataspace_factory::ram_size(Ram_dataspace_capability ds_cap)
 {
 	size_t result = 0;

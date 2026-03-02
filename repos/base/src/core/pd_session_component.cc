@@ -85,6 +85,15 @@ void Pd_session_component::free_ram(Ram_dataspace_capability ds_cap)
 }
 
 
+void Pd_session_component::seal_ram(Ram_dataspace_capability ds_cap)
+{
+	if (this->cap() == ds_cap)
+		return;
+
+	_ram_ds_factory.seal_ram(ds_cap);
+}
+
+
 size_t Pd_session_component::ram_size(Ram_dataspace_capability ds_cap)
 {
 	if (this->cap() == ds_cap)

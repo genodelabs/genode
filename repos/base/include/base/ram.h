@@ -105,6 +105,8 @@ struct Genode::Ram::Accounted_allocator : ALLOC
 		);
 	}
 
+	void seal(Ram::Capability cap) override { _alloc.seal(cap); }
+
 	void _free(Allocation &allocation) override
 	{
 		_alloc._free(allocation);

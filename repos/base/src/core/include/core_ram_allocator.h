@@ -41,6 +41,11 @@ struct Core::Core_ram_allocator : Ram_allocator
 		_factory.free_ram(allocation.cap);
 	}
 
+	void seal(Ram::Capability cap) override
+	{
+		_factory.seal_ram(cap);
+	}
+
 	Core_ram_allocator(Ram_dataspace_factory &factory) : _factory(factory) { }
 };
 

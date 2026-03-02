@@ -252,7 +252,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 		{
 			.base  = at,
 			.size  = size,
-			.write = attr.writeable,
+			.write = attr.writeable && !dsc->sealed(),
 			.exec  = attr.executable,
 			.off   = attr.offset,
 			.dma   = core_attr.dma,

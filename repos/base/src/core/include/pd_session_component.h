@@ -338,7 +338,10 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 
 		void free_ram(Ram_dataspace_capability) override;
 
+		void seal_ram(Ram_dataspace_capability) override;
+
 		size_t ram_size(Ram_dataspace_capability) override;
+
 
 
 		/*******************************************

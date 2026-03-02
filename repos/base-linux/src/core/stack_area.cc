@@ -78,6 +78,8 @@ struct Stack_area_ram_allocator : Genode::Ram_allocator
 {
 	Result try_alloc(Genode::size_t, Genode::Cache) override { return { *this, { } }; }
 
+	void seal(Genode::Ram::Capability) override { }
+
 	void _free(Genode::Ram::Allocation &) override { }
 };
 

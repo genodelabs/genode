@@ -81,6 +81,7 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	}
 
 	void free_ram(Ram_dataspace_capability ds) override { call<Rpc_free_ram>(ds); }
+	void seal_ram(Ram_dataspace_capability ds) override { call<Rpc_seal_ram>(ds); }
 
 	size_t ram_size(Ram_dataspace_capability cap) override
 	{

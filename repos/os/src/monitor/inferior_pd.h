@@ -249,6 +249,11 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 		_real.call<Rpc_free_ram>(ds);
 	}
 
+	void seal_ram(Ram_dataspace_capability ds) override
+	{
+		_real.call<Rpc_seal_ram>(ds);
+	}
+
 	size_t ram_size(Ram_dataspace_capability ds) override
 	{
 		return _real.call<Rpc_ram_size>(ds);
