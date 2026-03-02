@@ -131,6 +131,17 @@ struct Genode::Pd_session : Session, Pd_account
 	 */
 	virtual size_t ram_size(Ram_dataspace_capability) = 0;
 
+	/**
+	 * Downgrade RAM dataspace to read-only access
+	 *
+	 * By sealing a RAM dataspace, all subsequent 'attach' operations become
+	 * limited to read-only access. Existing attachments remain unaffected.
+	 * So the original creator of the RAM dataspace can retain the ability to
+	 * alter its content by keeping it attached while anyone obtaining the
+	 * dataspace after being sealed can merely observe it.
+	 */
+	virtual void seal_ram(Ram_dataspace_capability) = 0;
+
 
 	/********************************
 	 ** Support for the signal API **
@@ -385,6 +396,7 @@ struct Genode::Pd_session : Session, Pd_account
 	GENODE_RPC(Rpc_used_caps, Cap_quota, used_caps);
 	GENODE_RPC(Rpc_alloc_ram, Alloc_ram_result, alloc_ram, size_t, Cache);
 	GENODE_RPC(Rpc_free_ram, void, free_ram, Ram_dataspace_capability);
+	GENODE_RPC(Rpc_seal_ram, void, seal_ram, Ram_dataspace_capability);
 	GENODE_RPC(Rpc_ram_size, size_t, ram_size, Ram_dataspace_capability);
 	GENODE_RPC(Rpc_ram_quota, Ram_quota, ram_quota);
 	GENODE_RPC(Rpc_used_ram, Ram_quota, used_ram);
@@ -401,7 +413,7 @@ struct Genode::Pd_session : Session, Pd_account
 		Rpc_alloc_context, Rpc_free_context, Rpc_submit,
 		Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
 		Rpc_stack_area, Rpc_linker_area, Rpc_ref_account,
-		Rpc_alloc_ram, Rpc_free_ram, Rpc_ram_size,
+		Rpc_alloc_ram, Rpc_free_ram, Rpc_seal_ram, Rpc_ram_size,
 		Rpc_cap_quota, Rpc_used_caps, Rpc_ram_quota, Rpc_used_ram,
 		Rpc_native_pd, Rpc_system_control_cap,
 		Rpc_dma_addr, Rpc_attach_dma);
@@ -425,6 +437,8 @@ struct Genode::Pd_ram_allocator : Ram_allocator
 	{
 		_pd.free_ram(allocation.cap);
 	}
+
+	void seal(Ram::Capability cap) override { _pd.seal_ram(cap); }
 
 	Pd_ram_allocator(Pd_session &pd) : _pd(pd) { }
 };

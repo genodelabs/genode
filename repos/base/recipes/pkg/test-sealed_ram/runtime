@@ -1,0 +1,19 @@
+runtime | ram: 4M | caps: 1000 | binary: test-sealed_ram
+
++ succeed | after_seconds: 3
+  : RAM contains: original content
+  : sealing
+  : RAM contains: original content
+  : read-only mapping contains: original content
+  : modify original mapping
+  : read-only mapping contains: modified content
+  : try to modify read-only mapping
+
++ fail | : this should never happen
+
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-sealed_ram
+
++ config
+-

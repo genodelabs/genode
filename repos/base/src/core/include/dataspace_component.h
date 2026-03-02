@@ -48,6 +48,7 @@ class Core::Dataspace_component : public Rpc_object<Dataspace>
 		size_t const _size            = 0;  /* size of dataspace in bytes              */
 		bool   const _io_mem    = false;    /* dataspace is I/O mem, not to be touched */
 		bool   const _writeable = false;    /* false if dataspace is read-only         */
+		bool         _sealed    = false;    /* force attach r/o if true                */
 
 		/*
 		 * Access memory cached, write-combined, or uncached respectively
@@ -129,6 +130,9 @@ class Core::Dataspace_component : public Rpc_object<Dataspace>
 		Cache  cacheability()    const { return _cache; }
 		addr_t phys_addr()       const { return _phys_addr; }
 		bool   managed()         const { return _managed; }
+		bool   sealed()          const { return _sealed; }
+
+		void seal() { _sealed = true; /* can never be unsealed */ }
 
 		/**
 		 * Return dataspace base address to be used for map operations

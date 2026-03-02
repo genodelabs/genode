@@ -53,6 +53,8 @@ class Core::Dataspace_component : public Rpc_object<Linux_dataspace>
 		Native_capability _cap;       /* capability / file descriptor */
 		bool   const      _writeable; /* false if read-only           */
 
+		bool _sealed = false;  /* downgraded to read-only access if true */
+
 		/*
 		 * Holds the dataspace owner if a distinction between owner and
 		 * others is necessary on the dataspace, otherwise it is 0
@@ -126,13 +128,24 @@ class Core::Dataspace_component : public Rpc_object<Linux_dataspace>
 
 		addr_t phys_addr() const { return _addr; }
 
+		void seal() { _sealed = true; }
+
 
 		/*************************
 		 ** Dataspace interface **
 		 *************************/
 
-		size_t size()      override { return _size; }
-		bool   writeable() override { return _writeable; }
+		size_t size() override { return _size; }
+
+		bool writeable() override
+		{
+			/*
+			 * On Linux, 'writeable()' is evaluated only at attach time, not
+			 * for each page fault. Hence, the sealed state does not need to be
+			 * obtainable independently from '_writeable'.
+			 */
+			return _writeable && !_sealed;
+		}
 
 
 		/****************************************

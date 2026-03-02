@@ -58,6 +58,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 		Cap_quota              used_caps() const                         override { never_called(__func__); };
 		Alloc_ram_result       alloc_ram(size_t, Cache)                  override { never_called(__func__); };
 		void                   free_ram(Ram_ds_cap)                      override { never_called(__func__); };
+		void                   seal_ram(Ram_ds_cap)                      override { never_called(__func__); };
 		size_t                 ram_size(Ram_ds_cap)                      override { never_called(__func__); };
 		Ram_quota              ram_quota() const                         override { never_called(__func__); };
 		Ram_quota              used_ram()  const                         override { never_called(__func__); };
