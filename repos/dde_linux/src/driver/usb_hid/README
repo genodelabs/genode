@@ -13,5 +13,6 @@ The state of the keyboard LEDs like capslock can be controlled by providing
 a corresponding ROM to the driver and configure it appropriately:
 
 !...
-!<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
+!config | capslock_led: rom | numlock_led: rom | scrlock_led: rom
+!-
 !...
