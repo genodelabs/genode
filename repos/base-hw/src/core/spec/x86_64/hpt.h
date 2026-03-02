@@ -15,8 +15,10 @@
 #define _CORE__SPEC__PC__VIRTUALIZATION__HPT_H_
 
 #include <cpu/page_flags.h>
-#include <hw/page_table.h>
+#include <cpu/page_table.h>
 #include <util/register.h>
+
+#include <hw/page_table_allocator.h>
 
 namespace Hw {
 	using namespace Genode;

@@ -5,25 +5,22 @@
  */
 
 /*
- * Copyright (C) 2025 Genode Labs GmbH
+ * Copyright (C) 2025-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INCLUDE__HW__PAGE_TABLE_H_
-#define _SRC__INCLUDE__HW__PAGE_TABLE_H_
+#ifndef _INCLUDE__CPU__PAGE_TABLE_H_
+#define _INCLUDE__CPU__PAGE_TABLE_H_
 
-#include <hw/page_table_allocator.h>
-
+#include <cpu/page_flags.h>
 #include <util/attempt.h>
 #include <util/misc_math.h>
 #include <util/register.h>
 #include <util/string.h>
 
-namespace Hw {
-
-	using namespace Genode;
+namespace Genode {
 
 	enum {
 		SIZE_LOG2_1KB   = 10,
@@ -38,6 +35,9 @@ namespace Hw {
 		SIZE_LOG2_256TB = 48,
 	};
 
+	enum class Page_table_error {
+		OUT_OF_RAM, OUT_OF_CAPS, DENIED, INVALID_RANGE };
+
 	using Page_table_insertion_result = Attempt<Ok, Page_table_error>;
 
 	enum class Page_table_entry { INVALID, TABLE, BLOCK };
@@ -51,7 +51,7 @@ namespace Hw {
 template <typename DESCRIPTOR,
           Genode::size_t PAGE_SIZE_LOG2,
           Genode::size_t SIZE_LOG2>
-class Hw::Page_table_tpl
+class Genode::Page_table_tpl
 {
 	public:
 
@@ -165,8 +165,8 @@ class Hw::Page_table_tpl
 template <typename DESCRIPTOR,
           Genode::size_t PAGE_SIZE_LOG2,
           Genode::size_t SIZE_LOG2>
-class Hw::Page_table_leaf
-: public Hw::Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>
+class Genode::Page_table_leaf
+: public Genode::Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>
 {
 	public:
 
@@ -245,8 +245,8 @@ class Hw::Page_table_leaf
 template <typename ENTRY, typename DESCRIPTOR,
           Genode::size_t PAGE_SIZE_LOG2,
           Genode::size_t SIZE_LOG2>
-class Hw::Page_table_node
-: public Hw::Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>
+class Genode::Page_table_node
+: public Genode::Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>
 {
 	public:
 
@@ -379,4 +379,4 @@ class Hw::Page_table_node
 		}
 };
 
-#endif /* _SRC__INCLUDE__HW__PAGE_TABLE_H_ */
+#endif /* _INCLUDE__CPU__PAGE_TABLE_H_ */

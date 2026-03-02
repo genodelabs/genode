@@ -17,12 +17,10 @@
 #include <base/memory.h>
 #include <util/bit_allocator.h>
 #include <util/construct_at.h>
+#include <cpu/page_table.h>
 
 namespace Hw {
 	using namespace Genode;
-
-	enum class Page_table_error {
-		OUT_OF_RAM, OUT_OF_CAPS, DENIED, INVALID_RANGE };
 
 	class Page_table_translator;
 	class Page_table_allocator;

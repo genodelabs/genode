@@ -16,10 +16,13 @@
 #define _SRC__LIB__HW__SPEC__ARM__PAGE_TABLE_H_
 
 #include <cpu/page_flags.h>
+#include <cpu/page_table.h>
 
-#include <hw/page_table.h>
+#include <hw/page_table_allocator.h>
 
 namespace Hw {
+	using namespace Genode;
+
 	struct Page_table_descriptor;
 	struct Page_table_descriptor_level2;
 	struct Page_table_descriptor_level1;

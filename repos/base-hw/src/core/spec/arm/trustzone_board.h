@@ -17,9 +17,11 @@
 /* Genode includes */
 #include <cpu/page_flags.h>
 #include <spec/arm/cpu/vcpu_state_trustzone.h>
+#include <cpu/page_table.h>
+
+#include <hw/page_table_allocator.h>
 
 /* core includes */
-#include <hw/page_table.h>
 #include <core_ram.h>
 #include <types.h>
 

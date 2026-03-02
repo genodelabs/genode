@@ -16,9 +16,10 @@
 
 #include <base/log.h>
 #include <cpu/page_flags.h>
+#include <cpu/page_table.h>
 
 #include <hw/memory_consts.h>
-#include <hw/page_table.h>
+#include <hw/page_table_allocator.h>
 
 namespace Hw {
 

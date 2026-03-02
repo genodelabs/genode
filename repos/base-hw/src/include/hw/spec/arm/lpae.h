@@ -15,11 +15,12 @@
 #define _SRC__LIB__HW__SPEC__ARM__LPAE_H_
 
 #include <cpu/page_flags.h>
+#include <cpu/page_table.h>
 
-#include <hw/page_table.h>
+#include <hw/page_table_allocator.h>
 
 namespace Hw {
-	using Genode::Page_flags;
+	using namespace Genode;
 
 	template <unsigned> struct Page_table_descriptor;
 	template <unsigned> struct Stage1_descriptor;
