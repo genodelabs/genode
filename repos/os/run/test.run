@@ -334,6 +334,9 @@ proc query_expected_log_pattern { } {
 		foreach char [list {[} {]} {(} {)} {.}] {
 			regsub -all "\\$char" $line "\\$char" line }
 
+		# prevent pipe characters from interpretation as regexp OR
+		regsub -all {[|]} $line {[|]} line
+
 		# replace wildcards by non-greedy regexp wildcards
 		regsub -all {\*} $line {.*?} line
 
@@ -348,6 +351,7 @@ proc query_expected_log_pattern { } {
 	}
 
 	set joined [join $pattern_lines "\n"]
+
 	return ".*?$joined.*?"
 }
 
