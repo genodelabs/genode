@@ -20,8 +20,8 @@ schema runtime
   + node input
   + node event
   + node log
-  + node nic
-  + node uplink
+  + node nic      | + attr label | type: any | default:
+  + node uplink   | + attr label | type: any | default:
   + node block    | + attr label | type: any | default:
   + node gui      | + attr label | type: any | default:
   + node report   | + attr label | type: any | default:
