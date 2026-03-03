@@ -130,16 +130,17 @@ MISSING_PUBKEY_FILES := $(sort \
                               $(if $(call pubkey_path,$A),,\
                                  $(call pubkey_filename,$A))))
 
-_gpg_sign_target = $(GPG) --detach-sign --digest-algo SHA256 \
-                          --batch --yes --no-tty --use-agent \
-                          --local-user $(call pubkey_id,$*) --output $@ < $< || \
-                   ( rm -f $@; false )
+# prompt for secret key passwords (when using Sequoia)
+_ARCHIVE_USERS := $(sort $(foreach A,$(ARCHIVES),$(call archive_user,$(A))))
+$(foreach U,$(_ARCHIVE_USERS),\
+   $(if $(call pubkey_path,$(U)),\
+        $(eval $(call unlock_user_key,$(U)))))
 
 $(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
-	$(VERBOSE)$(_gpg_sign_target)
+	$(VERBOSE)$(sign_target)
 
 $(PUBLIC_DIR)/%.zip.sig : $(PUBLIC_DIR)/%.zip
-	$(VERBOSE)$(_gpg_sign_target)
+	$(VERBOSE)$(sign_target)
 
 .PRECIOUS: $(TARGETS:.xz.sig=.xz) $(TARGETS:.zip.sig=.zip)
 

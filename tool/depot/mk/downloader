@@ -30,10 +30,6 @@ TARGETS := $(addprefix $(DEPOT_DIR)/,$(MAKECMDGOALS))
 #
 # Unpack after checking signature against public key as stored in the depot
 #
-# Unfortunately, gpg does not allow us to specify the armored public-key
-# file directly as keyring for the verify operation. So we need to create a
-# temporary dearmored version.
-#
 
 ARCHIVES := $(MAKECMDGOALS)
 
@@ -41,13 +37,9 @@ include $(DEPOT_TOOL_DIR)/mk/pgp.inc
 
 $(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tar.xz $(PUBLIC_DIR)/%.tar.xz.sig
 	$(VERBOSE)pubkey_file=$(call pubkey_path,$*); \
-	          $(GPG) --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
-	          ( $(GPG) --no-tty --no-default-keyring \
-	                --keyring $$pubkey_file.dearmored \
-	                --verify $(PUBLIC_DIR)/$*.tar.xz.sig 2> /dev/null; retval=$$?; \
-	            rm -f $$pubkey_file.dearmored; \
-	            exit $$retval \
-	          ) || ( echo -e "Error: could not verify '$*', signature does not match\n" \
+	          signed_file=$(PUBLIC_DIR)/$*.tar.xz; \
+	          $(verify_target) \
+	          || ( echo -e "Error: could not verify '$*', signature does not match\n" \
 	                          "      public key '$$pubkey_file'"; \
 	                 false )
 	$(VERBOSE)mkdir -p $(dir $@)

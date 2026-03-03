@@ -37,3 +37,8 @@ SORT := LC_ALL=C sort
 # ensure pipes might fail but do not confuse sub-makes
 .SHELLFLAGS := -o pipefail -c
 unexport .SHELLFLAGS
+
+#
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell command -v $(1)),,$(error Need to have '$(1)' installed.))
