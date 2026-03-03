@@ -179,7 +179,6 @@ config
   |     + service Report | label: clipboard            | + parent | label: clipboard
   |     + service ROM | label: clipboard               | + parent | label: clipboard
   |     + service ROM | label: vimrc                   | + parent | label: vimrc
-  |     + service ROM | label_last: cached_fs_rom      | + parent | label: fs_rom
   + route
     + service ROM    | label: blueprint | + child report_rom
     + service Report | label: query     | + child report_rom
