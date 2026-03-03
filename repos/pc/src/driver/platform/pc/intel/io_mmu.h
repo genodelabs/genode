@@ -654,35 +654,23 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 {
 	private:
 
-		using Table_array     = Context_table_allocator::Array<510>;
+		using Table_allocator = Expanding_page_table_allocator<4096>;
 
-		Genode::Env  &_env;
-
-		/* Allocate 2MB RAM for root table and 256 context tables */
-		Attached_ram_dataspace    _allocator_ds    { _env.ram(),
-		                                             _env.rm(),
-		                                             2*1024*1024,
-		                                             Cache::CACHED };
-
-		/* add page-table allocator array at _allocator_ds.local_addr() */
-		Table_array             &_table_array     { *Genode::construct_at<Table_array>(
-			_allocator_ds.local_addr<void>(),
-			[&] (void *) {
-				return _env.pd().dma_addr(_allocator_ds.cap());
-			})};
+		Genode::Env &_env;
 
 		Translation_table_registry _table_registry { };
-
-		/* We use a single allocator for context tables for all IOMMU devices */
-		Context_table_allocator &_table_allocator { _table_array.alloc() };
+		Table_allocator _table_allocator;
 
 		Domain_allocator _domain_allocator { };
 
 	public:
 
-		Io_mmu_factory(Genode::Env &env, Registry<Driver::Io_mmu_factory> &registry)
-		: Driver::Io_mmu_factory(registry, Device::Type { "intel_iommu" }),
-		  _env(env)
+		Io_mmu_factory(Genode::Env &env, Allocator &md_alloc,
+		               Registry<Driver::Io_mmu_factory> &registry)
+		:
+			Driver::Io_mmu_factory(registry, Device::Type { "intel_iommu" }),
+			_env(env),
+			_table_allocator(env, md_alloc, env.ram(), 10)
 		{ }
 
 		void create(Allocator &alloc, Io_mmu_devices &io_mmu_devices,

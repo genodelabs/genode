@@ -19,11 +19,11 @@
 #include <base/attached_ram_dataspace.h>
 
 /* local includes */
+#include <expanding_page_table_allocator.h>
 #include <intel/root_table.h>
 #include <intel/context_table.h>
 #include <intel/domain_allocator.h>
 #include <intel/report_helper.h>
-#include <intel/page_table_allocator.h>
 
 namespace Intel {
 	using namespace Genode;
@@ -36,7 +36,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 {
 	public:
 
-		using Allocator = Genode::Page_table_allocator<4096>;
+		using Allocator = Driver::Expanding_page_table_allocator<4096>;
 
 	private:
 
