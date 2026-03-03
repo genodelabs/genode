@@ -123,7 +123,7 @@ system_images_missing_error:
 # Generate compressed and signed archives and index files
 #
 
-include $(DEPOT_TOOL_DIR)/mk/gpg.inc
+include $(DEPOT_TOOL_DIR)/mk/pgp.inc
 
 MISSING_PUBKEY_FILES := $(sort \
                            $(foreach A,$(ARCHIVES),\

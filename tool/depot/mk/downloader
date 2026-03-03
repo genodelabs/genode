@@ -37,7 +37,7 @@ TARGETS := $(addprefix $(DEPOT_DIR)/,$(MAKECMDGOALS))
 
 ARCHIVES := $(MAKECMDGOALS)
 
-include $(DEPOT_TOOL_DIR)/mk/gpg.inc
+include $(DEPOT_TOOL_DIR)/mk/pgp.inc
 
 $(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tar.xz $(PUBLIC_DIR)/%.tar.xz.sig
 	$(VERBOSE)pubkey_file=$(call pubkey_path,$*); \
