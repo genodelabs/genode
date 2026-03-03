@@ -134,6 +134,7 @@ enum { MAX_MT_SLOTS = 16 };
 
 struct evdev_mt
 {
+	bool                 touched;
 	bool                 pending;
 	unsigned             num_slots;
 	unsigned             cur_slot;
@@ -603,7 +604,7 @@ static void submit_touchscreen(struct evdev *evdev, struct genode_event_submit *
 		mt->pending = false;
 	}
 
-	/* filter BTN_TOUCH */
+	/* filter low-level BTN_TOUCH */
 	for_each_pending_key(key, keys) {
 		if (key->code != BTN_TOUCH)
 			continue;
@@ -611,6 +612,19 @@ static void submit_touchscreen(struct evdev *evdev, struct genode_event_submit *
 		*key = INIT_KEY;
 		keys->pending--;
 		break;
+	}
+
+	/* report BTN_TOUCH if touch count changes from/to 0 */
+	bool touched = false;
+	for_each_mt_slot(slot, mt)
+		touched |= slot->touch;
+
+	if (mt->touched != touched) {
+		if (touched)
+			submit->press(submit, lx_emul_event_keycode(BTN_TOUCH));
+		else
+			submit->release(submit, lx_emul_event_keycode(BTN_TOUCH));
+		mt->touched = touched;
 	}
 }
 
