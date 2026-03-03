@@ -263,7 +263,7 @@ proc prepare_to_run_genode { } {
 	append import_archives {
 		} [depot_user] {/src/} [base_src] {
 		} [depot_user] {/src/report_rom
-		} [depot_user] {/src/fs_rom
+		} [depot_user] {/src/cached_fs_rom
 		} [depot_user] {/src/vfs
 		} [depot_user] {/src/init
 		} [depot_user] {/src/depot_query
@@ -331,6 +331,7 @@ proc prepare_to_run_genode { } {
 		    + policy | label:  depot_autopilot -> state     | report: dynamic -> state
 		    + policy | label:  depot_query -> query         | report: depot_autopilot -> query
 		    + policy | label:  dynamic -> config            | report: depot_autopilot -> init.config
+
 		+ start vfs | priority: -1 | ram: 16M
 		  + provides | + service File_system
 		  + config
@@ -338,12 +339,13 @@ proc prepare_to_run_genode { } {
 		      + dir depot     | + tar depot.tar
 		      + dir gcov_data | + ram
 		    + policy | label_prefix: depot_query -> depot             | root: /depot
-		    + policy | label_prefix: fs_rom ->                        | root: /depot
+		    + policy | label_prefix: cached_fs_rom ->                 | root: /depot
 		    + policy | label_prefix: dynamic -> gcov -> gcov -> depot | root: /depot
 		    + policy | label_suffix: -> gcov_data -> /                | root: /gcov_data
 		                                                              | writeable: yes
-		+ start fs_rom | priority: -1 | caps: 300 | ram: 32M
+		+ start cached_fs_rom | priority: -1 | caps: 500 | ram: 128M
 		  + provides | + service ROM
+
 		+ start depot_query | priority: -1 | ram: 3M
 		  + config | query: rom
 		    + vfs | + dir depot | + fs | label: depot -> /
@@ -406,7 +408,7 @@ proc prepare_to_run_genode { } {
 		    + service ROM | label_last: ld.lib.so   | + parent
 		    + service ROM | label_last: init        | + parent
 		    + service ROM | label: config           | + child report_rom
-		    + service ROM                           | + child fs_rom
+		    + service ROM                           | + child cached_fs_rom
 		    + service LOG | unscoped_label: dynamic | + parent
 		    + service LOG                           | + child depot_autopilot
 		    + service Timer                         | + child timer
