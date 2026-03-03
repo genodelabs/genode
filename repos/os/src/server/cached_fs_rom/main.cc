@@ -16,8 +16,6 @@
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 #include <rom_session/rom_session.h>
-#include <region_map/client.h>
-#include <rm_session/connection.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/session_label.h>
 #include <base/heap.h>
@@ -37,13 +35,13 @@ namespace Cached_fs_rom {
 	using Tx_source = File_system::Session_client::Tx::Source;
 
 	struct Cached_rom;
-	using Cache_space = Genode::Id_space<Cached_rom>;
+	using Cache_space = Id_space<Cached_rom>;
 
 	struct Transfer;
-	using Transfer_space = Genode::Id_space<Transfer>;
+	using Transfer_space = Id_space<Transfer>;
 
 	class Session_component;
-	using Session_space = Genode::Id_space<Session_component>;
+	using Session_space = Id_space<Session_component>;
 
 	struct Main;
 
@@ -57,9 +55,9 @@ struct Cached_fs_rom::Cached_rom final
 	Cached_rom(Cached_rom const &);
 	Cached_rom &operator = (Cached_rom const &);
 
-	Genode::Env   &env;
-	Rm_connection &rm_connection;
+	Env &_env;
 
+	Path   const path;
 	size_t const file_size;
 
 	/**
@@ -67,19 +65,12 @@ struct Cached_fs_rom::Cached_rom final
 	 *
 	 * This shall be valid even if the file is empty.
 	 */
-	Attached_ram_dataspace ram_ds {
-		env.ram(), env.rm(), file_size ? file_size : 1 };
+	Attached_ram_dataspace _ram_ds {
+		_env.ram(), _env.rm(), file_size ? file_size : 1 };
 
-	/**
-	 * Read-only region map exposed as ROM module to the client
-	 */
-	Region_map_client      rm { rm_connection.create(ram_ds.size()) };
-	addr_t                 rm_attachment { };
-	Dataspace_capability   rm_ds { };
+	bool _sealed = false;
 
-	Path const path;
-
-	Cache_space::Element cache_elem;
+	Cache_space::Element _cache_elem;
 
 	Transfer *transfer = nullptr;
 
@@ -88,57 +79,37 @@ struct Cached_fs_rom::Cached_rom final
 	 */
 	int _ref_count = 0;
 
-	Cached_rom(Cache_space   &cache_space,
-	           Env           &env,
-	           Rm_connection &rm,
-	           Path const    &file_path,
-	           size_t         size)
+	Cached_rom(Env &env, Cache_space &cache_space,
+	           Path const &file_path, size_t size)
 	:
-		env(env), rm_connection(rm), file_size(size),
-		path(file_path),
-		cache_elem(*this, cache_space)
+		_env(env), path(file_path), file_size(size),
+		_cache_elem(*this, cache_space)
 	{
 		if (size == 0)
-			complete();
+			seal();
 	}
 
-	/**
-	 * Destructor
-	 */
-	~Cached_rom()
-	{
-		if (rm_attachment)
-			rm.detach(rm_attachment);
-	}
+	bool sealed() const { return _sealed; }
+	bool unused() const { return (_ref_count < 1); }
 
-	bool completed() const { return rm_ds.valid(); }
-	bool unused()    const { return (_ref_count < 1); }
-
-	void complete()
+	void seal()
 	{
-		/* attach dataspace read-only into region map */
-		rm_attachment = rm.attach(ram_ds.cap(), {
-			.size       = ram_ds.size(),
-			.offset     = { },
-			.use_at     = { },
-			.at         = { },
-			.executable = true,
-			.writeable  = false
-		}).convert<addr_t>(
-			[&] (Region_map::Range range)  { return range.start; },
-			[&] (Region_map::Attach_error) {
-				error("Cached_rom failed to locally attach managed dataspace");
-				return 0UL;
-			}
-		);
-		rm_ds = rm.dataspace();
+		_env.pd().seal_ram(_ram_ds.cap());
+		_sealed = true;
 	}
 
 	/**
 	 * Return dataspace with content of file
 	 */
-	Rom_dataspace_capability dataspace() const {
-		return static_cap_cast<Rom_dataspace>(rm_ds); }
+	Rom_dataspace_capability dataspace() const
+	{
+		if (!_sealed) {
+			warning("attempt to hand out unsealed RAM");
+			return Rom_dataspace_capability();
+		}
+		Dataspace_capability ds = _ram_ds.cap();
+		return static_cap_cast<Rom_dataspace>(ds);
+	}
 
 	struct Guard
 	{
@@ -230,13 +201,13 @@ struct Cached_fs_rom::Transfer final
 				_seek = _size;
 			} else {
 				size_t const n = min(packet.length(), (size_t)(_size - pkt_seek));
-				memcpy(_cached_rom.ram_ds.local_addr<char>()+pkt_seek,
+				memcpy(_cached_rom._ram_ds.local_addr<char>()+pkt_seek,
 				       _fs.tx()->packet_content(packet), n);
 				_seek = pkt_seek+n;
 			}
 
 			if (completed())
-					_cached_rom.complete();
+					_cached_rom.seal();
 			else
 				_submit_next_packet();
 		}
@@ -277,11 +248,9 @@ class Cached_fs_rom::Session_component final : public  Rpc_object<Rom_session>
 };
 
 
-struct Cached_fs_rom::Main final : Genode::Session_request_handler
+struct Cached_fs_rom::Main final : Session_request_handler
 {
-	Genode::Env &env;
-
-	Rm_connection rm { env };
+	Env &env;
 
 	Cache_space    cache     { };
 	Transfer_space transfers { };
@@ -397,10 +366,10 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 				if (!cache_evict()) break;
 			}
 
-			rom = new (heap) Cached_rom(cache, env, rm, path, (size_t)file_size);
+			rom = new (heap) Cached_rom(env, cache, path, size_t(file_size));
 		}
 
-		if (rom->completed()) {
+		if (rom->sealed()) {
 			/* Create new RPC object */
 			Session_component *session = new (heap)
 				Session_component(*rom, sessions, id, label);
@@ -459,7 +428,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 		}
 	}
 
-	Main(Genode::Env &env) : env(env)
+	Main(Env &env) : env(env)
 	{
 		fs.sigh(packet_handler);
 
