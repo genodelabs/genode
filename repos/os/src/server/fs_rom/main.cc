@@ -252,7 +252,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 					return false;
 
 				try {
-					_file_ds.realloc(&_env.ram(), (size_t)_file_size);
+					_realloc_and_seal(size_t(_file_size));
 				} catch (...) {
 					error("failed to allocate memory for ", _file_path);
 					return false;
@@ -349,6 +349,12 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			}
 		}
 
+		void _realloc_and_seal(size_t size)
+		{
+			_file_ds.realloc(&_env.ram(), size);
+			_env.ram().seal(_file_ds.cap());
+		}
+
 	public:
 
 		/**
@@ -400,9 +406,8 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			_try_read_dataspace(UPDATE_OR_REPLACE);
 
 			/* always serve a valid, even empty, dataspace */
-			if (_file_ds.size() < 1) {
-				_file_ds.realloc(&_env.ram(), 1);
-			}
+			if (_file_ds.size() < 1)
+				_realloc_and_seal(1);
 
 			Dataspace_capability ds = _file_ds.cap();
 			return static_cap_cast<Rom_dataspace>(ds);
@@ -456,7 +461,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 
 				if (packet.position() > _file_seek || _file_seek >= _file_size) {
 					error("bad packet seek position");
-					_file_ds.realloc(&_env.ram(), 0);
+					_realloc_and_seal(0);
 					_file_seek = 0;
 					return;
 				}

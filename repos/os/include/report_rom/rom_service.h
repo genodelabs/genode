@@ -102,6 +102,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 			/* replace dataspace by new one */
 			/* XXX we could keep the old dataspace if the size fits */
 			_ds.construct(_ram, _rm, _module.size());
+			_ram.seal(_ds->cap());
 
 			/* fill dataspace content with report contained in module */
 			_content_size =
