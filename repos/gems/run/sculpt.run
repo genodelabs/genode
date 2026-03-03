@@ -1009,14 +1009,6 @@ if {[have_board linux]} {
 }
 
 
-if {[have_spec linux] || [have_spec fiasco] || [have_spec foc]} {
-	#
-	# Managed dataspaces as used by cached_fs_rom are not supported fully
-	# on all kernels.
-	#
-	copy_file [run_dir]/genode/fs_rom [run_dir]/genode/cached_fs_rom
-}
-
 # support for the Leitzentrale GUI
 copy_file [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
 copy_file [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/

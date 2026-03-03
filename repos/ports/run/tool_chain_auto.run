@@ -28,7 +28,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_pipe \
                   [depot_user]/src/libc \
                   [depot_user]/src/stdcxx \
-                  [depot_user]/src/fs_rom \
                   [depot_user]/src/cached_fs_rom \
                   [depot_user]/src/zlib
 
@@ -110,19 +109,6 @@ proc prefixed_nm { } {
 }
 
 
-proc fs_rom_binary { } {
-
-	#
-	# The cached_fs_rom server relies on managed dataspaces, which are not
-	# fully available on all kernels.
-	#
-	if {[have_spec linux] || [have_spec fiasco] || [have_spec foc]} {
-		return "fs_rom" }
-
-	return "cached_fs_rom"
-}
-
-
 install_config {
 config | verbose: yes
 + parent-provides
@@ -171,7 +157,7 @@ config | verbose: yes
     + default-policy | root: / | writeable: yes
 
 + start vfs_rom | ram: 60M
-  + binary } [fs_rom_binary] {
+  + binary cached_fs_rom
   + provides | + service ROM
   + config
   + route

@@ -6,8 +6,7 @@ launcher | pkg: system_shell | priority: -3
   + service File_system | label_prefix: config -> | + parent | identity: config
   + service File_system | label_prefix: report -> | + parent | identity: report
   + service Report | label: clipboard             | + parent | label: clipboard
-  + service ROM | label: clipboard                | + parent | label: clipboard
-  + service ROM | label: vimrc                    | + parent | label: config -> vimrc
-  + service ROM | label_last: cached_fs_rom       | + parent | label: cached_fs_rom
+  + service ROM    | label: clipboard             | + parent | label: clipboard
+  + service ROM    | label: vimrc                 | + parent | label: config -> vimrc
   + service RM                                    | + parent
 -
