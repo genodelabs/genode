@@ -153,12 +153,13 @@ class Genode::Session_env : public Ram_allocator,
 				[&] (Alloc_error e) { return e; });
 		}
 
-
 		void _free(Allocation &ds) override
 		{
 			_replenish(_env.pd().ram_size(ds.cap), 1, [&] {
 				_env.ram().free(ds.cap); });
 		}
+
+		void seal(Ram::Capability cap) override { _env.ram().seal(cap); }
 
 
 		/*******************

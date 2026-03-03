@@ -76,6 +76,8 @@ struct Libc::Malloc_ram_allocator : Ram_allocator
 			if (a.cap == ds.cap)
 				_release(ds); });
 	}
+
+	void seal(Ram::Capability cap) override { _ram.seal(cap); }
 };
 
 #endif /* _LIBC__INTERNAL__MALLOC_RAM_ALLOCATOR_H_ */
