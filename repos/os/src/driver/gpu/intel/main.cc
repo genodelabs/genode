@@ -132,6 +132,8 @@ struct Igd::Device
 
 		void _free(Genode::Ram::Allocation &a) override { free(a.cap); }
 
+		void seal(Genode::Ram::Capability) override { }
+
 		addr_t dma_addr(Ram_dataspace_capability ds_cap) override
 		{
 			return _pci.dma_addr(ds_cap);

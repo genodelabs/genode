@@ -150,6 +150,8 @@ struct Stack_area_ram_allocator : Ram_allocator
 {
 	Result try_alloc(size_t, Cache) override { return { *this, { } }; }
 
+	void seal(Ram::Capability) override { }
+
 	void _free(Ram::Allocation &) override { }
 };
 
