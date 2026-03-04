@@ -284,13 +284,6 @@ int irq_can_set_affinity(unsigned int irq)
 }
 
 
-extern bool irq_fpu_usable(void);
-bool irq_fpu_usable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/interrupt.h>
 
 int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
@@ -326,20 +319,6 @@ void irq_work_sync(struct irq_work * work)
 #include <linux/irq_work.h>
 
 void irq_work_tick(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void kernel_fpu_begin_mask(unsigned int kfpu_mask);
-void kernel_fpu_begin_mask(unsigned int kfpu_mask)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void kernel_fpu_end(void);
-void kernel_fpu_end(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }

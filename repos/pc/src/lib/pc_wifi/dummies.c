@@ -998,6 +998,19 @@ void scm_recv(struct socket * sock,struct msghdr * msg,struct scm_cookie * scm,i
 }
 
 
+#ifdef CONFIG_HAVE_STATIC_CALL_INLINE
+
+void __static_call_update(struct static_call_key *key, void *tramp, void *func)
+{
+	lx_emul_trace(__func__);
+
+	if (key)
+		WRITE_ONCE(key->func, func);
+}
+
+#endif
+
+
 /*
  * The dummies below were moved from the generated dummies
  * file to provide the proper forward declarations and

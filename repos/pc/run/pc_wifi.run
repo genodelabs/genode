@@ -22,6 +22,9 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_jitterentropy \
                   [depot_user]/src/vfs_lwip \
                   [depot_user]/pkg/pc_wifi \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/openssl \
                   [depot_user]/raw/pc_wifi_firmware
 
 

@@ -23,10 +23,10 @@
 #undef static_cpu_has_bug
 #undef cpu_has
 
-#define boot_cpu_has(bit) 0
+#define boot_cpu_has(bit) (bit & X86_FEATURE_CLFLUSH)
 #define static_cpu_has(bit) boot_cpu_has(bit)
 #define static_cpu_has_bug(bit) static_cpu_has((bit))
-#define cpu_has(value, bit) ( (void)value, 0 )
+#define cpu_has(value, bit) ( (void)value, boot_cpu_has(bit) )
 
 #endif /* defined(__KERNEL__) && !defined(__ASSEMBLY__) */
 
