@@ -14,8 +14,8 @@
 
 #include <base/log.h>
 #include <lx_kit/env.h>
-#include <base/attached_io_mem_dataspace.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/attached_ram_dataspace.h>
 
 #include <region_map/client.h>
 #include <rm_session/connection.h>
@@ -29,6 +29,7 @@ extern "C" void * intel_io_mem_map(unsigned long const phys,
 	using namespace Genode;
 
 	static Constructible<Attached_rom_dataspace> rom_opregion { };
+	static Constructible<Attached_ram_dataspace> ram_opregion { };
 	static addr_t opregion_start = 0;
 	static addr_t opregion_size  = 0;
 
@@ -52,15 +53,22 @@ extern "C" void * intel_io_mem_map(unsigned long const phys,
 		}
 	}
 
+	if (!ram_opregion.constructed()) {
+		ram_opregion.construct(Lx_kit::env().env.ram(),
+		                       Lx_kit::env().env.rm(), opregion_size);
+		memcpy(ram_opregion->local_addr<char>(),
+		       rom_opregion->local_addr<char>(),
+		       opregion_size);
+	}
+
 	/*
 	 * we have to substract the pseudo physical address
 	 * we returned when reading the ASLS from config space
 	 */
 	addr_t offset = phys - OPREGION_PSEUDO_PHYS_ADDR;
 	if ((offset + size) <= opregion_size) {
-
 		try {
-			auto ptr = ((addr_t)rom_opregion->local_addr<void>())
+			auto ptr = ((addr_t)ram_opregion->local_addr<void>())
 			           + offset + (opregion_start & 0xffful);
 			return (void *)ptr;
 		} catch (...) {
