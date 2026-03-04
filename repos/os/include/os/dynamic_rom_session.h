@@ -136,6 +136,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 				try {
 					if (!_ds.constructed()) {
 						_ds.construct(_ram, _rm, _ds_size);
+						_ram.seal(_ds->cap());
 						ds_reallocated = true;
 					}
 				}
