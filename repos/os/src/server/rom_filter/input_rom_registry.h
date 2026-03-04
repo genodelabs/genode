@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,22 +16,20 @@
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
+#include <util/list_model.h>
 #include <base/allocator.h>
 
 namespace Rom_filter {
 
+	using namespace Genode;
+
 	class Input_rom_registry;
 
-	using Input_rom_name = Genode::String<100>;
-	using Input_name     = Genode::String<100>;
-	using Input_value    = Genode::String<100>;
-	using Node_type_name = Genode::String<80>;
-	using Attribute_name = Genode::String<80>;
-
-	using Genode::Signal_context_capability;
-	using Genode::Signal_handler;
-	using Genode::Node;
-	using Genode::Interface;
+	using Input_rom_name = String<100>;
+	using Input_name     = String<100>;
+	using Input_value    = String<100>;
+	using Node_type_name = String<80>;
+	using Attribute_name = String<80>;
 }
 
 
@@ -39,31 +37,26 @@ class Rom_filter::Input_rom_registry
 {
 	public:
 
-		/**
-		 * Callback type
-		 */
-		struct Input_rom_changed_fn : Interface
-		{
-			virtual void input_rom_changed() = 0;
-		};
+		struct Action : Interface { virtual void input_rom_changed() = 0; };
 
 		struct Missing { };
-		using Query_result = Genode::Attempt<Input_value, Missing>;
-
+		using Query_result = Attempt<Input_value, Missing>;
 
 	private:
 
-		class Entry : public Genode::List<Entry>::Element
+		class Input : public List_model<Input>::Element
 		{
+			public:
+
+				Input_rom_name name;
+
 			private:
 
-				Genode::Env &_env;
+				Env &_env;
 
-				Input_rom_name _name;
+				Action &_action;
 
-				Input_rom_changed_fn &_input_rom_changed_fn;
-
-				Genode::Attached_rom_dataspace _rom_ds { _env, _name.string() };
+				Attached_rom_dataspace _rom_ds { _env, name.string() };
 
 				void _handle_rom_changed()
 				{
@@ -72,11 +65,11 @@ class Rom_filter::Input_rom_registry
 						return;
 
 					/* trigger re-evaluation of the inputs */
-					_input_rom_changed_fn.input_rom_changed();
+					_action.input_rom_changed();
 				}
 
-				Genode::Signal_handler<Entry> _rom_changed_handler =
-					{ _env.ep(), *this, &Entry::_handle_rom_changed };
+				Signal_handler<Input> _rom_changed_handler =
+					{ _env.ep(), *this, &Input::_handle_rom_changed };
 
 				static void _with_any_sub_node(Node const &node, auto const &fn)
 				{
@@ -203,16 +196,12 @@ class Rom_filter::Input_rom_registry
 				/**
 				 * Constructor
 				 */
-				Entry(Genode::Env &env, Input_rom_name const &name,
-				      Input_rom_changed_fn &input_rom_changed_fn)
+				Input(Env &env, Input_rom_name const &name, Action &action)
 				:
-					_env(env), _name(name),
-					_input_rom_changed_fn(input_rom_changed_fn)
+					name(name), _env(env), _action(action)
 				{
 					_rom_ds.sigh(_rom_changed_handler);
 				}
-
-				Input_rom_name name() const { return _name; }
 
 				/**
 				 * Query input value from ROM modules
@@ -251,90 +240,46 @@ class Rom_filter::Input_rom_registry
 					else
 						fn(node);
 				}
+
+				static inline Input_rom_name name_from_node(Node const &input)
+				{
+					if (input.has_attribute("rom"))
+						return input.attribute_value("rom", Input_rom_name(""));
+
+					/*
+					 * If no 'rom' attribute was specified, we fall back to use the
+					 * name of the input as ROM name.
+					 */
+					return input.attribute_value("name", Input_rom_name(""));
+				}
+
+				/**
+				 * List_model::Element
+				 */
+				static bool type_matches(Node const &node)
+				{
+					return node.type() == "input";
+				}
+
+				bool matches(Node const &node) const
+				{
+					return name_from_node(node) == name;
+				}
 		};
 
-		Genode::Allocator &_alloc;
+		Env       &_env;
+		Allocator &_alloc;
+		Action    &_action;
 
-		Genode::Env &_env;
+		List_model<Input> _inputs { };
 
-		Genode::List<Entry> _input_roms { };
-
-		Input_rom_changed_fn &_input_rom_changed_fn;
-
-		/**
-		 * Apply functor for each input ROM
-		 *
-		 * The functor is called with 'Input &' as argument.
-		 */
-		template <typename FUNC>
-		void _for_each_input_rom(FUNC const &func) const
-		{
-			Entry const *ir   = _input_roms.first();
-			Entry const *next = nullptr;
-			for (; ir; ir = next) {
-
-				/*
-				 * Obtain next element prior calling the functor because
-				 * the functor may remove the current element from the list.
-				 */
-				next = ir->next();
-
-				func(*ir);
-			}
-		}
-
-		/**
-		 * Return ROM name of specified node
-		 */
-		static inline Input_rom_name _input_rom_name(Node const &input)
-		{
-			if (input.has_attribute("rom"))
-				return input.attribute_value("rom", Input_rom_name(""));
-
-			/*
-			 * If no 'rom' attribute was specified, we fall back to use the
-			 * name of the input as ROM name.
-			 */
-			return input.attribute_value("name", Input_rom_name(""));
-		}
-
-		/**
-		 * Return true if ROM with specified name is known
-		 */
-		bool _input_rom_exists(Input_rom_name const &name) const
-		{
-			bool result = false;
-
-			_for_each_input_rom([&] (Entry const &input_rom) {
-
-				if (input_rom.name() == name)
-					result = true;
-			});
-
-			return result;
-		}
-
-		static bool _config_uses_input_rom(Node const &config,
-		                                   Input_rom_name const &name)
-		{
-			bool result = false;
-
-			config.for_each_sub_node("input", [&] (Node const &input) {
-
-				if (_input_rom_name(input) == name)
-					result = true;
-			});
-
-			return result;
-		}
-
-		void _with_entry_by_name(Input_rom_name const &name, auto const &fn) const
+		void _with_input_by_name(Input_rom_name const &name, auto const &fn) const
 		{
 			bool first = true;
-			_for_each_input_rom([&] (Entry const &input_rom) {
-				if (first && input_rom.name() == name) {
+			_inputs.for_each([&] (Input const &input) {
+				if (first && input.name == name) {
 					first = false;
-					fn(input_rom);
+					fn(input);
 				}
 			});
 		}
@@ -342,56 +287,30 @@ class Rom_filter::Input_rom_registry
 		Query_result _query_value_in_roms(Node const &input_node) const
 		{
 			Query_result result = Missing();
-			_with_entry_by_name(_input_rom_name(input_node), [&] (Entry const &entry) {
-				result = entry.query_value(input_node); });
+			_with_input_by_name(Input::name_from_node(input_node),
+				[&] (Input const &input) { result = input.query_value(input_node); });
 			return result;
 		}
 
 	public:
 
-		/**
-		 * Constructor
-		 *
-		 * \param sigh  signal context capability to install in ROM sessions
-		 *              for the inputs
-		 */
-		Input_rom_registry(Genode::Env &env, Genode::Allocator &alloc,
-		                   Input_rom_changed_fn &input_rom_changed_fn)
+		Input_rom_registry(Env &env, Allocator &alloc, Action &action)
 		:
-			_alloc(alloc), _env(env), _input_rom_changed_fn(input_rom_changed_fn)
+			_env(env), _alloc(alloc), _action(action)
 		{ }
 
 		void update_config(Node const &config)
 		{
-			/*
-			 * Remove ROMs that are no longer present in the configuration.
-			 */
-			auto remove_stale_entry = [&] (Entry const &entry) {
+			_inputs.update_from_node(config,
 
-				if (_config_uses_input_rom(config, entry.name()))
-					return;
+				[&] (Node const &node) -> Input & {
+					return *new (_alloc)
+					Input(_env, Input::name_from_node(node), _action); },
 
-				_input_roms.remove(const_cast<Entry *>(&entry));
-				Genode::destroy(_alloc, const_cast<Entry *>(&entry));
-			};
-			_for_each_input_rom(remove_stale_entry);
+				[&] (Input &input) { destroy(_alloc, &input); },
 
-			/*
-			 * Add new appearing ROMs.
-			 */
-			auto add_new_entry = [&] (Node const &input) {
-
-				Input_rom_name name = _input_rom_name(input);
-
-				if (_input_rom_exists(name))
-					return;
-
-				Entry *entry =
-					new (_alloc) Entry(_env, name, _input_rom_changed_fn);
-
-				_input_roms.insert(entry);
-			};
-			config.for_each_sub_node("input", add_new_entry);
+				[&] (Input &, Node const &) { /* nothing to update */ }
+			);
 		}
 
 		/**
@@ -409,12 +328,13 @@ class Rom_filter::Input_rom_registry
 		/**
 		 * Generate content of the specifed input
 		 */
-		void generate(Input_name const &input_name, Genode::Generator &g, bool skip_toplevel=false)
+		void generate(Input_name const &input_name, Generator &g,
+		              bool skip_toplevel = false) const
 		{
-			_with_entry_by_name(input_name, [&] (Entry const &entry) {
-				entry.with_node(
+			_with_input_by_name(input_name, [&] (Input const &input) {
+				input.with_node(
 					[&] (Node const &node) {
-						Genode::Generator::Max_depth const max_depth { 20 };
+						Generator::Max_depth const max_depth { 20 };
 						bool const ok = skip_toplevel
 						              ? g.append_node_content(node, max_depth)
 						              : g.append_node        (node, max_depth);
