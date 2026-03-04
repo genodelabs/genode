@@ -171,14 +171,32 @@ config
   | + start fonts_fs | pkg: } [depot_user]/pkg/[current_pkg fonts_fs] {
   |   + route | + service ROM | label: config | + parent | label: fonts.config
   |
+  | + start inspect_vfs | binary: vfs | ram: 4M | caps: 100
+  |   .
+  |   . deployed from the 'vfs' ROM module without depending on the depot
+  |   .
+  |   + provides | + file_system
+  |   + route
+  |     + service ROM | label: vfs.lib.so | + parent
+  |     + service File_system             | + parent
+  |   + config
+  |     + default-policy | root: / | writeable: yes
+  |     + vfs
+  |       + fs
+  |       + inline vfs_deployed_in_runtime
+  |         : works without depot
+  |         :
+  |
   | + start system_shell | pkg: } [depot_user]/pkg/[current_pkg system_shell] {
   |   + route
   |     + service Gui                                  | + child wm
   |     + service File_system | label_prefix: fonts -> | + child fonts_fs
-  |     + service File_system                          | + parent
+  |     + service File_system | label: config          | + parent
+  |     + service File_system                          | + child inspect_vfs
   |     + service Report | label: clipboard            | + parent | label: clipboard
   |     + service ROM | label: clipboard               | + parent | label: clipboard
   |     + service ROM | label: vimrc                   | + parent | label: vimrc
+  |
   + route
     + service ROM    | label: blueprint | + child report_rom
     + service Report | label: query     | + child report_rom
@@ -198,6 +216,8 @@ config
     + service ROM | label_last: fonts.config | + parent
     + service ROM | label_last: vimrc        | + parent
     + service ROM | label_last: fs_rom       | + parent
+    + service ROM | label_last: vfs          | + parent
+    + service ROM | label_last: vfs.lib.so   | + parent
     + service ROM                            | + child fs_rom
     + service Timer                          | + child timer
     + service Gui | label_last: backdrop     | + child nitpicker | label: backdrop

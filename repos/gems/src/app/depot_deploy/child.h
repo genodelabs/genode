@@ -55,9 +55,26 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		Allocator &_alloc;
 
-		Reconstructible<Buffered_node> _start_node;        /* from config */
-		Constructible<Buffered_node>   _launcher_node { };
-		Constructible<Buffered_node>   _pkg_node { };      /* from blueprint */
+		Constructible<Buffered_node> _start_node    { };  /* from config */
+		Constructible<Buffered_node> _launcher_node { };
+		Constructible<Buffered_node> _pkg_node      { };  /* from blueprint */
+
+		static auto _with_node(auto &constructible_node,
+		                       auto const &fn, auto const &missing_fn) -> decltype(missing_fn())
+		{
+			if (!constructible_node.constructed())
+				return missing_fn();
+
+			Node const &node = *constructible_node;
+			return fn(node);
+		}
+
+		static auto _identical(auto &constructible_node, Node const &node)
+		{
+			return _with_node(constructible_node,
+				[&] (Node const &orig) { return !node.differs_from(orig); },
+				[&]                    { return false; });
+		}
 
 		/*
 		 * State of the condition check for generating the start node of
@@ -71,40 +88,29 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		Name const _name;
 
-		bool _defined_by_launcher() const
+		bool _defined_by_launcher(Node const &start_node) const
 		{
-			/*
-			 * If the <start> node lacks a 'pkg' attribute, we expect the
-			 * policy to be defined by a launcher XML snippet.
-			 */
-			return _start_node.constructed() && !_start_node->has_attribute("pkg");
+			return !start_node.has_attribute("pkg")
+			    && !start_node.has_attribute("binary");
 		}
 
-		Archive::Path _config_pkg_path() const
+		Archive::Path _config_pkg_path(Node const &start_node) const
 		{
-			if (_defined_by_launcher() && _launcher_node.constructed())
+			if (_defined_by_launcher(start_node) && _launcher_node.constructed())
 				return _launcher_node->attribute_value("pkg", Archive::Path());
 
-			return _start_node->attribute_value("pkg", Archive::Path());
+			return start_node.attribute_value("pkg", Archive::Path());
 		}
 
-		Launcher_name _launcher_name() const
+		Launcher_name _launcher_name(Node const &start_node) const
 		{
-			if (!_defined_by_launcher())
+			if (!_defined_by_launcher(start_node))
 				return Launcher_name();
 
-			if (_start_node->has_attribute("launcher"))
-				return _start_node->attribute_value("launcher", Launcher_name());
+			if (start_node.has_attribute("launcher"))
+				return start_node.attribute_value("launcher", Launcher_name());
 
-			return _start_node->attribute_value("name", Launcher_name());
-		}
-
-		void _with_launcher_node(auto const &fn) const
-		{
-			if (_launcher_node.constructed() && _defined_by_launcher())
-				fn(*_launcher_node);
-			else
-				fn(Node());
+			return start_node.attribute_value("name", Launcher_name());
 		}
 
 		/*
@@ -112,7 +118,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 * deviate from pkg path given in the config, once the config is
 		 * updated.
 		 */
-		Archive::Path _blueprint_pkg_path = _config_pkg_path();
+		Archive::Path _blueprint_pkg_path { };
 
 		/*
 		 * Quota definitions obtained from the blueprint
@@ -127,17 +133,20 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/*
 		 * Set if the depot query for the child's blueprint failed.
 		 */
-		enum class State { UNKNOWN, PKG_INCOMPLETE, PKG_COMPLETE };
+		enum class State { UNKNOWN, NO_PKG, PKG_INCOMPLETE, PKG_COMPLETE };
 
 		State _state = State::UNKNOWN;
 
-		bool _configured() const
+		bool _discovered(Node const &start_node) const
 		{
+			if (_state == State::NO_PKG)
+				return true;
+
 			return _pkg_node.constructed()
-			   && (_config_pkg_path() == _blueprint_pkg_path);
+			   && (_config_pkg_path(start_node) == _blueprint_pkg_path);
 		}
 
-		inline void _gen_routes(Generator &, Node const &,
+		inline void _gen_routes(Generator &, Node const &, Node const &,
 		                        Depot_rom_server const &,
 		                        Depot_rom_server const &) const;
 
@@ -150,6 +159,42 @@ class Depot_deploy::Child : public List_model<Child>::Element
 					g.attribute("name", service_name); });
 		}
 
+		/*
+		 * node is pkg runtime or deploy start (NO_PKG)
+		 */
+		static void _gen_provides(Generator &g, Node const &node)
+		{
+			node.with_optional_sub_node("provides", [&] (Node const &provides) {
+				g.node("provides", [&] {
+					provides.for_each_sub_node([&] (Node const &service) {
+						_gen_provides_sub_node(g, service, "audio_in",    "Audio_in");
+						_gen_provides_sub_node(g, service, "audio_out",   "Audio_out");
+						_gen_provides_sub_node(g, service, "block",       "Block");
+						_gen_provides_sub_node(g, service, "file_system", "File_system");
+						_gen_provides_sub_node(g, service, "framebuffer", "Framebuffer");
+						_gen_provides_sub_node(g, service, "input",       "Input");
+						_gen_provides_sub_node(g, service, "event",       "Event");
+						_gen_provides_sub_node(g, service, "log",         "LOG");
+						_gen_provides_sub_node(g, service, "nic",         "Nic");
+						_gen_provides_sub_node(g, service, "uplink",      "Uplink");
+						_gen_provides_sub_node(g, service, "gui",         "Gui");
+						_gen_provides_sub_node(g, service, "gpu",         "Gpu");
+						_gen_provides_sub_node(g, service, "usb",         "Usb");
+						_gen_provides_sub_node(g, service, "report",      "Report");
+						_gen_provides_sub_node(g, service, "rom",         "ROM");
+						_gen_provides_sub_node(g, service, "terminal",    "Terminal");
+						_gen_provides_sub_node(g, service, "timer",       "Timer");
+						_gen_provides_sub_node(g, service, "pd",          "PD");
+						_gen_provides_sub_node(g, service, "cpu",         "CPU");
+						_gen_provides_sub_node(g, service, "rtc",         "Rtc");
+						_gen_provides_sub_node(g, service, "capture",     "Capture");
+						_gen_provides_sub_node(g, service, "play",        "Play");
+						_gen_provides_sub_node(g, service, "record",      "Record");
+					});
+				});
+			});
+		}
+
 		static void _gen_copy_of_sub_node(Generator &g, Node const &from_node,
 		                                  Node::Type const &sub_node_type)
 		{
@@ -159,13 +204,20 @@ class Depot_deploy::Child : public List_model<Child>::Element
 						warning("sub node exceeds max depth: ", from_node); });
 		}
 
+		inline void _gen_start_node(Generator              &,
+		                            Node             const &common,
+		                            Node             const &start_node,
+		                            Prio_levels             prio_levels,
+		                            Affinity::Space         affinity_space,
+		                            Depot_rom_server const &cached_depot_rom,
+		                            Depot_rom_server const &uncached_depot_rom) const;
+
 	public:
 
 		Child(Allocator &alloc, Node const &start_node)
 		:
 			_alloc(alloc),
-			_start_node(_alloc, start_node),
-			_name(_start_node->attribute_value("name", Name()))
+			_name(start_node.attribute_value("name", Name()))
 		{ }
 
 		Name name() const { return _name; }
@@ -175,24 +227,31 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		bool apply_config(Node const &start_node)
 		{
-			if (!start_node.differs_from(*_start_node))
+			if (_identical(_start_node, start_node))
 				return false;
 
-			Archive::Path const old_pkg_path = _config_pkg_path();
+			Archive::Path const orig_pkg_path = _blueprint_pkg_path;
 
 			/* import new start node */
 			_start_node.construct(_alloc, start_node);
 
-			Archive::Path const new_pkg_path = _config_pkg_path();
+			_blueprint_pkg_path = _config_pkg_path(start_node);
 
 			/* invalidate blueprint if 'pkg' path changed */
-			if (old_pkg_path != new_pkg_path) {
-				_blueprint_pkg_path = new_pkg_path;
+			if (orig_pkg_path != _blueprint_pkg_path) {
 				_pkg_node.destruct();
 
 				/* reset error state, attempt to obtain the blueprint again */
 				_state = State::UNKNOWN;
 			}
+
+			if (start_node.has_attribute("binary")) {
+				_state = State::NO_PKG;
+				_pkg_node.destruct();
+				_binary_name = start_node.attribute_value("binary", Binary_name());
+				_config_name = start_node.attribute_value("config", Config_name());
+			}
+
 			return true;
 		}
 
@@ -201,7 +260,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		bool apply_blueprint(Node const &pkg)
 		{
-			if (_state == State::PKG_COMPLETE)
+			if (_state == State::PKG_COMPLETE || _state == State::NO_PKG)
 				return false;
 
 			if (pkg.attribute_value("path", Archive::Path()) != _blueprint_pkg_path)
@@ -249,20 +308,19 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		bool apply_launcher(Launcher_name const &name, Node const &launcher)
 		{
-			if (!_defined_by_launcher())
-				return false;
+			return _with_node(_start_node, [&] (Node const &start_node) {
 
-			if (_launcher_name() != name)
-				return false;
+				if (!_defined_by_launcher(start_node))    return false;
+				if (_launcher_name(start_node) != name)   return false;
+				if (_identical(_launcher_node, launcher)) return false;
 
-			if (_launcher_node.constructed() && !launcher.differs_from(*_launcher_node))
-				return false;
+				_launcher_node.construct(_alloc, launcher);
 
-			_launcher_node.construct(_alloc, launcher);
+				_blueprint_pkg_path = _config_pkg_path(start_node);
 
-			_blueprint_pkg_path = _config_pkg_path();
+				return true;
 
-			return true;
+			}, [&] { return false; });
 		}
 
 		/*
@@ -272,21 +330,23 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		{
 			Condition const orig_condition = _condition;
 
-			_with_launcher_node([&] (Node const &launcher_node) {
-				if (_start_node.constructed())
-					_condition = cond_fn(*_start_node, launcher_node)
-					           ? SATISFIED : UNSATISFIED;
-			});
-
+			_with_node(_start_node, [&] (Node const &start) {
+				bool const satisfied = _with_node(_launcher_node,
+					[&] (Node const &launcher) { return cond_fn(start, launcher); },
+					[&]                        { return cond_fn(start, Node()); });
+				_condition = satisfied ? SATISFIED : UNSATISFIED;
+			}, [&] { });
 			return _condition != orig_condition;
 		}
 
 		void apply_if_unsatisfied(auto const &fn) const
 		{
-			_with_launcher_node([&] (Node const &launcher_node) {
-				if (_condition == UNSATISFIED && _start_node.constructed())
-					fn(*_start_node, launcher_node, _name);
-			});
+			if (_condition == UNSATISFIED)
+				_with_node(_start_node, [&] (Node const &start_node) {
+					_with_node(_launcher_node,
+						[&] (Node const &launcher) { fn(start_node, launcher, _name); },
+						[&]                        { fn(start_node, Node(),   _name); });
+				}, [&] { });
 		}
 
 		/*
@@ -294,15 +354,18 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		bool mark_as_incomplete(Node const &missing)
 		{
+			if (_state == State::NO_PKG)
+				return false;
+
 			/* print error message only once */
-			if(_state == State::PKG_INCOMPLETE)
+			if (_state == State::PKG_INCOMPLETE)
 				return false;
 
 			Archive::Path const path = missing.attribute_value("path", Archive::Path());
 			if (path != _blueprint_pkg_path)
 				return false;
 
-			log(path, " incomplete or missing");
+			log(path, " incomplete or missing, name=", _name, " state=", (int)_state);
 
 			State const orig_state = _state;
 			_state = State::PKG_INCOMPLETE;
@@ -323,13 +386,20 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		bool blueprint_needed() const
 		{
-			if (_configured())
+			if (_state == State::NO_PKG)
 				return false;
 
-			if (_defined_by_launcher() && !_launcher_node.constructed())
-				return false;
+			return _with_node(_start_node, [&] (Node const &start_node) {
 
-			return true;
+				if (_discovered(start_node))
+					return false;
+
+				if (_defined_by_launcher(start_node) && !_launcher_node.constructed())
+					return false;
+
+				return true;
+
+			}, [&] { return false; });
 		}
 
 		void gen_query(Generator &g) const
@@ -344,6 +414,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 *
 		 * \param common              session routes to be added in addition to
 		 *                            the ones found in the pkg blueprint
+		 * \param start_node          start node of deploy config
 		 * \param cached_depot_rom    name of the server that provides the depot
 		 *                            content as ROM modules. If the string is
 		 *                            invalid, ROM requests are routed to the
@@ -352,19 +423,27 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 *                            the content of the depot user "local", which
 		 *                            is assumed to be mutable
 		 */
-		inline void gen_start_node(Generator              &,
-		                           Node             const &common,
-		                           Prio_levels             prio_levels,
-		                           Affinity::Space         affinity_space,
-		                           Depot_rom_server const &cached_depot_rom,
-		                           Depot_rom_server const &uncached_depot_rom) const;
+		void gen_start_node(Generator              &g,
+		                    Node             const &common,
+		                    Prio_levels             prio_levels,
+		                    Affinity::Space         affinity_space,
+		                    Depot_rom_server const &cached_depot_rom,
+		                    Depot_rom_server const &uncached_depot_rom) const
+		{
+			_with_node(_start_node, [&] (Node const &start_node) {
+				_gen_start_node(g, common, start_node, prio_levels, affinity_space,
+				                cached_depot_rom, uncached_depot_rom);
+			}, [&] { });
+		}
 
 		inline void gen_monitor_policy_node(Generator &) const;
 
 		void with_missing_pkg_path(auto const &fn) const
 		{
-			if (_state == State::PKG_INCOMPLETE)
-				fn(_config_pkg_path());
+			_with_node(_start_node, [&] (Node const &start_node) {
+				if (_state == State::PKG_INCOMPLETE)
+					fn(_config_pkg_path(start_node));
+			}, [&] { });
 		}
 
 		/**
@@ -398,25 +477,24 @@ class Depot_deploy::Child : public List_model<Child>::Element
 };
 
 
-void Depot_deploy::Child::gen_start_node(Generator              &g,
-                                         Node             const &common,
-                                         Prio_levels      const  prio_levels,
-                                         Affinity::Space  const  affinity_space,
-                                         Depot_rom_server const &cached_depot_rom,
-                                         Depot_rom_server const &uncached_depot_rom) const
+void Depot_deploy::Child::_gen_start_node(Generator              &g,
+                                          Node             const &common,
+                                          Node             const &start_node,
+                                          Prio_levels      const  prio_levels,
+                                          Affinity::Space  const  affinity_space,
+                                          Depot_rom_server const &cached_depot_rom,
+                                          Depot_rom_server const &uncached_depot_rom) const
 {
-	if (!_configured() || _condition == UNSATISFIED)
+	if (!_discovered(start_node) || _condition == UNSATISFIED)
 		return;
 
-	if (_defined_by_launcher() && !_launcher_node.constructed())
+	if (_defined_by_launcher(start_node) && !_launcher_node.constructed())
 		return;
 
-	if (!_pkg_node->has_sub_node("runtime")) {
+	if (_pkg_node.constructed() && !_pkg_node->has_sub_node("runtime")) {
 		warning("blueprint for '", _name, "' lacks runtime information");
 		return;
 	}
-
-	Node const &start_node = *_start_node;
 
 	g.node("start", [&] {
 
@@ -424,23 +502,27 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 
 		{
 			unsigned long caps = _pkg_cap_quota;
-			_with_launcher_node([&] (Node const &launcher_node) {
-				caps = launcher_node.attribute_value("caps", caps); });
+
+			_with_node(_launcher_node, [&] (Node const &launcher) {
+				caps = launcher.attribute_value("caps", caps); }, [&] { });
+
 			caps = start_node.attribute_value("caps", caps);
 			g.attribute("caps", caps);
 		}
 
 		{
 			using Version = String<64>;
-			Version const version = _start_node->attribute_value("version", Version());
+			Version const version = start_node.attribute_value("version", Version());
 			if (version.valid())
 				g.attribute("version", version);
 		}
 
 		{
 			long priority = prio_levels.min_priority();
-			_with_launcher_node([&] (Node const &launcher_node) {
-				priority = launcher_node.attribute_value("priority", priority); });
+
+			_with_node(_launcher_node, [&] (Node const &launcher) {
+				priority = launcher.attribute_value("priority", priority); }, [&] { });
+
 			priority = start_node.attribute_value("priority", priority);
 			if (priority)
 				g.attribute("priority", priority);
@@ -453,9 +535,9 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 			if (start_node.attribute_value("managing_system", false))
 				result = true;
 
-			_with_launcher_node([&] (Node const &launcher_node) {
-				if (launcher_node.attribute_value("managing_system", false))
-					result = true; });
+			_with_node(_launcher_node, [&] (Node const &launcher) {
+				if (launcher.attribute_value("managing_system", false))
+					result = true; }, [&] { });
 
 			return result;
 		};
@@ -477,8 +559,8 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 		g.node("binary", [&] { g.attribute("name", binary); });
 
 		Number_of_bytes ram = _pkg_ram_quota;
-		_with_launcher_node([&] (Node const &launcher_node) {
-			ram = launcher_node.attribute_value("ram", ram); });
+		_with_node(_launcher_node, [&] (Node const &launcher) {
+			ram = launcher.attribute_value("ram", ram); }, [&] { });
 		ram = start_node.attribute_value("ram", ram);
 
 		g.node("resource", [&] {
@@ -487,8 +569,8 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 		});
 
 		unsigned long cpu_quota = _pkg_cpu_quota;
-		_with_launcher_node([&] (Node const &launcher_node) {
-			cpu_quota = launcher_node.attribute_value("cpu", cpu_quota); });
+		_with_node(_launcher_node, [&] (Node const &launcher) {
+			cpu_quota = launcher.attribute_value("cpu", cpu_quota); }, [&] { });
 		cpu_quota = start_node.attribute_value("cpu", cpu_quota);
 
 		g.node("resource", [&] {
@@ -498,8 +580,8 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 
 		/* affinity-location handling */
 		bool affinity_from_launcher = false;
-		_with_launcher_node([&] (Node const &launcher_node) {
-			affinity_from_launcher = launcher_node.has_sub_node("affinity"); });
+		_with_node(_launcher_node, [&] (Node const &launcher) {
+			affinity_from_launcher = launcher.has_sub_node("affinity"); }, [&] { });
 
 		bool const affinity_from_start = start_node.has_sub_node("affinity");
 
@@ -508,9 +590,9 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 			Affinity::Location location { };
 
 			if (affinity_from_launcher)
-				_with_launcher_node([&] (Node const &launcher_node) {
-					launcher_node.with_optional_sub_node("affinity", [&] (Node const &node) {
-						location = Affinity::Location::from_node(affinity_space, node); }); });
+				_with_node(_launcher_node, [&] (Node const &launcher) {
+					launcher.with_optional_sub_node("affinity", [&] (Node const &node) {
+						location = Affinity::Location::from_node(affinity_space, node); }); }, [&] { });
 
 			if (affinity_from_start)
 				start_node.with_optional_sub_node("affinity", [&] (Node const &node) {
@@ -524,93 +606,68 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 			});
 		}
 
+		/*
+		 * Insert inline '<heartbeat>' node if provided by the start node
+		 * or launcher.
+		 */
+		if (start_node.has_sub_node("heartbeat"))
+			_gen_copy_of_sub_node(g, start_node, "heartbeat");
+		else
+			_with_node(_launcher_node, [&] (Node const &launcher) {
+				if (launcher.has_sub_node("heartbeat"))
+					_gen_copy_of_sub_node(g, launcher, "heartbeat"); }, [&] { });
+
+		/*
+		 * Insert inline '<config>' node if provided by the start node,
+		 * the launcher definition (if a launcher is used), or the
+		 * blueprint. The former is preferred over the latter.
+		 */
+		bool config_defined = false;
+		if (start_node.has_sub_node("config")) {
+			_gen_copy_of_sub_node(g, start_node, "config");
+			config_defined = true; }
+
+		if (!config_defined)
+			_with_node(_launcher_node, [&] (Node const &launcher) {
+				if (launcher.has_sub_node("config")) {
+					_gen_copy_of_sub_node(g, launcher, "config");
+					config_defined = true; } }, [&] { });
+
 		/* runtime handling */
-		_pkg_node->with_optional_sub_node("runtime", [&] (Node const &runtime) {
+		if (_pkg_node.constructed()) {
+			_pkg_node->with_optional_sub_node("runtime", [&] (Node const &runtime) {
 
-			/*
-			 * Insert inline '<heartbeat>' node if provided by the start node
-			 * or launcher.
-			 */
-			if (start_node.has_sub_node("heartbeat"))
-				_gen_copy_of_sub_node(g, start_node, "heartbeat");
-			else
-				_with_launcher_node([&] (Node const &launcher_node) {
-					if (launcher_node.has_sub_node("heartbeat"))
-						_gen_copy_of_sub_node(g, launcher_node, "heartbeat"); });
+				if (!config_defined)
+					if (runtime.has_sub_node("config")) {
+						_gen_copy_of_sub_node(g, runtime, "config");
+						config_defined = true; }
 
-			/*
-			 * Insert inline '<config>' node if provided by the start node,
-			 * the launcher definition (if a launcher is used), or the
-			 * blueprint. The former is preferred over the latter.
-			 */
-			bool config_defined = false;
-			if (start_node.has_sub_node("config")) {
-				_gen_copy_of_sub_node(g, start_node, "config");
-				config_defined = true; }
+				_gen_provides(g, runtime);
+			});
 
-			if (!config_defined)
-				_with_launcher_node([&] (Node const &launcher_node) {
-					if (launcher_node.has_sub_node("config")) {
-						_gen_copy_of_sub_node(g, launcher_node, "config");
-						config_defined = true; } });
+		} else if (_state == State::NO_PKG) {
 
-			if (!config_defined)
-				if (runtime.has_sub_node("config")) {
-					_gen_copy_of_sub_node(g, runtime, "config");
-					config_defined = true; }
+			_gen_provides(g, start_node);
+		}
 
-			/*
-			 * Declare services provided by the subsystem.
-			 */
-			runtime.with_optional_sub_node("provides", [&] (Node const &provides) {
-				g.node("provides", [&] {
-					provides.for_each_sub_node([&] (Node const &service) {
-						_gen_provides_sub_node(g, service, "audio_in",    "Audio_in");
-						_gen_provides_sub_node(g, service, "audio_out",   "Audio_out");
-						_gen_provides_sub_node(g, service, "block",       "Block");
-						_gen_provides_sub_node(g, service, "file_system", "File_system");
-						_gen_provides_sub_node(g, service, "framebuffer", "Framebuffer");
-						_gen_provides_sub_node(g, service, "input",       "Input");
-						_gen_provides_sub_node(g, service, "event",       "Event");
-						_gen_provides_sub_node(g, service, "log",         "LOG");
-						_gen_provides_sub_node(g, service, "nic",         "Nic");
-						_gen_provides_sub_node(g, service, "uplink",      "Uplink");
-						_gen_provides_sub_node(g, service, "gui",         "Gui");
-						_gen_provides_sub_node(g, service, "gpu",         "Gpu");
-						_gen_provides_sub_node(g, service, "usb",         "Usb");
-						_gen_provides_sub_node(g, service, "report",      "Report");
-						_gen_provides_sub_node(g, service, "rom",         "ROM");
-						_gen_provides_sub_node(g, service, "terminal",    "Terminal");
-						_gen_provides_sub_node(g, service, "timer",       "Timer");
-						_gen_provides_sub_node(g, service, "pd",          "PD");
-						_gen_provides_sub_node(g, service, "cpu",         "CPU");
-						_gen_provides_sub_node(g, service, "rtc",         "Rtc");
-						_gen_provides_sub_node(g, service, "capture",     "Capture");
-						_gen_provides_sub_node(g, service, "play",        "Play");
-						_gen_provides_sub_node(g, service, "record",      "Record");
-					});
+		g.tabular_node("route", [&] {
+
+			if (start_node.has_sub_node("monitor")) {
+				g.node("service", [&] {
+					g.attribute("name", "PD");
+					g.node("local");
 				});
-			});
+				g.node("service", [&] {
+					g.attribute("name", "CPU");
+					g.node("local");
+				});
+				g.node("service", [&] {
+					g.attribute("name", "VM");
+					g.node("local");
+				});
+			}
 
-			g.tabular_node("route", [&] {
-
-				if (start_node.has_sub_node("monitor")) {
-					g.node("service", [&] {
-						g.attribute("name", "PD");
-						g.node("local");
-					});
-					g.node("service", [&] {
-						g.attribute("name", "CPU");
-						g.node("local");
-					});
-					g.node("service", [&] {
-						g.attribute("name", "VM");
-						g.node("local");
-					});
-				}
-
-				_gen_routes(g, common, cached_depot_rom, uncached_depot_rom);
-			});
+			_gen_routes(g, common, start_node, cached_depot_rom, uncached_depot_rom);
 		});
 	});
 }
@@ -618,33 +675,38 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 
 void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 {
-	if (!_configured() || _condition == UNSATISFIED)
-		return;
+	_with_node(_start_node, [&] (Node const &start_node) {
 
-	if (_defined_by_launcher() && !_launcher_node.constructed())
-		return;
+		if (!_discovered(start_node) || _condition == UNSATISFIED)
+			return;
 
-	if (!_pkg_node->has_sub_node("runtime")) {
-		return;
-	}
+		if (_defined_by_launcher(start_node) && !_launcher_node.constructed())
+			return;
 
-	_start_node->with_optional_sub_node("monitor", [&] (Node const &monitor) {
-		g.node("policy", [&] {
-			g.attribute("label", _name);
-			g.attribute("wait", monitor.attribute_value("wait", false));
-			g.attribute("wx",   monitor.attribute_value("wx",   false));
+		if (_state != State::NO_PKG && !_pkg_node->has_sub_node("runtime")) {
+			return;
+		}
+
+		start_node.with_optional_sub_node("monitor", [&] (Node const &monitor) {
+			g.node("policy", [&] {
+				g.attribute("label", _name);
+				g.attribute("wait", monitor.attribute_value("wait", false));
+				g.attribute("wx",   monitor.attribute_value("wx",   false));
+			});
 		});
-	});
+	}, [&] { });
 }
 
 
-void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
+void Depot_deploy::Child::_gen_routes(Generator &g,
+                                      Node const &common,
+                                      Node const &start_node,
                                       Depot_rom_server const &cached_depot_rom,
                                       Depot_rom_server const &uncached_depot_rom) const
 {
 	bool route_binary_to_shim = false;
 
-	if (!_pkg_node.constructed())
+	if (_state != State::NO_PKG && !_pkg_node.constructed())
 		return;
 
 	using Path = String<160>;
@@ -661,7 +723,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 	/*
 	 * Add routes given in the start node.
 	 */
-	_start_node->with_optional_sub_node("route", [&] (Node const &route) {
+	start_node.with_optional_sub_node("route", [&] (Node const &route) {
 
 		route.for_each_sub_node("service", [&] (Node const &service) {
 			Name const service_name = service.attribute_value("name", Name());
@@ -694,10 +756,10 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 	/*
 	 * Add routes given in the launcher definition.
 	 */
-	_with_launcher_node([&] (Node const &launcher) {
+	_with_node(_launcher_node, [&] (Node const &launcher) {
 		launcher.with_optional_sub_node("route", [&] (Node const &route) {
 			route.for_each_sub_node([&] (Node const &service) {
-				copy_route(service); }); }); });
+				copy_route(service); }); }); }, [&] { });
 
 	/**
 	 * Return name of depot-ROM server used for obtaining the 'path'
@@ -717,7 +779,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 	 * matching ROM module to rewrite the label with the configuration's path
 	 * within the depot.
 	 */
-	if (_config_name.valid()) {
+	if (_pkg_node.constructed() && _config_name.valid()) {
 		_pkg_node->for_each_sub_node("rom", [&] (Node const &rom) {
 
 			if (!rom.has_attribute("path"))
@@ -754,35 +816,47 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 	 * Add ROM routing rule with the label rewritten to the path within the
 	 * depot.
 	 */
-	_pkg_node->for_each_sub_node("rom", [&] (Node const &rom) {
+	if (_pkg_node.constructed())
+		_pkg_node->for_each_sub_node("rom", [&] (Node const &rom) {
 
-		if (!rom.has_attribute("path"))
-			return;
+			if (!rom.has_attribute("path"))
+				return;
 
-		using Label = Name;
-		Path  const path  = rom.attribute_value("path",  Path());
-		Label const label = rom.attribute_value("label", Label());
-		Label const as    = rom.attribute_value("as",    label);
+			using Label = Name;
+			Path  const path  = rom.attribute_value("path",  Path());
+			Label const label = rom.attribute_value("label", Label());
+			Label const as    = rom.attribute_value("as",    label);
 
+			g.node("service", [&] {
+				g.attribute("name", "ROM");
+
+				if (route_binary_to_shim && label == _binary_name)
+					g.attribute("label", "binary");
+				else
+					g.attribute("label_last", as);
+
+				if (cached_depot_rom.valid()) {
+					g.node("child", [&] {
+						g.attribute("name",  rom_server(path));
+						g.attribute("label", path);
+					});
+				} else {
+					g.node("parent", [&] {
+						g.attribute("label", path); });
+				}
+			});
+		});
+
+	/*
+	 * Copy routes of start node deployed directly without a pkg
+	 */
+	if (_state == State::NO_PKG)
 		g.node("service", [&] {
 			g.attribute("name", "ROM");
-
-			if (route_binary_to_shim && label == _binary_name)
-				g.attribute("label", "binary");
-			else
-				g.attribute("label_last", as);
-
-			if (cached_depot_rom.valid()) {
-				g.node("child", [&] {
-					g.attribute("name",  rom_server(path));
-					g.attribute("label", path);
-				});
-			} else {
-				g.node("parent", [&] {
-					g.attribute("label", path); });
-			}
+			g.attribute("label_last", _binary_name);
+			g.node("parent", [&] {
+				g.attribute("label", _binary_name); });
 		});
-	});
 }
 
 #endif /* _CHILD_H_ */
