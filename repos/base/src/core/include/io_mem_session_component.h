@@ -120,6 +120,21 @@ class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 				return { };
 			}
 
+			if (_skip_iomem_check(request))
+				return request;
+
+			/* probe for free region */
+			if (_io_mem_alloc.alloc_addr(req_size, req_base).ok())
+				return request;
+
+			error("I/O memory ", Hex_range<addr_t>(req_base, req_size),
+			      " not available");
+
+			return { };
+		}
+
+		bool _skip_iomem_check(Phys_range const &r) const
+		{
 			/**
 			 * _Unfortunate_ workaround for Intel PCH GPIO device.
 			 *
@@ -136,19 +151,9 @@ class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 			 * GPIO driver into a component (e.g., platform driver) that regulates
 			 * accesses by i2c_hid and acpica.
 			 */
-			bool skip_iomem_check = (req_base == 0xfd6d0000ull && req_size == 4096) ||
-			                        (req_base == 0xfd6a0000ull && req_size == 4096) ||
-			                        (req_base == 0xfd6e0000ull && req_size == 4096);
-
-			/* probe for free region */
-			if (!skip_iomem_check &&
-			     _io_mem_alloc.alloc_addr(req_size, req_base).failed()) {
-				error("I/O memory ", Hex_range<addr_t>(req_base, req_size),
-				      " not available");
-				return { };
-			}
-
-			return request;
+			return (r.req_base == 0xfd6d0000ull && r.req_size == 4096) ||
+			       (r.req_base == 0xfd6a0000ull && r.req_size == 4096) ||
+			       (r.req_base == 0xfd6e0000ull && r.req_size == 4096);
 		}
 
 		struct Guard : Genode::Noncopyable

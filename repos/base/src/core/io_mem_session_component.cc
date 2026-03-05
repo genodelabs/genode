@@ -36,7 +36,9 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
 	                                        _phys_attr.req_base)),
 	_ds_ep(ds_ep)
 {
-	if (!_phys_attr.req_size || !_ds_attr.size || _io_mem_result.failed() || !_ds.valid()) {
+	bool iomem_fail = !_skip_iomem_check(_phys_attr) && _io_mem_result.failed();
+
+	if (!_phys_attr.req_size || !_ds_attr.size || iomem_fail || !_ds.valid()) {
 		error("unable to access MMIO mapping: ", args);
 		return;
 	}
