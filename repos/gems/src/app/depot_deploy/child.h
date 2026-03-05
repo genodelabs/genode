@@ -498,53 +498,61 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
 
 		g.attribute("name", _name);
 
-		{
-			unsigned long caps = _pkg_cap_quota;
-
-			_with_node(_launcher_node, [&] (Node const &launcher) {
-				caps = launcher.attribute_value("caps", caps); }, [&] { });
-
-			caps = start_node.attribute_value("caps", caps);
-			g.attribute("caps", caps);
-		}
-
+		struct Attr
 		{
 			using Version = String<64>;
-			Version const version = start_node.attribute_value("version", Version());
-			if (version.valid())
-				g.attribute("version", version);
-		}
 
-		{
-			long priority = prio_levels.min_priority();
+			unsigned long      caps;
+			Number_of_bytes    ram;
+			Version            version;
+			long               priority;
+			bool               system;
+			Affinity::Location location;
 
-			_with_node(_launcher_node, [&] (Node const &launcher) {
-				priority = launcher.attribute_value("priority", priority); }, [&] { });
+			void apply(Node const &node, Affinity::Space const &affinity_space)
+			{
+				caps     = node.attribute_value("caps",            caps);
+				ram      = node.attribute_value("ram",             ram);
+				version  = node.attribute_value("version",         version);
+				priority = node.attribute_value("priority",        priority);
+				system   = node.attribute_value("managing_system", system);
 
-			priority = start_node.attribute_value("priority", priority);
-			if (priority)
-				g.attribute("priority", priority);
-		}
-
-		auto permit_managing_system = [&]
-		{
-			bool result = false;
-
-			if (start_node.attribute_value("managing_system", false))
-				result = true;
-
-			_with_node(_launcher_node, [&] (Node const &launcher) {
-				if (launcher.attribute_value("managing_system", false))
-					result = true; }, [&] { });
-
-			return result;
+				node.with_optional_sub_node("affinity", [&] (Node const &node) {
+					location = Affinity::Location::from_node(affinity_space, node); });
+			}
 		};
-		if (permit_managing_system())
-			g.attribute("managing_system", "yes");
 
-		bool shim_reroute = false;
+		Attr attr {
+			.caps     = _pkg_cap_quota,
+			.ram      = _pkg_ram_quota,
+			.version  = { },
+			.priority = prio_levels.min_priority(),
+			.system   = false,
+			.location = { },
+		};
+
+		/* launcher override pkg runtime */
+		_with_node(_launcher_node, [&] (Node const &launcher) {
+			attr.apply(launcher, affinity_space); }, [] { });
+
+		/* start node overrides launcher and pkg runtime */
+		attr.apply(start_node, affinity_space);
+
+		g.attribute("ram",  attr.ram);
+		g.attribute("caps", attr.caps);
+		if (attr.version.length() > 1) g.attribute("version",  attr.version);
+		if (attr.priority)             g.attribute("priority", attr.priority);
+		if (attr.system)               g.attribute("managing_system", "yes");
+
+		if (attr.location.width()*attr.location.height() > 0)
+			g.node("affinity", [&] {
+				g.attribute("xpos",   attr.location.xpos());
+				g.attribute("ypos",   attr.location.ypos());
+				g.attribute("width",  attr.location.width());
+				g.attribute("height", attr.location.height()); });
 
 		/* lookup if PD/CPU service is configured and use shim in such cases */
+		bool shim_reroute = false;
 		start_node.with_optional_sub_node("route", [&] (Node const &route) {
 			route.for_each_sub_node("service", [&] (Node const &service) {
 				if (service.attribute_value("name", Name()) == "PD" ||
@@ -556,43 +564,10 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
 
 		g.node("binary", [&] { g.attribute("name", binary); });
 
-		Number_of_bytes ram = _pkg_ram_quota;
-		_with_node(_launcher_node, [&] (Node const &launcher) {
-			ram = launcher.attribute_value("ram", ram); }, [&] { });
-		ram = start_node.attribute_value("ram", ram);
-
-		g.node("resource", [&] {
-			g.attribute("name", "RAM");
-			g.attribute("quantum", String<32>(ram));
-		});
-
 		/* affinity-location handling */
 		bool affinity_from_launcher = false;
 		_with_node(_launcher_node, [&] (Node const &launcher) {
 			affinity_from_launcher = launcher.has_sub_node("affinity"); }, [&] { });
-
-		bool const affinity_from_start = start_node.has_sub_node("affinity");
-
-		if (affinity_from_start || affinity_from_launcher) {
-
-			Affinity::Location location { };
-
-			if (affinity_from_launcher)
-				_with_node(_launcher_node, [&] (Node const &launcher) {
-					launcher.with_optional_sub_node("affinity", [&] (Node const &node) {
-						location = Affinity::Location::from_node(affinity_space, node); }); }, [&] { });
-
-			if (affinity_from_start)
-				start_node.with_optional_sub_node("affinity", [&] (Node const &node) {
-					location = Affinity::Location::from_node(affinity_space, node); });
-
-			g.node("affinity", [&] {
-				g.attribute("xpos",   location.xpos());
-				g.attribute("ypos",   location.ypos());
-				g.attribute("width",  location.width());
-				g.attribute("height", location.height());
-			});
-		}
 
 		/*
 		 * Insert inline '<heartbeat>' node if provided by the start node
