@@ -362,9 +362,16 @@ u32 prandom_u32(void)
 #include <linux/version.h>
 #include <linux/gfp.h>
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
+void *page_frag_alloc_align(struct page_frag_cache *nc,
+                            unsigned int fragsz, gfp_t gfp_mask,
+                            unsigned int align_mask)
+#else
+
 void *__page_frag_alloc_align(struct page_frag_cache *nc,
                             unsigned int fragsz, gfp_t gfp_mask,
                             unsigned int align_mask)
+#endif
 {
 	unsigned int const order = fragsz / PAGE_SIZE;
 	struct page *page = __alloc_pages(gfp_mask, order, 0, NULL);
