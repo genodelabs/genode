@@ -34,7 +34,6 @@ namespace Libc {
 	struct Resume;
 	struct Suspend;
 	struct Monitor;
-	struct Select;
 	struct Current_time;
 	struct Current_real_time;
 	struct Clone_connection;
@@ -76,11 +75,6 @@ namespace Libc {
 	 * Poll support
 	 */
 	void init_poll(Signal &, Monitor &, File_descriptor_allocator &);
-
-	/**
-	 * Select support
-	 */
-	void init_select(Select &);
 
 	/**
 	 * Support for querying available RAM quota in sysctl functions

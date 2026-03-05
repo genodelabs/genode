@@ -24,7 +24,6 @@
 #include <util/reconstructible.h>
 
 /* Libc includes */
-#include <libc/select.h>
 #include <stdlib.h>
 #include <sys/select.h>
 #include <signal.h>
@@ -35,20 +34,10 @@
 #include <internal/kernel.h>
 #include <internal/init.h>
 #include <internal/signal.h>
-#include <internal/select.h>
 #include <internal/errno.h>
 #include <internal/monitor.h>
 
 using namespace Libc;
-
-
-static Select       *_select_ptr;
-
-
-void Libc::init_select(Select &select)
-{
-	_select_ptr  = &select;
-}
 
 
 static int poll_nfds_from_select_nfds(int select_nfds,
@@ -205,61 +194,3 @@ int pselect(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 extern "C" __attribute__((alias("pselect")))
 int __sys_pselect(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
                   const struct timespec *timeout, const sigset_t *sigmask);
-
-
-/****************************************
- ** Select handler for libc components **
- ****************************************/
-
-int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
-                                      fd_set &writefds, fd_set &exceptfds)
-{
-	/*
-	 * Save the input data before calling '::select()' which zeroes out
-	 * the fd sets if nothing is ready.
-	 */
-	_nfds = nfds;
-	_readfds = readfds;
-	_writefds = writefds;
-	_exceptfds = exceptfds;
-
-	struct timeval tv { 0, 0 };
-
-	int const nready = ::select(nfds, &readfds, &writefds, &exceptfds, &tv);
-
-	/* return if any descripor is ready or an error occurred */
-	if (nready != 0)
-		return nready;
-
-	struct Missing_call_of_init_select : Exception { };
-	if (!_select_ptr)
-		throw Missing_call_of_init_select();
-
-	_select_ptr->schedule_select(*this);
-
-	return 0;
-}
-
-
-void Libc::Select_handler_base::dispatch_select()
-{
-	/* '::select()' zeroes out the fd sets if nothing is ready */
-	fd_set tmp_readfds = _readfds;
-	fd_set tmp_writefds = _writefds;
-	fd_set tmp_exceptfds = _exceptfds;
-
-	struct timeval tv { 0, 0 };
-
-	int const nready = ::select(_nfds,
-	                            &tmp_readfds,
-	                            &tmp_writefds,
-	                            &tmp_exceptfds,
-	                            &tv);
-
-	if (nready == 0) return;
-
-	if (_select_ptr)
-		_select_ptr->deschedule_select();
-
-	select_ready(nready, tmp_readfds, tmp_writefds, tmp_exceptfds);
-}

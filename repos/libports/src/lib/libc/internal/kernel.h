@@ -20,9 +20,6 @@
 #include <util/reconstructible.h>
 #include <internal/call_func.h>
 
-/* libc includes */
-#include <libc/select.h>
-
 /* libc-internal includes */
 #include <internal/malloc_ram_allocator.h>
 #include <internal/cloned_malloc_heap_range.h>
@@ -32,7 +29,6 @@
 #include <internal/vfs_plugin.h>
 #include <internal/suspend.h>
 #include <internal/resume.h>
-#include <internal/select.h>
 #include <internal/current_time.h>
 #include <internal/kernel_timer_accessor.h>
 #include <internal/watch.h>
@@ -107,7 +103,6 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
                             Resume,
                             Suspend,
                             Monitor,
-                            Select,
                             Current_time,
                             Current_real_time,
                             Watch,
@@ -247,8 +242,6 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		bool              _app_returned = false;
 
 		bool _resume_main_once  = false;
-
-		Select_handler_base *_scheduled_select_handler = nullptr;
 
 		void _resume_main() { _resume_main_once = true; }
 
@@ -532,10 +525,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		 */
 		void resume_all() override
 		{
-			if (_app_returned) {
-				if (_scheduled_select_handler)
-					_scheduled_select_handler->dispatch_select();
-			} else {
+			if (!_app_returned) {
 				if (_main_context())
 					_resume_main();
 				else
@@ -614,22 +604,6 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		Duration current_time() override
 		{
 			return _timer_accessor.timer().curr_time();
-		}
-
-		/**
-		 * Select interface
-		 */
-		void schedule_select(Select_handler_base &h) override
-		{
-			_scheduled_select_handler = &h;
-		}
-
-		/**
-		 * Select interface
-		 */
-		void deschedule_select() override
-		{
-			_scheduled_select_handler = nullptr;
 		}
 
 		/**
