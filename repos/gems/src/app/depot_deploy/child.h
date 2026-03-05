@@ -125,7 +125,6 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		Number_of_bytes _pkg_ram_quota { 0 };
 		unsigned long   _pkg_cap_quota { 0 };
-		unsigned long   _pkg_cpu_quota { 0 };
 
 		Binary_name _binary_name { };
 		Config_name _config_name { };
@@ -293,7 +292,6 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 					_pkg_ram_quota = runtime.attribute_value("ram", Number_of_bytes());
 					_pkg_cap_quota = runtime.attribute_value("caps", 0UL);
-					_pkg_cpu_quota = runtime.attribute_value("cpu", 0UL);
 
 					_binary_name = runtime.attribute_value("binary", Binary_name());
 					_config_name = runtime.attribute_value("config", Config_name());
@@ -566,16 +564,6 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
 		g.node("resource", [&] {
 			g.attribute("name", "RAM");
 			g.attribute("quantum", String<32>(ram));
-		});
-
-		unsigned long cpu_quota = _pkg_cpu_quota;
-		_with_node(_launcher_node, [&] (Node const &launcher) {
-			cpu_quota = launcher.attribute_value("cpu", cpu_quota); }, [&] { });
-		cpu_quota = start_node.attribute_value("cpu", cpu_quota);
-
-		g.node("resource", [&] {
-			g.attribute("name", "CPU");
-			g.attribute("quantum", cpu_quota);
 		});
 
 		/* affinity-location handling */
