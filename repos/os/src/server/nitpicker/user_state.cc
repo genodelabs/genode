@@ -196,13 +196,11 @@ void User_state::_handle_input_event(Input::Event ev)
 			if (_focused)
 				_focused->submit_input_event(Focus_leave());
 
-			if (_hovered) {
-				_pointer.with_result(
-					[&] (Point p) {
-						_hovered->submit_input_event(Absolute_motion{p.x, p.y});
-						_hovered->submit_input_event(Focus_enter()); },
-					[&] (Nowhere) { });
-			}
+			_pointer.with_result(
+				[&] (Point p) {
+					_hovered->submit_input_event(Absolute_motion{p.x, p.y});
+					_hovered->submit_input_event(Focus_enter()); },
+				[&] (Nowhere) { });
 
 			if (_hovered->has_transient_focusable_domain()) {
 				transient_receiver = &_hovered->forwarded_focus();
@@ -244,17 +242,15 @@ void User_state::_handle_input_event(Input::Event ev)
 		 */
 		View_owner *global_receiver = _global_keys.global_receiver(keycode);
 		if (global_receiver) {
-			bool const orig_global_key_sequence = _global_key_sequence;
 			_global_key_sequence = true;
 			_input_receiver      = global_receiver;
 
 			/* deliver current pointer position at start of key sequence */
-			if (orig_global_key_sequence != _global_key_sequence)
-				_pointer.with_result(
-					[&] (Point at) {
-						Absolute_motion motion { at.x, at.y };
-						_input_receiver->submit_input_event(motion); },
-					[&] (Nowhere) { });
+			_pointer.with_result(
+				[&] (Point at) {
+					Absolute_motion motion { at.x, at.y };
+					_input_receiver->submit_input_event(motion); },
+				[&] (Nowhere) { });
 		}
 
 		/*
@@ -624,6 +620,5 @@ void User_state::_focus_view_owner_via_click(View_owner &owner)
 
 	_focus.assign(owner);
 
-	if (!_global_key_sequence)
-		_input_receiver = &owner;
+	_input_receiver = &owner;
 }
