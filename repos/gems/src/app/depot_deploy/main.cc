@@ -32,10 +32,13 @@ struct Depot_deploy::Main : Option::Action
 	                       _deploy    { _env, "deploy" },
 	                       _blueprint { _env, "blueprint" };
 
+	Constructible<Attached_rom_dataspace> _launchers { };
+
 	Signal_handler<Main>
 		_config_handler    { _env.ep(), *this, &Main::_handle_config },
 		_deploy_handler    { _env.ep(), *this, &Main::_handle_deploy },
-		_blueprint_handler { _env.ep(), *this, &Main::_handle_blueprint };
+		_blueprint_handler { _env.ep(), *this, &Main::_handle_blueprint },
+		_launchers_handler { _env.ep(), *this, &Main::_handle_launchers };
 
 	struct Attr
 	{
@@ -48,6 +51,7 @@ struct Depot_deploy::Main : Option::Action
 		Prio_levels     prio_levels;
 		Affinity::Space affinity_space;
 		bool            state_reporter;
+		bool            launchers;
 
 		/*
 		 * Child providing depot content as ROM modules.
@@ -70,6 +74,7 @@ struct Depot_deploy::Main : Option::Action
 					[] (Node const &node) { return node.attribute_value("state", false); },
 					[]                    { return false; }),
 
+				.launchers = config.attribute_value("launchers", false),
 				.depot_rom = config.attribute_value("depot_rom", Depot_rom { }),
 			};
 		}
@@ -122,6 +127,8 @@ struct Depot_deploy::Main : Option::Action
 
 		if (_children.apply_deploy(_deploy.node()).progressed) {
 
+			_apply_launchers_to_children();
+
 			/* a new option may have appeared in the deploy config */
 			_children.watch_options(_env, *this);
 
@@ -137,6 +144,33 @@ struct Depot_deploy::Main : Option::Action
 			_update_runtime_and_query();
 	}
 
+	Progress _apply_launchers_to_children()
+	{
+		if (!_launchers.constructed())
+			return STALLED;
+
+		Progress progress = STALLED;
+		_launchers->node().with_optional_sub_node("dir", [&] (Node const &dir) {
+			dir.for_each_sub_node("file", [&] (Node const &file) {
+				using Name = Child::Launcher_name;
+				Name const name = file.attribute_value("name", Name());
+				file.with_optional_sub_node("launcher", [&] (Node const &launcher) {
+					if (_children.apply_launcher(name, launcher).progressed)
+						progress = PROGRESSED; }); }); });
+		return progress;
+	}
+
+	void _handle_launchers()
+	{
+		if (!_launchers.constructed())
+			return;
+
+		_launchers->update();
+
+		if (_apply_launchers_to_children().progressed)
+			_update_runtime_and_query();
+	}
+
 	void _handle_config()
 	{
 		_config.update();
@@ -147,6 +181,12 @@ struct Depot_deploy::Main : Option::Action
 			warning("config lacks 'arch' attribute");
 
 		_state_reporter.conditional(_attr.state_reporter, _env, "state", "state");
+
+		if (_attr.launchers && !_launchers.constructed()) {
+			_launchers.construct(_env, "launchers");
+			_launchers->sigh(_launchers_handler);
+			_launchers_handler.local_submit();
+		}
 
 		_update_runtime_and_query();
 	}
