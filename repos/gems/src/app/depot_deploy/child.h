@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/list_model.h>
 #include <util/dictionary.h>
+#include <util/progress.h>
 #include <base/service.h>
 #include <base/node.h>
 #include <os/reporter.h>
@@ -238,13 +239,10 @@ class Depot_deploy::Child : public Duplicate_checked,
 			Duplicate_checked(dict, name), Dictionary::Element(dict, name)
 		{ }
 
-		/*
-		 * \return true if config had an effect on the child's state
-		 */
-		bool apply_config(Allocator &alloc, Node const &start_node)
+		Progress apply_config(Allocator &alloc, Node const &start_node)
 		{
 			if (_identical(_start_node, start_node))
-				return false;
+				return STALLED;
 
 			Archive::Path const orig_pkg_path = _blueprint_pkg_path;
 
@@ -268,19 +266,19 @@ class Depot_deploy::Child : public Duplicate_checked,
 				_config_name = start_node.attribute_value("config", Config_name());
 			}
 
-			return true;
+			return PROGRESSED;
 		}
 
 		/*
 		 * \return true if bluerprint had an effect on the child
 		 */
-		bool apply_blueprint(Allocator &alloc, Node const &pkg)
+		Progress apply_blueprint(Allocator &alloc, Node const &pkg)
 		{
 			if (_state == State::PKG_COMPLETE || _state == State::NO_PKG)
-				return false;
+				return STALLED;
 
 			if (pkg.attribute_value("path", Archive::Path()) != _blueprint_pkg_path)
-				return false;
+				return STALLED;
 
 			/* check for the completeness of all ROM ingredients */
 			bool any_rom_missing = false;
@@ -298,7 +296,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 			if (any_rom_missing) {
 				State const orig_state = _state;
 				_state = State::PKG_INCOMPLETE;
-				return (orig_state != _state);
+				return { .progressed = (orig_state != _state) };
 			}
 
 			/* package was missing but is installed now */
@@ -318,30 +316,28 @@ class Depot_deploy::Child : public Duplicate_checked,
 				},
 				[&] { });
 
-			return true;
+			return PROGRESSED;
 		}
 
-		bool apply_launcher(Allocator &alloc, Launcher_name const &name, Node const &launcher)
+		Progress apply_launcher(Allocator &alloc,
+		                        Launcher_name const &name, Node const &launcher)
 		{
 			return _with_node(_start_node, [&] (Node const &start_node) {
 
-				if (!_defined_by_launcher(start_node))    return false;
-				if (_launcher_name(start_node) != name)   return false;
-				if (_identical(_launcher_node, launcher)) return false;
+				if (!_defined_by_launcher(start_node))    return STALLED;
+				if (_launcher_name(start_node) != name)   return STALLED;
+				if (_identical(_launcher_node, launcher)) return STALLED;
 
 				_launcher_node.construct(alloc, launcher);
 
 				_blueprint_pkg_path = _config_pkg_path(start_node);
 
-				return true;
+				return PROGRESSED;
 
-			}, [&] { return false; });
+			}, [&] { return STALLED; });
 		}
 
-		/*
-		 * \return true if condition changed
-		 */
-		bool apply_condition(auto const &cond_fn)
+		Progress apply_condition(auto const &cond_fn)
 		{
 			Condition const orig_condition = _condition;
 
@@ -351,7 +347,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 					[&]                        { return cond_fn(start, Node()); });
 				_condition = satisfied ? SATISFIED : UNSATISFIED;
 			}, [&] { });
-			return _condition != orig_condition;
+			return { .progressed = (_condition != orig_condition) };
 		}
 
 		void apply_if_unsatisfied(auto const &fn) const
@@ -364,28 +360,25 @@ class Depot_deploy::Child : public Duplicate_checked,
 				}, [&] { });
 		}
 
-		/*
-		 * \return true if the call had an effect on the child
-		 */
-		bool mark_as_incomplete(Node const &missing)
+		Progress mark_as_incomplete(Node const &missing)
 		{
 			if (_state == State::NO_PKG)
-				return false;
+				return STALLED;
 
 			/* print error message only once */
 			if (_state == State::PKG_INCOMPLETE)
-				return false;
+				return STALLED;
 
 			Archive::Path const path = missing.attribute_value("path", Archive::Path());
 			if (path != _blueprint_pkg_path)
-				return false;
+				return STALLED;
 
 			log(path, " incomplete or missing, name=", name, " state=", (int)_state);
 
 			State const orig_state = _state;
 			_state = State::PKG_INCOMPLETE;
 
-			return (orig_state != _state);
+			return { .progressed = (orig_state != _state) };
 		}
 
 		/**

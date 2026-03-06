@@ -29,7 +29,7 @@ bool Sculpt::Deploy::update_child_conditions()
 			condition = false; });
 
 		return condition;
-	});
+	}).progressed;
 }
 
 
@@ -87,7 +87,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 
 	auto apply_config = [&]
 	{
-		try { return _children.apply_config(managed_deploy); }
+		try { return _children.apply_config(managed_deploy).progressed; }
 		catch (...) {
 			error("spurious exception during deploy update (apply_config)"); }
 		return false;
@@ -117,7 +117,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 					Name const name = file.attribute_value("name", Name());
 
 					file.for_each_sub_node("launcher", [&] (Node const &launcher) {
-						if (_children.apply_launcher(name, launcher))
+						if (_children.apply_launcher(name, launcher).progressed)
 							any_child_affected = true; });
 				});
 			});
@@ -137,7 +137,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 				using Version = String<32>;
 				Version const version = blueprint.attribute_value("version", Version());
 				if (version == Version(_depot_query.depot_query_version().value))
-					progress = _children.apply_blueprint(blueprint);
+					progress = _children.apply_blueprint(blueprint).progressed;
 			});
 		}
 		catch (...) {

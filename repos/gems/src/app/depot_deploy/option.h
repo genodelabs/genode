@@ -82,30 +82,30 @@ struct Depot_deploy::Option : List_model<Option>::Element
 	/*
 	 * \return true if config had any effect
 	 */
-	bool apply(Dictionary &dict, Allocator &alloc, Node const &option)
+	Progress apply(Dictionary &dict, Allocator &alloc, Node const &option)
 	{
-		bool progress = false;
+		Progress result = STALLED;
 
 		children.update_from_node(option,
 
 			/* create */
 			[&] (Node const &node) -> Child & {
-				progress = true;
+				result = PROGRESSED;
 				return *new (alloc)
 					Child(dict, Child::node_name(node)); },
 
 			/* destroy */
 			[&] (Child &child) {
-				progress = true;
+				result = PROGRESSED;
 				destroy(alloc, &child); },
 
 			/* update */
 			[&] (Child &child, Node const &node) {
-				if (child.apply_config(alloc, node))
-					progress = true; }
+				if (child.apply_config(alloc, node).progressed)
+					result = PROGRESSED; }
 		);
 
-		return progress;
+		return result;
 	}
 
 	/**

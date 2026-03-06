@@ -92,18 +92,22 @@ struct Depot_deploy::Main : Option::Action
 		_prio_levels = Child::Prio_levels { config.attribute_value("prio_levels", 0U) };
 		_arch        = config.attribute_value("arch", Arch());
 
-		bool const config_affected_child_or_option = _children.apply_config(config);
-		bool const blueprint_affected_child = _children.apply_blueprint(_blueprint.node());
+		{
+			Progress progress = _children.apply_config(config);
 
-		/* a new option may have appeared */
-		if (config_affected_child_or_option)
-			_children.watch_options(_env, *this);
+			/* a new option may have appeared in the config */
+			if (progress.progressed)
+				_children.watch_options(_env, *this);
 
-		bool const progress = (curr_attributes() != orig_attributes)
-		                   || config_affected_child_or_option
-		                   || blueprint_affected_child;
-		if (!progress)
-			return;
+			if (_children.apply_blueprint(_blueprint.node()).progressed)
+				progress = PROGRESSED;
+
+			if (curr_attributes() != orig_attributes)
+				progress = PROGRESSED;
+
+			if (progress.stalled())
+				return;
+		}
 
 		if (_state_reporter.constructed())
 			_state_reporter->generate([&] (Generator &g) {
@@ -141,8 +145,7 @@ struct Depot_deploy::Main : Option::Action
 	 */
 	void deploy_option_changed(Option::Name const &name, Node const &config) override
 	{
-		bool const progress = _children.apply_option(name, config);
-		if (progress)
+		if (_children.apply_option(name, config).progressed)
 			_handle_config();
 	}
 

@@ -64,42 +64,39 @@ class Depot_deploy::Children
 
 		Children(Allocator &alloc) : _alloc(alloc) { }
 
-		/*
-		 * \return true if config had any effect
-		 */
-		bool apply_config(Node const &config)
+		Progress apply_config(Node const &config)
 		{
-			bool progress = false;
+			Progress result = STALLED;
 
 			_immediate_children.update_from_node(config,
 
 				/* create */
 				[&] (Node const &node) -> Child & {
-					progress = true;
+					result = PROGRESSED;
 					return *new (_alloc)
 						Child(_dict, Child::node_name(node)); },
 
 				/* destroy */
 				[&] (Child &child) {
-					progress = true;
+					result = PROGRESSED;
 					destroy(_alloc, &child); },
 
 				/* update */
 				[&] (Child &child, Node const &node) {
-					if (child.apply_config(_alloc, node))
-						progress = true; }
+					if (child.apply_config(_alloc, node).progressed)
+						result = PROGRESSED; }
 			);
 
 			_options.update_from_node(config,
 
 				/* create */
 				[&] (Node const &node) -> Option & {
-					progress = true;
+					result = PROGRESSED;
 					return *new (_alloc) Option(Option::node_name(node)); },
 
 				/* destroy */
 				[&] (Option &option) {
-					progress = true;
+					result = PROGRESSED;
 					option.apply(_dict, _alloc, Node()); /* flush children */
 					destroy(_alloc, &option); },
 
@@ -107,41 +104,33 @@ class Depot_deploy::Children
 				[&] (Option &, Node const &) { }
 			);
 
-			return progress;
+			return result;
 		}
 
-		/*
-		 * \return true if launcher had any effect
-		 */
-		bool apply_launcher(Child::Launcher_name const &name, Node const &launcher)
+		Progress apply_launcher(Child::Launcher_name const &name, Node const &launcher)
 		{
-			bool any_child_changed = false;
-
+			Progress result = STALLED;
 			_for_each_child([&] (Child &child) {
-				if (child.apply_launcher(_alloc, name, launcher))
-					any_child_changed = true; });
-
-			return any_child_changed;
+				if (child.apply_launcher(_alloc, name, launcher).progressed)
+					result = PROGRESSED; });
+			return result;
 		}
 
-		/*
-		 * \return true if blueprint had an effect on any child
-		 */
-		bool apply_blueprint(Node const &blueprint)
+		Progress apply_blueprint(Node const &blueprint)
 		{
-			bool any_child_changed = false;
+			Progress result = STALLED;
 
 			blueprint.for_each_sub_node("pkg", [&] (Node const &pkg) {
 				_for_each_child([&] (Child &child) {
-					if (child.apply_blueprint(_alloc, pkg))
-						any_child_changed = true; }); });
+					if (child.apply_blueprint(_alloc, pkg).progressed)
+						result = PROGRESSED; }); });
 
 			blueprint.for_each_sub_node("missing", [&] (Node const &missing) {
 				_for_each_child([&] (Child &child) {
-					if (child.mark_as_incomplete(missing))
-						any_child_changed = true; }); });
+					if (child.mark_as_incomplete(missing).progressed)
+						result = PROGRESSED; }); });
 
-			return any_child_changed;
+			return result;
 		}
 
 		/**
@@ -159,24 +148,22 @@ class Depot_deploy::Children
 		/**
 		 * Supply the config for option of the given name
 		 */
-		bool apply_option(Option::Name const &name, Node const &config)
+		Progress apply_option(Option::Name const &name, Node const &config)
 		{
-			bool progress = false;
+			Progress result = STALLED;
 			_options.for_each([&] (Option &option) {
 				if (option.name == name)
-					progress = option.apply(_dict, _alloc, config); });
-			return progress;
+					result = option.apply(_dict, _alloc, config); });
+			return result;
 		}
 
-		/*
-		 * \return true if the condition of any child changed
-		 */
-		bool apply_condition(auto const &cond_fn)
+		Progress apply_condition(auto const &cond_fn)
 		{
-			bool any_condition_changed = false;
+			Progress result = STALLED;
 			_for_each_child([&] (Child &child) {
-				any_condition_changed |= child.apply_condition(cond_fn); });
-			return any_condition_changed;
+				if (child.apply_condition(cond_fn).progressed)
+					result = PROGRESSED; });
+			return result;
 		}
 
 		/**
