@@ -225,8 +225,8 @@ void User_state::_handle_input_event(Input::Event ev)
 		}
 
 		if (transient_receiver) {
-			_global_key_sequence = true; /* FIXME */
-			_input_receiver = transient_receiver;
+			_transient_focus = true;
+			_input_receiver  = transient_receiver;
 			return;
 		}
 
@@ -318,7 +318,7 @@ void User_state::_handle_input_event(Input::Event ev)
 		if (!_input_receiver)
 			return;
 
-		if (!_mouse_button(key) || _global_key_sequence
+		if (!_mouse_button(key) || _global_key_sequence || _transient_focus
 		 || (_hovered
 		  && (_hovered->has_focusable_domain()
 		   || _hovered->has_same_domain(_focused))))
@@ -337,15 +337,23 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		update_hover();
 
+		/*
+		 * update_hover() already sends hover leave to previously hovered view
+		 * owner. In case of dragging, _hovered might have been reset and the
+		 * actual hover update postponed to now. If the input receiver got
+		 * any absolute motion event, which is the case when dragging or for
+		 * global key sequences, we still need to send a hover leave here.
+		 */
 		if (_drag || _global_key_sequence)
 			if (_input_receiver && (_input_receiver != _hovered))
 				_input_receiver->submit_input_event(Hover_leave());
 
 		_drag = false;
 
-		if (_global_key_sequence) {
+		if (_global_key_sequence || _transient_focus) {
 			_input_receiver      = _focused;
 			_global_key_sequence = false;
+			_transient_focus     = false;
 		}
 	}
 

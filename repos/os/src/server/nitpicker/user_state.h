@@ -64,6 +64,11 @@ class Nitpicker::User_state
 		bool _global_key_sequence = false;
 
 		/*
+		 * True while a view owner is focused due to mouse or touch interaction
+		 */
+		bool _transient_focus = false;
+
+		/*
 		 * True if motion events occur while a key is presse
 		 */
 		bool _drag = false;
