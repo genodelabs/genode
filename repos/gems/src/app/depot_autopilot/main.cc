@@ -206,7 +206,7 @@ struct Depot_autopilot::Iteration
 			config.with_optional_sub_node("common_routes", [&] (Node const &common_routes) {
 				_children.gen_start_nodes(g, common_routes,
 				                          _attr.prio_levels, _attr.affinity_space,
-				                          parent, parent, cond_fn); });
+				                          parent, cond_fn); });
 		});
 	}
 

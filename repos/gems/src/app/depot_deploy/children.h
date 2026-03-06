@@ -185,14 +185,13 @@ class Depot_deploy::Children
 		void gen_start_nodes(Generator &g, Node const &common,
 		                     Child::Prio_levels prio_levels,
 		                     Affinity::Space affinity_space,
-		                     Child::Depot_rom_server const &cached_depot_rom,
-		                     Child::Depot_rom_server const &uncached_depot_rom,
+		                     Child::Depot_rom_server const &default_depot_rom,
 		                     auto const &cond_fn) const
 		{
 			_for_each_child([&] (Child const &child) {
 				if (cond_fn(child.name))
 					child.gen_start_node(g, common, prio_levels, affinity_space,
-					                     cached_depot_rom, uncached_depot_rom); });
+					                     default_depot_rom); });
 		}
 
 		void gen_monitor_policy_nodes(Generator &g) const

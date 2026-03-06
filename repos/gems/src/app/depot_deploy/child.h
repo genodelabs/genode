@@ -150,6 +150,8 @@ class Depot_deploy::Child : public Duplicate_checked,
 		Binary_name _binary_name { };
 		Config_name _config_name { };
 
+		Depot_rom_server _custom_depot_rom { };
+
 		/*
 		 * Set if the depot query for the child's blueprint failed.
 		 */
@@ -167,7 +169,6 @@ class Depot_deploy::Child : public Duplicate_checked,
 		}
 
 		inline void _gen_routes(Generator &, Node const &, Node const &,
-		                        Depot_rom_server const &,
 		                        Depot_rom_server const &) const;
 
 		static void _gen_provides_sub_node(Generator &g, Node const &service,
@@ -229,8 +230,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 		                            Node             const &start_node,
 		                            Prio_levels             prio_levels,
 		                            Affinity::Space         affinity_space,
-		                            Depot_rom_server const &cached_depot_rom,
-		                            Depot_rom_server const &uncached_depot_rom) const;
+		                            Depot_rom_server const &default_depot_rom) const;
 
 	public:
 
@@ -265,6 +265,8 @@ class Depot_deploy::Child : public Duplicate_checked,
 				_binary_name = start_node.attribute_value("binary", Binary_name());
 				_config_name = start_node.attribute_value("config", Config_name());
 			}
+
+			_custom_depot_rom = start_node.attribute_value("depot_rom", Depot_rom_server());
 
 			return PROGRESSED;
 		}
@@ -423,24 +425,20 @@ class Depot_deploy::Child : public Duplicate_checked,
 		 * \param common              session routes to be added in addition to
 		 *                            the ones found in the pkg blueprint
 		 * \param start_node          start node of deploy config
-		 * \param cached_depot_rom    name of the server that provides the depot
+		 * \param default_depot_rom   name of the server that provides the depot
 		 *                            content as ROM modules. If the string is
 		 *                            invalid, ROM requests are routed to the
 		 *                            parent.
-		 * \param uncached_depot_rom  name of the depot-ROM server used to obtain
-		 *                            the content of the depot user "local", which
-		 *                            is assumed to be mutable
 		 */
 		void gen_start_node(Generator              &g,
 		                    Node             const &common,
 		                    Prio_levels             prio_levels,
 		                    Affinity::Space         affinity_space,
-		                    Depot_rom_server const &cached_depot_rom,
-		                    Depot_rom_server const &uncached_depot_rom) const
+		                    Depot_rom_server const &default_depot_rom) const
 		{
 			_with_node(_start_node, [&] (Node const &start_node) {
 				_gen_start_node(g, common, start_node, prio_levels, affinity_space,
-				                cached_depot_rom, uncached_depot_rom);
+				                default_depot_rom);
 			}, [&] { });
 		}
 
@@ -484,8 +482,7 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
                                           Node             const &start_node,
                                           Prio_levels      const  prio_levels,
                                           Affinity::Space  const  affinity_space,
-                                          Depot_rom_server const &cached_depot_rom,
-                                          Depot_rom_server const &uncached_depot_rom) const
+                                          Depot_rom_server const &default_depot_rom) const
 {
 	if (!_discovered(start_node) || _condition == UNSATISFIED)
 		return;
@@ -634,7 +631,9 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
 				});
 			}
 
-			_gen_routes(g, common, start_node, cached_depot_rom, uncached_depot_rom);
+			_gen_routes(g, common, start_node,
+			            _custom_depot_rom.length() > 1 ? _custom_depot_rom
+			                                           : default_depot_rom);
 		});
 	});
 }
@@ -668,8 +667,7 @@ void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 void Depot_deploy::Child::_gen_routes(Generator &g,
                                       Node const &common,
                                       Node const &start_node,
-                                      Depot_rom_server const &cached_depot_rom,
-                                      Depot_rom_server const &uncached_depot_rom) const
+                                      Depot_rom_server const &depot_rom) const
 {
 	bool route_binary_to_shim = false;
 
@@ -728,18 +726,6 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 			route.for_each_sub_node([&] (Node const &service) {
 				copy_route(service); }); }); }, [&] { });
 
-	/**
-	 * Return name of depot-ROM server used for obtaining the 'path'
-	 *
-	 * If the depot path refers to the depot-user "local", route the
-	 * session request to the non-cached ROM service.
-	 */
-	auto rom_server = [&] (Path const &path) {
-
-		return (String<7>(path) == "local/") ? uncached_depot_rom
-		                                     : cached_depot_rom;
-	};
-
 	/*
 	 * Redirect config ROM request to label as given in the 'config' attribute,
 	 * if present. We need to search the blueprint's <rom> nodes for the
@@ -762,9 +748,9 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 				using Path = String<160>;
 				Path const path = rom.attribute_value("path", Path());
 
-				if (cached_depot_rom.valid())
+				if (depot_rom.length() > 1)
 					g.node("child", [&] {
-						g.attribute("name", rom_server(path));
+						g.attribute("name", depot_rom);
 						g.attribute("label", path); });
 				else
 					g.node("parent", [&] {
@@ -802,9 +788,9 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 				else
 					g.attribute("label_last", as);
 
-				if (cached_depot_rom.valid()) {
+				if (depot_rom.length() > 1) {
 					g.node("child", [&] {
-						g.attribute("name",  rom_server(path));
+						g.attribute("name",  depot_rom);
 						g.attribute("label", path);
 					});
 				} else {

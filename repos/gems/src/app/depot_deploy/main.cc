@@ -41,15 +41,24 @@ struct Depot_deploy::Main : Option::Action
 	{
 		using Prio_levels = Child::Prio_levels;
 		using Arch        = String<16>;
+		using Depot_rom   = Child::Depot_rom_server;
 
+		bool            verbose;
 		Arch            arch;
 		Prio_levels     prio_levels;
 		Affinity::Space affinity_space;
 		bool            state_reporter;
 
+		/*
+		 * Child providing depot content as ROM modules.
+		 * If undefined, the ROMs are requested from the parent.
+		 */
+		Depot_rom depot_rom;
+
 		static Attr from_config(Node const &config)
 		{
 			return {
+				.verbose     =   config.attribute_value("verbose", false),
 				.arch        =   config.attribute_value("arch", Arch()),
 				.prio_levels = { config.attribute_value("prio_levels", 0U) },
 
@@ -60,6 +69,8 @@ struct Depot_deploy::Main : Option::Action
 				.state_reporter = config.with_sub_node("report",
 					[] (Node const &node) { return node.attribute_value("state", false); },
 					[]                    { return false; }),
+
+				.depot_rom = config.attribute_value("depot_rom", Depot_rom { }),
 			};
 		}
 	};
@@ -151,6 +162,9 @@ struct Depot_deploy::Main : Option::Action
 
 	void _gen_runtime(Generator &g, Node const &config) const
 	{
+		if (_attr.verbose)
+			g.attribute("verbose", "yes");
+
 		if (_attr.prio_levels.value)
 			g.attribute("prio_levels", _attr.prio_levels.value);
 
@@ -173,10 +187,9 @@ struct Depot_deploy::Main : Option::Action
 
 		config.with_sub_node("common_routes",
 			[&] (Node const &node) {
-				Child::Depot_rom_server const parent { };
 				_children.gen_start_nodes(g, node,
 				                          _attr.prio_levels, _attr.affinity_space,
-				                          parent, parent,
+				                          _attr.depot_rom,
 				                          [] (Child::Name const &) { return true; });
 			},
 			[&] { warning("config lacks <common_routes> node"); });
