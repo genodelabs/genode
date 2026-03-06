@@ -67,7 +67,7 @@ PASSWORD_$(1) := $(if $(call _key_needs_password,$(1)),\
 $(info )
 
 # exit if password did not unlock the key
-$(intcmp 0,$(.SHELLSTATUS),$(error Wrong password))
+$(if $(subst 0,,$(.SHELLSTATUS)),$(error Wrong password))
 
 # make password available as environment variable
 export PASSWORD_$(1)
