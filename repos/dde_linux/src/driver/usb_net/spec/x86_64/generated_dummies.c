@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2026-02-19
+ * \date   2026-03-04
  */
 
 #include <lx_emul.h>
@@ -36,17 +36,17 @@ void __f_setown(struct file * filp,struct pid * pid,enum pid_type type,int force
 }
 
 
-#include <linux/percpu-rwsem.h>
+#include <net/ipv6.h>
 
-bool __sched __percpu_down_read(struct percpu_rw_semaphore * sem,bool try,bool freeze)
+int __ipv6_addr_type(const struct in6_addr * addr)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <net/ipv6.h>
+#include <linux/percpu-rwsem.h>
 
-int __ipv6_addr_type(const struct in6_addr * addr)
+bool __sched __percpu_down_read(struct percpu_rw_semaphore * sem,bool try,bool freeze)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -872,6 +872,14 @@ bool rcuref_get_slowpath(rcuref_t * ref)
 #include <linux/rtnetlink.h>
 
 void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,u32 portid,const struct nlmsghdr * nlh)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rtnetlink.h>
+
+int rtnl_trylock(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }

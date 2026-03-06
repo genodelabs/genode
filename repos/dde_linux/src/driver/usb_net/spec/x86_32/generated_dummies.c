@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2026-02-21
+ * \date   2026-03-06
  */
 
 #include <lx_emul.h>
@@ -899,6 +899,14 @@ bool rcuref_get_slowpath(rcuref_t * ref)
 #include <linux/rtnetlink.h>
 
 void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,u32 portid,const struct nlmsghdr * nlh)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rtnetlink.h>
+
+int rtnl_trylock(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }

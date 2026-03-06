@@ -113,7 +113,7 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 			schedule_write();
 			Lx_kit::env().scheduler.execute();
 
-			return 0;
+			return num_bytes;
 		}
 
 		Genode::Dataspace_capability _dataspace()
