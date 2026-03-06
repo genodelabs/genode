@@ -265,7 +265,7 @@ struct Sculpt::Deploy
 		/* ignore stale query results */
 		_depot_query.trigger_depot_query();
 
-		_children.apply_config(Node());
+		_children.apply_deploy(Node());
 	}
 
 	void reattempt_after_installation()

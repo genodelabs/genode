@@ -44,7 +44,7 @@ config
   + config | verbose: yes
     + policy | label:  depot_deploy -> blueprint | report: depot_query -> blueprint
     + policy | label:  depot_query -> query      | report: depot_deploy -> query
-    + policy | label:  dynamic -> config         | report: depot_deploy -> init.config
+    + policy | label:  dynamic -> config         | report: depot_deploy -> runtime
 
 + start vfs | ram: 4M
   + provides | + service File_system
@@ -91,10 +91,9 @@ config
   |   + service PD                          | + parent
   |   + service LOG                         | + parent
   |   + service Timer                       | + parent
-  | + start invalid | pkg: badguy/pkg/invalid/current
-  | + start test | pkg: } [depot_user] {/pkg/} [query_pkg] {
   + route
     + service ROM | label: blueprint | + child report_rom
+    + service ROM | label: deploy    | + parent | label: deploy.config
     + any-service
       + parent
       + any-child
@@ -112,6 +111,20 @@ config
       + any-child
 -
 }
+
+#
+# Deploy ROM
+#
+set content {}
+append content {
+deploy
++ start invalid | pkg: badguy/pkg/invalid/current
++ start test    | pkg: } [depot_user] {/pkg/} [query_pkg] {
+-
+}
+set fd [open [run_dir]/genode/deploy.config w]
+puts $fd $content
+close $fd
 
 build_boot_image [build_artifacts]
 

@@ -87,7 +87,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 
 	auto apply_config = [&]
 	{
-		try { return _children.apply_config(managed_deploy).progressed; }
+		try { return _children.apply_deploy(managed_deploy).progressed; }
 		catch (...) {
 			error("spurious exception during deploy update (apply_config)"); }
 		return false;

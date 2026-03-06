@@ -122,7 +122,7 @@ struct Depot_autopilot::Iteration
 		_plan.print_conclusions();
 
 		_plan.apply_config(_heap, Node());
-		_children.apply_config(Node());
+		_children.apply_deploy(Node());
 	}
 
 	void select_next_test_if_idle()
@@ -152,7 +152,7 @@ struct Depot_autopilot::Iteration
 				_plan.gen_deploy_start_nodes(g); } };
 
 		deploy.node.with_result(
-			[&] (Node const &node) { _children.apply_config(node); },
+			[&] (Node const &node) { _children.apply_deploy(node); },
 			[&] (Buffer_error) { warning("failed to generate deploy config"); });
 
 		_children.apply_blueprint(blueprint);

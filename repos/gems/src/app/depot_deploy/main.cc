@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <util/retry.h>
 #include <util/reconstructible.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
@@ -29,11 +28,46 @@ struct Depot_deploy::Main : Option::Action
 {
 	Env &_env;
 
-	Attached_rom_dataspace _config    { _env, "config" };
-	Attached_rom_dataspace _blueprint { _env, "blueprint" };
+	Attached_rom_dataspace _config    { _env, "config" },
+	                       _deploy    { _env, "deploy" },
+	                       _blueprint { _env, "blueprint" };
 
-	Expanding_reporter _query_reporter       { _env, "query" , "query"};
-	Expanding_reporter _init_config_reporter { _env, "config", "init.config"};
+	Signal_handler<Main>
+		_config_handler    { _env.ep(), *this, &Main::_handle_config },
+		_deploy_handler    { _env.ep(), *this, &Main::_handle_deploy },
+		_blueprint_handler { _env.ep(), *this, &Main::_handle_blueprint };
+
+	struct Attr
+	{
+		using Prio_levels = Child::Prio_levels;
+		using Arch        = String<16>;
+
+		Arch            arch;
+		Prio_levels     prio_levels;
+		Affinity::Space affinity_space;
+		bool            state_reporter;
+
+		static Attr from_config(Node const &config)
+		{
+			return {
+				.arch        =   config.attribute_value("arch", Arch()),
+				.prio_levels = { config.attribute_value("prio_levels", 0U) },
+
+				.affinity_space = config.with_sub_node("affinity-space",
+					[&] (Node const &node) { return Affinity::Space::from_node(node); },
+					[&]                    { return Affinity::Space(1, 1); }),
+
+				.state_reporter = config.with_sub_node("report",
+					[] (Node const &node) { return node.attribute_value("state", false); },
+					[]                    { return false; }),
+			};
+		}
+	};
+
+	Attr _attr { };
+
+	Expanding_reporter _query_reporter   { _env, "query" , "query"};
+	Expanding_reporter _runtime_reporter { _env, "config", "runtime"};
 
 	Constructible<Expanding_reporter> _state_reporter { };
 
@@ -41,89 +75,20 @@ struct Depot_deploy::Main : Option::Action
 
 	Children _children { _heap };
 
-	Signal_handler<Main> _config_handler {
-		_env.ep(), *this, &Main::_handle_config };
-
-	using Name        = String<128>;
-	using Prio_levels = Child::Prio_levels;
-	using Arch        = String<16>;
-
-	Prio_levels _prio_levels { };
-	Arch        _arch { };
-
-	void _handle_config()
+	void _update_runtime_and_query()
 	{
-		_config.update();
-		_blueprint.update();
-
-		/*
-		 * Capture original state, used to detect if the config has any effect
-		 */
-		struct Attributes
-		{
-			bool        state_reporter_constructed;
-			Prio_levels prio_levels;
-			Arch        arch;
-
-			bool operator != (Attributes const &other) const
-			{
-				return other.state_reporter_constructed != state_reporter_constructed
-				    || other.prio_levels.value          != prio_levels.value
-				    || other.arch                       != arch;
-			}
-		};
-
-		auto curr_attributes = [&] {
-			return Attributes {
-				.state_reporter_constructed = _state_reporter.constructed(),
-				.prio_levels                = _prio_levels,
-				.arch                       = _arch }; };
-
-		Attributes const orig_attributes = curr_attributes();
-
-		Node const config = _config.node();
-
-		bool const report_state = config.with_sub_node("report",
-			[] (Node const &node) { return node.attribute_value("state", false); },
-			[]                    { return false; });
-
-		_state_reporter.conditional(report_state, _env, "state", "state");
-
-		_prio_levels = Child::Prio_levels { config.attribute_value("prio_levels", 0U) };
-		_arch        = config.attribute_value("arch", Arch());
-
-		{
-			Progress progress = _children.apply_config(config);
-
-			/* a new option may have appeared in the config */
-			if (progress.progressed)
-				_children.watch_options(_env, *this);
-
-			if (_children.apply_blueprint(_blueprint.node()).progressed)
-				progress = PROGRESSED;
-
-			if (curr_attributes() != orig_attributes)
-				progress = PROGRESSED;
-
-			if (progress.stalled())
-				return;
-		}
-
 		if (_state_reporter.constructed())
 			_state_reporter->generate([&] (Generator &g) {
 				g.attribute("running", true); });
 
-		if (!_arch.valid())
-			warning("config lacks 'arch' attribute");
-
 		/* generate init config containing all configured start nodes */
-		_init_config_reporter.generate([&] (Generator &g) {
-			_gen_init_config(g, config); });
+		_runtime_reporter.generate([&] (Generator &g) {
+			_gen_runtime(g, _config.node()); });
 
 		/* update query for blueprints of all unconfigured start nodes */
-		if (_arch.valid()) {
+		if (_attr.arch.valid()) {
 			_query_reporter.generate([&] (Generator &g) {
-				g.attribute("arch", _arch);
+				g.attribute("arch", _attr.arch);
 				_children.gen_queries(g);
 			});
 		}
@@ -140,6 +105,41 @@ struct Depot_deploy::Main : Option::Action
 		}
 	}
 
+	void _handle_deploy()
+	{
+		_deploy.update();
+
+		if (_children.apply_deploy(_deploy.node()).progressed) {
+
+			/* a new option may have appeared in the deploy config */
+			_children.watch_options(_env, *this);
+
+			_update_runtime_and_query();
+		}
+	}
+
+	void _handle_blueprint()
+	{
+		_blueprint.update();
+
+		if (_children.apply_blueprint(_blueprint.node()).progressed)
+			_update_runtime_and_query();
+	}
+
+	void _handle_config()
+	{
+		_config.update();
+
+		_attr = Attr::from_config(_config.node());
+
+		if (!_attr.arch.valid())
+			warning("config lacks 'arch' attribute");
+
+		_state_reporter.conditional(_attr.state_reporter, _env, "state", "state");
+
+		_update_runtime_and_query();
+	}
+
 	/**
 	 * Option::Action interface
 	 */
@@ -149,14 +149,10 @@ struct Depot_deploy::Main : Option::Action
 			_handle_config();
 	}
 
-	void _gen_init_config(Generator &g, Node const &config) const
+	void _gen_runtime(Generator &g, Node const &config) const
 	{
-		if (_prio_levels.value)
-			g.attribute("prio_levels", _prio_levels.value);
-
-		config.with_optional_sub_node("affinity-space", [&] (Node const &node) {
-			if (!g.append_node(node, MAX_NODE_DEPTH))
-				warning("config too deeply nested: ", node); });
+		if (_attr.prio_levels.value)
+			g.attribute("prio_levels", _attr.prio_levels.value);
 
 		config.with_sub_node("static",
 			[&] (Node const &static_config) {
@@ -164,52 +160,22 @@ struct Depot_deploy::Main : Option::Action
 					warning("config too deeply nested: ", static_config); },
 			[&] { warning("config lacks <static> node"); });
 
-		config.with_optional_sub_node("report", [&] (Node const &report) {
+		auto copy_nodes = [&] (auto const &node_type)
+		{
+			config.for_each_sub_node(node_type, [&] (Node const &node) {
+				(void)g.append_node(node, Generator::Max_depth { 2 }); });
+		};
 
-			auto copy_bool_attribute = [&] (auto const name)
-			{
-				if (report.has_attribute(name))
-					g.attribute(name, report.attribute_value(name, false));
-			};
-
-			auto copy_buffer_size_attribute = [&]
-			{
-				auto const name = "buffer";
-				if (report.has_attribute(name))
-					g.attribute(name, report.attribute_value(name, Number_of_bytes(4096)));
-			};
-
-			size_t const delay_ms = report.attribute_value("delay_ms", 1000UL);
-			g.node("report", [&] {
-				g.attribute("delay_ms", delay_ms);
-
-				/* attributes according to repos/os/src/lib/sandbox/report.h */
-				copy_bool_attribute("ids");
-				copy_bool_attribute("requested");
-				copy_bool_attribute("provided");
-				copy_bool_attribute("session_args");
-				copy_bool_attribute("child_ram");
-				copy_bool_attribute("child_caps");
-				copy_bool_attribute("init_ram");
-				copy_bool_attribute("init_caps");
-
-				/* attribute according to repos/os/src/init/main.cc */
-				copy_buffer_size_attribute();
-			});
-		});
-
-		config.with_optional_sub_node("heartbeat", [&] (Node const &heartbeat) {
-			size_t const rate_ms = heartbeat.attribute_value("rate_ms", 2000UL);
-			g.node("heartbeat", [&] {
-				g.attribute("rate_ms", rate_ms);
-			});
-		});
+		copy_nodes("affinity-space");
+		copy_nodes("report");
+		copy_nodes("heartbeat");
+		copy_nodes("alias");
 
 		config.with_sub_node("common_routes",
 			[&] (Node const &node) {
 				Child::Depot_rom_server const parent { };
 				_children.gen_start_nodes(g, node,
-				                          _prio_levels, Affinity::Space(1, 1),
+				                          _attr.prio_levels, _attr.affinity_space,
 				                          parent, parent,
 				                          [] (Child::Name const &) { return true; });
 			},
@@ -218,10 +184,9 @@ struct Depot_deploy::Main : Option::Action
 
 	Main(Env &env) : _env(env)
 	{
-		_config   .sigh(_config_handler);
-		_blueprint.sigh(_config_handler);
-
-		_handle_config();
+		_config   .sigh(_config_handler);    _handle_config();
+		_deploy   .sigh(_deploy_handler);    _handle_deploy();
+		_blueprint.sigh(_blueprint_handler); _handle_blueprint();
 	}
 };
 

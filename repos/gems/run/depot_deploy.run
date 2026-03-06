@@ -85,7 +85,7 @@ config
   + config | verbose: no
     + policy | label:  depot_deploy -> blueprint | report: depot_query -> blueprint
     + policy | label:  depot_query -> query      | report: depot_deploy -> query
-    + policy | label:  dynamic -> config         | report: depot_deploy -> init.config
+    + policy | label:  dynamic -> config         | report: depot_deploy -> runtime
     + policy | label:  dynamic -> clipboard      | report: dynamic -> clipboard
 
 + start vfs | ram: 4M
@@ -137,65 +137,8 @@ config
   |   + service PD                          | + parent
   |   + service LOG                         | + parent
   |   + service Timer                       | + parent
-  |
-  | + start recall_fs | pkg: } [depot_user]/pkg/[current_pkg chroot] {
-  |   + route | + service File_system | + parent
-  |   + config
-  |     + default-policy | path_prefix: /recall | writeable: yes
-  |
-  | + start wm | pkg: } [depot_user]/pkg/[current_pkg wm] {
-  |   + route | + service Gui | + parent
-  |
-  | + start window_layouter | pkg: } [depot_user]/pkg/[current_pkg window_layouter] {
-  |   + route
-  |     + service ROM | label: window_list              | + child wm
-  |     + service ROM | label: focus_request            | + child wm
-  |     + service ROM | label: hover                    | + child wm
-  |     + service ROM | label: decorator_margins        | + child wm
-  |     + service ROM | label: rules                    | + child wm
-  |     + service Report                                | + child wm
-  |     + service Gui                                   | + child wm
-  |     + service File_system | label_prefix: recall -> | + child recall_fs
-  |
-  | + start themed_decorator | pkg: } [depot_user]/pkg/[current_pkg themed_decorator] {
-  |   + route
-  |     + service ROM | label: window_layout | + child wm
-  |     + service ROM | label: pointer       | + child wm
-  |     + service Report                     | + child wm
-  |     + service Gui                        | + child wm
-  |
-  | + option nano3d_option
-  |
-  | + start fonts_fs | pkg: } [depot_user]/pkg/[current_pkg fonts_fs] {
-  |   + route | + service ROM | label: config | + parent | label: fonts.config
-  |
-  | + start inspect_vfs | binary: vfs | ram: 4M | caps: 100
-  |   .
-  |   . deployed from the 'vfs' ROM module without depending on the depot
-  |   .
-  |   + provides | + file_system
-  |   + route
-  |     + service ROM | label: vfs.lib.so | + parent
-  |     + service File_system             | + parent
-  |   + config
-  |     + default-policy | root: / | writeable: yes
-  |     + vfs
-  |       + fs
-  |       + inline vfs_deployed_in_runtime
-  |         : works without depot
-  |         :
-  |
-  | + start system_shell | pkg: } [depot_user]/pkg/[current_pkg system_shell] {
-  |   + route
-  |     + service Gui                                  | + child wm
-  |     + service File_system | label_prefix: fonts -> | + child fonts_fs
-  |     + service File_system | label: config          | + parent
-  |     + service File_system                          | + child inspect_vfs
-  |     + service Report | label: clipboard            | + parent | label: clipboard
-  |     + service ROM | label: clipboard               | + parent | label: clipboard
-  |     + service ROM | label: vimrc                   | + parent | label: vimrc
-  |
   + route
+    + service ROM    | label: deploy    | + parent | label: deploy.config
     + service ROM    | label: blueprint | + child report_rom
     + service Report | label: query     | + child report_rom
     + service Report | label: clipboard | + child report_rom
@@ -226,7 +169,77 @@ config
 -
 }
 
-set fd [open [run_dir]/genode/nano3d_option w]
+#
+# Deploy ROM
+#
+set content {}
+append content {
+deploy
++ start recall_fs | pkg: } [depot_user]/pkg/[current_pkg chroot] {
+  + route | + service File_system | + parent
+  + config
+    + default-policy | path_prefix: /recall | writeable: yes
+
++ start wm | pkg: } [depot_user]/pkg/[current_pkg wm] {
+  + route | + service Gui | + parent
+
++ start window_layouter | pkg: } [depot_user]/pkg/[current_pkg window_layouter] {
+  + route
+    + service ROM | label: window_list              | + child wm
+    + service ROM | label: focus_request            | + child wm
+    + service ROM | label: hover                    | + child wm
+    + service ROM | label: decorator_margins        | + child wm
+    + service ROM | label: rules                    | + child wm
+    + service Report                                | + child wm
+    + service Gui                                   | + child wm
+    + service File_system | label_prefix: recall -> | + child recall_fs
+
++ start themed_decorator | pkg: } [depot_user]/pkg/[current_pkg themed_decorator] {
+  + route
+    + service ROM | label: window_layout | + child wm
+    + service ROM | label: pointer       | + child wm
+    + service Report                     | + child wm
+    + service Gui                        | + child wm
+
++ option nano3d_option
+
++ start fonts_fs | pkg: } [depot_user]/pkg/[current_pkg fonts_fs] {
+  + route | + service ROM | label: config | + parent | label: fonts.config
+
++ start inspect_vfs | binary: vfs | ram: 4M | caps: 100
+  .
+  . deployed from the 'vfs' ROM module without depending on the depot
+  .
+  + provides | + file_system
+  + route
+    + service ROM | label: vfs.lib.so | + parent
+    + service File_system             | + parent
+  + config
+    + default-policy | root: / | writeable: yes
+    + vfs
+      + fs
+      + inline vfs_deployed_in_runtime
+        : works without depot
+        :
+
++ start system_shell | pkg: } [depot_user]/pkg/[current_pkg system_shell] {
+  + route
+    + service Gui                                  | + child wm
+    + service File_system | label_prefix: fonts -> | + child fonts_fs
+    + service File_system | label: config          | + parent
+    + service File_system                          | + child inspect_vfs
+    + service Report | label: clipboard            | + parent | label: clipboard
+    + service ROM | label: clipboard               | + parent | label: clipboard
+    + service ROM | label: vimrc                   | + parent | label: vimrc
+-
+}
+set fd [open [run_dir]/genode/deploy.config w]
+puts $fd $content
+close $fd
+
+#
+# Deploy option for nano3d
+#
 set content {}
 append content {
 option
@@ -241,6 +254,7 @@ option
   + route | + service Gui | + parent
 -
 }
+set fd [open [run_dir]/genode/nano3d_option w]
 puts $fd $content
 close $fd
 

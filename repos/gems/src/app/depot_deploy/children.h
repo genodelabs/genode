@@ -64,11 +64,11 @@ class Depot_deploy::Children
 
 		Children(Allocator &alloc) : _alloc(alloc) { }
 
-		Progress apply_config(Node const &config)
+		Progress apply_deploy(Node const &deploy)
 		{
 			Progress result = STALLED;
 
-			_immediate_children.update_from_node(config,
+			_immediate_children.update_from_node(deploy,
 
 				/* create */
 				[&] (Node const &node) -> Child & {
@@ -87,7 +87,7 @@ class Depot_deploy::Children
 						result = PROGRESSED; }
 			);
 
-			_options.update_from_node(config,
+			_options.update_from_node(deploy,
 
 				/* create */
 				[&] (Node const &node) -> Option & {
