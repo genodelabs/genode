@@ -176,7 +176,7 @@ void User_state::_handle_input_event(Input::Event ev)
 		if (_key_cnt != 1)
 			return;
 
-		View_owner *global_receiver = nullptr;
+		View_owner *transient_receiver = nullptr;
 
 		if (_mouse_button(keycode))
 			_clicked_count++;
@@ -205,7 +205,7 @@ void User_state::_handle_input_event(Input::Event ev)
 			}
 
 			if (_hovered->has_transient_focusable_domain()) {
-				global_receiver = &_hovered->forwarded_focus();
+				transient_receiver = &_hovered->forwarded_focus();
 			} else {
 				/*
 				 * Distinguish the use of the builtin focus switching and the
@@ -220,10 +220,16 @@ void User_state::_handle_input_event(Input::Event ev)
 				if (_focus_via_click)
 					_focus_view_owner_via_click(_hovered->forwarded_focus());
 				else
-					global_receiver = &_hovered->forwarded_focus();
+					transient_receiver = &_hovered->forwarded_focus();
 
 				_last_clicked = _hovered;
 			}
+		}
+
+		if (transient_receiver) {
+			_global_key_sequence = true; /* FIXME */
+			_input_receiver = transient_receiver;
+			return;
 		}
 
 		/*
@@ -236,9 +242,7 @@ void User_state::_handle_input_event(Input::Event ev)
 		 * to the global receiver. To reflect that change, we need to update
 		 * the whole screen.
 		 */
-		if (!global_receiver)
-			global_receiver = _global_keys.global_receiver(keycode);
-
+		View_owner *global_receiver = _global_keys.global_receiver(keycode);
 		if (global_receiver) {
 			bool const orig_global_key_sequence = _global_key_sequence;
 			_global_key_sequence = true;
