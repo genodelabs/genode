@@ -164,9 +164,7 @@ config
   |     + service Report                     | + child wm
   |     + service Gui                        | + child wm
   |
-  | + start nano3d | pkg: } [depot_user]/pkg/[current_pkg nano3d] {
-  |   + route | + service Gui | + child wm
-  |   + config | shape: cube
+  | + option nano3d_option
   |
   | + start fonts_fs | pkg: } [depot_user]/pkg/[current_pkg fonts_fs] {
   |   + route | + service ROM | label: config | + parent | label: fonts.config
@@ -227,6 +225,24 @@ config
       + any-child
 -
 }
+
+set fd [open [run_dir]/genode/nano3d_option w]
+set content {}
+append content {
+option
++ start nano3d | pkg: } [depot_user]/pkg/[current_pkg nano3d] {
+  + route | + service Gui | + child wm
+  + config | shape: cube
+
++ start wm | pkg: } [depot_user]/pkg/[current_pkg wm] {
+  .
+  . Bad bad, this child uses a duplicated name. Hence, it is ignored.
+  .
+  + route | + service Gui | + parent
+-
+}
+puts $fd $content
+close $fd
 
 build { app/depot_query app/depot_deploy }
 

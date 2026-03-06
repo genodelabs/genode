@@ -25,7 +25,7 @@
 namespace Depot_deploy { struct Main; }
 
 
-struct Depot_deploy::Main
+struct Depot_deploy::Main : Option::Action
 {
 	Env &_env;
 
@@ -92,11 +92,15 @@ struct Depot_deploy::Main
 		_prio_levels = Child::Prio_levels { config.attribute_value("prio_levels", 0U) };
 		_arch        = config.attribute_value("arch", Arch());
 
-		bool const config_affected_child    = _children.apply_config(config);
+		bool const config_affected_child_or_option = _children.apply_config(config);
 		bool const blueprint_affected_child = _children.apply_blueprint(_blueprint.node());
 
+		/* a new option may have appeared */
+		if (config_affected_child_or_option)
+			_children.watch_options(_env, *this);
+
 		bool const progress = (curr_attributes() != orig_attributes)
-		                   || config_affected_child
+		                   || config_affected_child_or_option
 		                   || blueprint_affected_child;
 		if (!progress)
 			return;
@@ -130,6 +134,16 @@ struct Depot_deploy::Main
 				g.attribute("count", _children.count());
 			});
 		}
+	}
+
+	/**
+	 * Option::Action interface
+	 */
+	void deploy_option_changed(Option::Name const &name, Node const &config) override
+	{
+		bool const progress = _children.apply_option(name, config);
+		if (progress)
+			_handle_config();
 	}
 
 	void _gen_init_config(Generator &g, Node const &config) const

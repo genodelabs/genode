@@ -20,7 +20,7 @@
 #include <depot/archive.h>
 
 /* local includes */
-#include "child.h"
+#include "option.h"
 
 namespace Depot_deploy { class Children; }
 
@@ -31,14 +31,33 @@ class Depot_deploy::Children
 
 		Allocator &_alloc;
 
-		List_model<Child> _children { };
+		List_model<Child> _immediate_children { };
 
-		void _with_child(Child::Name const &name, auto const &fn) const
+		List_model<Option> _options { };
+
+		/**
+		 * Dictionary of all immediate children and the children of all options
+		 */
+		Dictionary _dict { };
+
+		void _for_each_child(auto const &fn)
 		{
-			bool done = false;
-			_children.for_each([&] (Child const &child) {
-				if (!done && child.name() == name) {
-					fn(child); done = true; } });
+			auto unique_fn = [&] (Child &c) { if (!c.duplicate) fn(c); };
+
+			_immediate_children.for_each([&] (Child &c) { unique_fn(c); });
+
+			_options.for_each([&] (Option &option) {
+				option.children.for_each([&] (Child &c) { unique_fn(c); }); });
+		}
+
+		void _for_each_child(auto const &fn) const
+		{
+			auto unique_fn = [&] (Child const &c) { if (!c.duplicate) fn(c); };
+
+			_immediate_children.for_each([&] (Child const &c) { unique_fn(c); });
+
+			_options.for_each([&] (Option const &option) {
+				option.children.for_each([&] (Child const &c) { unique_fn(c); }); });
 		}
 
 	public:
@@ -52,12 +71,13 @@ class Depot_deploy::Children
 		{
 			bool progress = false;
 
-			_children.update_from_node(config,
+			_immediate_children.update_from_node(config,
 
 				/* create */
 				[&] (Node const &node) -> Child & {
 					progress = true;
-					return *new (_alloc) Child(_alloc, node); },
+					return *new (_alloc)
+						Child(_dict, Child::node_name(node)); },
 
 				/* destroy */
 				[&] (Child &child) {
@@ -66,8 +86,25 @@ class Depot_deploy::Children
 
 				/* update */
 				[&] (Child &child, Node const &node) {
-					if (child.apply_config(node))
+					if (child.apply_config(_alloc, node))
 						progress = true; }
+			);
+
+			_options.update_from_node(config,
+
+				/* create */
+				[&] (Node const &node) -> Option & {
+					progress = true;
+					return *new (_alloc) Option(Option::node_name(node)); },
+
+				/* destroy */
+				[&] (Option &option) {
+					progress = true;
+					option.apply(_dict, _alloc, Node()); /* flush children */
+					destroy(_alloc, &option); },
+
+				/* update */
+				[&] (Option &, Node const &) { }
 			);
 
 			return progress;
@@ -80,8 +117,8 @@ class Depot_deploy::Children
 		{
 			bool any_child_changed = false;
 
-			_children.for_each([&] (Child &child) {
-				if (child.apply_launcher(name, launcher))
+			_for_each_child([&] (Child &child) {
+				if (child.apply_launcher(_alloc, name, launcher))
 					any_child_changed = true; });
 
 			return any_child_changed;
@@ -95,16 +132,40 @@ class Depot_deploy::Children
 			bool any_child_changed = false;
 
 			blueprint.for_each_sub_node("pkg", [&] (Node const &pkg) {
-				_children.for_each([&] (Child &child) {
-					if (child.apply_blueprint(pkg))
+				_for_each_child([&] (Child &child) {
+					if (child.apply_blueprint(_alloc, pkg))
 						any_child_changed = true; }); });
 
 			blueprint.for_each_sub_node("missing", [&] (Node const &missing) {
-				_children.for_each([&] (Child &child) {
+				_for_each_child([&] (Child &child) {
 					if (child.mark_as_incomplete(missing))
 						any_child_changed = true; }); });
 
 			return any_child_changed;
+		}
+
+		/**
+		 * Register 'action' handler for option updates
+		 *
+		 * This method should be called whenever 'apply_config' has indictated
+		 * any change (progress). New options may have appeared that are worth
+		 * watching.
+		 */
+		void watch_options(Env &env, Option::Action &action)
+		{
+			_options.for_each([&] (Option &option) { option.watch(env, action); });
+		}
+
+		/**
+		 * Supply the config for option of the given name
+		 */
+		bool apply_option(Option::Name const &name, Node const &config)
+		{
+			bool progress = false;
+			_options.for_each([&] (Option &option) {
+				if (option.name == name)
+					progress = option.apply(_dict, _alloc, config); });
+			return progress;
 		}
 
 		/*
@@ -113,7 +174,7 @@ class Depot_deploy::Children
 		bool apply_condition(auto const &cond_fn)
 		{
 			bool any_condition_changed = false;
-			_children.for_each([&] (Child &child) {
+			_for_each_child([&] (Child &child) {
 				any_condition_changed |= child.apply_condition(cond_fn); });
 			return any_condition_changed;
 		}
@@ -124,13 +185,13 @@ class Depot_deploy::Children
 		 */
 		void for_each_unsatisfied_child(auto const &fn) const
 		{
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				child.apply_if_unsatisfied(fn); });
 		}
 
 		void reset_incomplete()
 		{
-			_children.for_each([&] (Child &child) {
+			_for_each_child([&] (Child &child) {
 				child.reset_incomplete(); });
 		}
 
@@ -141,79 +202,77 @@ class Depot_deploy::Children
 		                     Child::Depot_rom_server const &uncached_depot_rom,
 		                     auto const &cond_fn) const
 		{
-			_children.for_each([&] (Child const &child) {
-				if (cond_fn(child.name()))
+			_for_each_child([&] (Child const &child) {
+				if (cond_fn(child.name))
 					child.gen_start_node(g, common, prio_levels, affinity_space,
 					                     cached_depot_rom, uncached_depot_rom); });
 		}
 
 		void gen_monitor_policy_nodes(Generator &g) const
 		{
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				child.gen_monitor_policy_node(g); });
 		}
 
 		void gen_queries(Generator &g) const
 		{
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				child.gen_query(g); });
 		}
 
 		void gen_installation_entries(Generator &g) const
 		{
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				child.gen_installation_entry(g); });
 		}
 
 		void for_each_missing_pkg_path(auto const &fn) const
 		{
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				child.with_missing_pkg_path(fn); });
 		}
 
 		size_t count() const
 		{
 			size_t count = 0;
-			_children.for_each([&] (Child const &) {
+			_for_each_child([&] (Child const &) {
 				++count; });
 			return count;
 		}
 
-		bool any_incomplete() const {
-
+		bool any_incomplete() const
+		{
 			bool result = false;
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				result |= child.incomplete(); });
 			return result;
 		}
 
 		void for_each_incomplete(auto const &fn) const
 		{
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				if (child.incomplete())
-					fn(child.name()); });
+					fn(child.name); });
 		}
 
 		bool any_blueprint_needed() const
 		{
 			bool result = false;
-			_children.for_each([&] (Child const &child) {
+			_for_each_child([&] (Child const &child) {
 				result |= child.blueprint_needed(); });
 			return result;
 		}
 
 		bool exists(Child::Name const &name) const
 		{
-			bool result = false;
-			_with_child(name, [&] (Child const &) { result = true; });
-			return result;
+			return _dict.exists(name);
 		}
 
 		bool blueprint_needed(Child::Name const &name) const
 		{
 			bool result = false;
-			_children.for_each([&] (Child const &child) {
-				if (child.name() == name && child.blueprint_needed())
+			_for_each_child([&] (Child const &child) {
+				if (child.name == name && child.blueprint_needed())
 					result = true; });
 			return result;
 		}

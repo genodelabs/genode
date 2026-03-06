@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/list_model.h>
+#include <util/dictionary.h>
 #include <base/service.h>
 #include <base/node.h>
 #include <os/reporter.h>
@@ -28,14 +29,32 @@ namespace Depot_deploy {
 	static constexpr Generator::Max_depth MAX_NODE_DEPTH = { 20 };
 
 	struct Child;
+
+	using Child_name = String<100>;
+	using Dictionary = Dictionary<Child, Child_name>;
+
+	struct Duplicate_checked
+	{
+		bool const duplicate;
+
+		Duplicate_checked(Dictionary &dict, Child_name const &name)
+		:
+			duplicate(dict.exists(name))
+		{
+			if (duplicate)
+				warning("omitting child with duplicated name '", name, "'");
+		}
+	};
 }
 
 
-class Depot_deploy::Child : public List_model<Child>::Element
+class Depot_deploy::Child : public Duplicate_checked,
+                            public List_model<Child>::Element,
+                            public Dictionary::Element
 {
 	public:
 
-		using Name             = String<100>;
+		using Name             = Child_name;
 		using Binary_name      = String<80>;
 		using Config_name      = String<80>;
 		using Depot_rom_server = String<32>;
@@ -51,9 +70,12 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			}
 		};
 
-	private:
+		static Name node_name(Node const &node)
+		{
+			return node.attribute_value("name", Name());
+		}
 
-		Allocator &_alloc;
+	private:
 
 		Constructible<Buffered_node> _start_node    { };  /* from config */
 		Constructible<Buffered_node> _launcher_node { };
@@ -85,8 +107,6 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		enum Condition { UNCHECKED, SATISFIED, UNSATISFIED };
 
 		Condition _condition { UNCHECKED };
-
-		Name const _name;
 
 		bool _defined_by_launcher(Node const &start_node) const
 		{
@@ -213,18 +233,15 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 	public:
 
-		Child(Allocator &alloc, Node const &start_node)
+		Child(Dictionary &dict, Name const &name)
 		:
-			_alloc(alloc),
-			_name(start_node.attribute_value("name", Name()))
+			Duplicate_checked(dict, name), Dictionary::Element(dict, name)
 		{ }
-
-		Name name() const { return _name; }
 
 		/*
 		 * \return true if config had an effect on the child's state
 		 */
-		bool apply_config(Node const &start_node)
+		bool apply_config(Allocator &alloc, Node const &start_node)
 		{
 			if (_identical(_start_node, start_node))
 				return false;
@@ -232,7 +249,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			Archive::Path const orig_pkg_path = _blueprint_pkg_path;
 
 			/* import new start node */
-			_start_node.construct(_alloc, start_node);
+			_start_node.construct(alloc, start_node);
 
 			_blueprint_pkg_path = _config_pkg_path(start_node);
 
@@ -257,7 +274,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/*
 		 * \return true if bluerprint had an effect on the child
 		 */
-		bool apply_blueprint(Node const &pkg)
+		bool apply_blueprint(Allocator &alloc, Node const &pkg)
 		{
 			if (_state == State::PKG_COMPLETE || _state == State::NO_PKG)
 				return false;
@@ -297,14 +314,14 @@ class Depot_deploy::Child : public List_model<Child>::Element
 					_config_name = runtime.attribute_value("config", Config_name());
 
 					/* keep copy of the blueprint info */
-					_pkg_node.construct(_alloc, pkg);
+					_pkg_node.construct(alloc, pkg);
 				},
 				[&] { });
 
 			return true;
 		}
 
-		bool apply_launcher(Launcher_name const &name, Node const &launcher)
+		bool apply_launcher(Allocator &alloc, Launcher_name const &name, Node const &launcher)
 		{
 			return _with_node(_start_node, [&] (Node const &start_node) {
 
@@ -312,7 +329,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 				if (_launcher_name(start_node) != name)   return false;
 				if (_identical(_launcher_node, launcher)) return false;
 
-				_launcher_node.construct(_alloc, launcher);
+				_launcher_node.construct(alloc, launcher);
 
 				_blueprint_pkg_path = _config_pkg_path(start_node);
 
@@ -342,8 +359,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (_condition == UNSATISFIED)
 				_with_node(_start_node, [&] (Node const &start_node) {
 					_with_node(_launcher_node,
-						[&] (Node const &launcher) { fn(start_node, launcher, _name); },
-						[&]                        { fn(start_node, Node(),   _name); });
+						[&] (Node const &launcher) { fn(start_node, launcher, name); },
+						[&]                        { fn(start_node, Node(),   name); });
 				}, [&] { });
 		}
 
@@ -363,7 +380,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (path != _blueprint_pkg_path)
 				return false;
 
-			log(path, " incomplete or missing, name=", _name, " state=", (int)_state);
+			log(path, " incomplete or missing, name=", name, " state=", (int)_state);
 
 			State const orig_state = _state;
 			_state = State::PKG_INCOMPLETE;
@@ -460,18 +477,12 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Node const &node) const
-		{
-			return node.attribute_value("name", Child::Name()) == _name;
-		}
+		bool matches(Node const &node) const { return node_name(node) == name; }
 
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Node const &node)
-		{
-			return node.has_type("start");
-		}
+		static bool type_matches(Node const &node) { return node.has_type("start"); }
 };
 
 
@@ -490,13 +501,13 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
 		return;
 
 	if (_pkg_node.constructed() && !_pkg_node->has_sub_node("runtime")) {
-		warning("blueprint for '", _name, "' lacks runtime information");
+		warning("blueprint for '", name, "' lacks runtime information");
 		return;
 	}
 
 	g.node("start", [&] {
 
-		g.attribute("name", _name);
+		g.attribute("name", name);
 
 		struct Attr
 		{
@@ -652,7 +663,7 @@ void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 
 		start_node.with_optional_sub_node("monitor", [&] (Node const &monitor) {
 			g.node("policy", [&] {
-				g.attribute("label", _name);
+				g.attribute("label", name);
 				g.attribute("wait", monitor.attribute_value("wait", false));
 				g.attribute("wx",   monitor.attribute_value("wx",   false));
 			});
@@ -697,7 +708,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 
 				g.node("service", [&] {
 					g.attribute("name", service_name);
-					g.attribute("unscoped_label", _name);
+					g.attribute("unscoped_label", name);
 					g.node("parent", [&] { });
 				});
 			}
