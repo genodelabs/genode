@@ -194,9 +194,13 @@ struct Hw::Page_table
 	Result insert(addr_t vo, addr_t pa, size_t size,
 	              Page_flags const &flags, ALLOCATOR &alloc)
 	{
+		auto table_changed_lambda = [&] (addr_t addr, size_t size) {
+			table_changed(addr, size); };
+
+		auto supported_page_sizes_lambda = [] (size_t) { return true; };
+
 		return Base::insert(vo, pa, size, flags, alloc,
-		                    [&] (addr_t addr, size_t size) {
-			table_changed(addr, size); });
+		                    table_changed_lambda, supported_page_sizes_lambda);
 	}
 
 	template <typename ALLOCATOR>

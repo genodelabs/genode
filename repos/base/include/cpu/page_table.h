@@ -185,7 +185,7 @@ class Genode::Page_table_leaf
 		template <typename ALLOCATOR>
 		Result insert(addr_t vo, addr_t pa, size_t size,
 		              Page_flags const &flags, ALLOCATOR &,
-		              auto const &table_changed)
+		              auto const &table_changed, auto const &)
 		{
 			return _for_range(vo, pa, size,
 				[&] (addr_t vo, addr_t pa, size_t size, desc_t &desc) -> Result
@@ -203,11 +203,6 @@ class Genode::Page_table_leaf
 					return Ok();
 				});
 		}
-
-		template <typename ALLOCATOR>
-		Result insert(addr_t vo, addr_t pa, size_t size,
-		              Page_flags const &flags, ALLOCATOR &alloc) {
-			return insert(vo, pa, size, flags, alloc, [] (addr_t, size_t) {}); }
 
 		template <typename ALLOCATOR>
 		void remove(addr_t vo, size_t size, ALLOCATOR&,
@@ -265,13 +260,15 @@ class Genode::Page_table_node
 		template <typename ALLOCATOR>
 		Result insert(addr_t vo, addr_t pa, size_t size,
 		              Page_flags const &flags, ALLOCATOR &alloc,
-		              auto const &table_changed)
+		              auto const &table_changed,
+		              auto const &block_size_supported)
 		{
 			Result result = _for_range(vo, pa, size,
 				[&] (addr_t vo, addr_t pa, size_t size, desc_t &desc) -> Result
 				{
 					/* can we insert a whole block? */
-					if (_aligned_and_fits(vo, pa, size)) {
+					if (_aligned_and_fits(vo, pa, size) &&
+					    block_size_supported(PAGE_SIZE_LOG2)) {
 						desc_t blk_desc = DESCRIPTOR::create(flags, pa);
 
 						if (DESCRIPTOR::conflicts(desc, blk_desc))
@@ -303,7 +300,8 @@ class Genode::Page_table_node
 							                                    [&] (ENTRY &e) {
 								return e.insert(vo-_page_mask_high(vo),
 								                pa, size, flags, alloc,
-								                table_changed); });
+								                table_changed,
+								                block_size_supported); });
 						}
 
 					case Page_table_entry::BLOCK: /* there is already a block */
@@ -317,8 +315,12 @@ class Genode::Page_table_node
 
 		template <typename ALLOCATOR>
 		Result insert(addr_t vo, addr_t pa, size_t size,
-		              Page_flags const &flags, ALLOCATOR &alloc) {
-			return insert(vo, pa, size, flags, alloc, [] (addr_t, size_t) {}); }
+		              Page_flags const &flags, ALLOCATOR &alloc)
+		{
+			return insert(vo, pa, size, flags, alloc,
+			              [] (addr_t, size_t) {},
+			              [] (size_t) { return true; });
+		}
 
 		template <typename ALLOCATOR>
 		void remove(addr_t vo, size_t size, ALLOCATOR &alloc,
