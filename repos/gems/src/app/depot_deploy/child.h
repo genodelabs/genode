@@ -152,6 +152,8 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 		Depot_rom_server _custom_depot_rom { };
 
+		bool _enabled = true;
+
 		/*
 		 * Set if the depot query for the child's blueprint failed.
 		 */
@@ -267,6 +269,14 @@ class Depot_deploy::Child : public Duplicate_checked,
 			}
 
 			_custom_depot_rom = start_node.attribute_value("depot_rom", Depot_rom_server());
+
+			/*
+			 * Accept any other value than "yes" for "no". This allows for
+			 * the encoding of contextual information as attribute values,
+			 * e.g., 'enabled: discover' to express that the start of a driver
+			 * depends on hardware discovered at runtime.
+			 */
+			_enabled = (start_node.attribute_value("enabled", String<16>("yes")) == "yes");
 
 			return PROGRESSED;
 		}
@@ -436,10 +446,11 @@ class Depot_deploy::Child : public Duplicate_checked,
 		                    Affinity::Space         affinity_space,
 		                    Depot_rom_server const &default_depot_rom) const
 		{
-			_with_node(_start_node, [&] (Node const &start_node) {
-				_gen_start_node(g, common, start_node, prio_levels, affinity_space,
-				                default_depot_rom);
-			}, [&] { });
+			if (_enabled)
+				_with_node(_start_node, [&] (Node const &start_node) {
+					_gen_start_node(g, common, start_node, prio_levels,
+					                affinity_space, default_depot_rom);
+				}, [&] { });
 		}
 
 		inline void gen_monitor_policy_node(Generator &) const;
