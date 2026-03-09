@@ -27,6 +27,10 @@ static inline bool _mouse_button(Keycode keycode) {
 		return keycode >= BTN_LEFT && keycode <= BTN_MIDDLE; }
 
 
+static inline bool _touch_button(Keycode keycode) {
+		return keycode == BTN_TOUCH; }
+
+
 static inline bool _takes_input(View_owner const *owner,
                                 View_owner const *focused)
 {
@@ -168,7 +172,8 @@ void User_state::_handle_input_event(Input::Event ev)
 
 	ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
 
-		if (id.value == 0) {
+		/* update touched view and position at the start of a touch sequence */
+		if (id.value == 0 && !_touch_sequence()) {
 			Point at { int(x), int(y) };
 			View const * const touched_view = _view_stack.find_view(at);
 			_touched = touched_view ? &touched_view->owner() : nullptr;
@@ -191,41 +196,55 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		_last_clicked = nullptr;
 
-		/* update focused session */
-		if (_mouse_button(keycode) && (_hovered != _focused)
-		 && _takes_input(_hovered, _focused)) {
+		auto focus_switch_needed = [&] (View_owner const *owner) {
+			return (owner != _focused) && _takes_input(owner, _focused); };
 
+		/* update focused session */
+		if ((_mouse_button(keycode) && focus_switch_needed(_hovered)) ||
+		    (_touch_button(keycode) && focus_switch_needed(_touched)))
+		{
 			/*
 			 * Notify both the old focused session and the new one.
 			 */
 			if (_focused)
 				_focused->submit_input_event(Focus_leave());
 
-			_pointer.with_result(
-				[&] (Point p) {
-					_hovered->submit_input_event(Absolute_motion{p.x, p.y});
-					_hovered->submit_input_event(Focus_enter()); },
-				[&] (Nowhere) { });
+			if (_mouse_button(keycode)) {
+				_pointer.with_result(
+					[&] (Point p) {
+						_hovered->submit_input_event(Absolute_motion{p.x, p.y});
+						_hovered->submit_input_event(Focus_enter()); },
+					[&] (Nowhere) { });
 
-			if (_hovered->has_transient_focusable_domain()) {
-				transient_receiver = &_hovered->forwarded_focus();
-			} else {
-				/*
-				 * Distinguish the use of the builtin focus switching and the
-				 * alternative use of an external focus policy. In the latter
-				 * case, focusable domains are handled like transiently
-				 * focusable domains. The permanent focus change is triggered
-				 * by an external focus-policy component by posting and updated
-				 * focus ROM, which is then propagated into the user state via
-				 * the 'User_state::focus' and 'User_state::reset_focus'
-				 * methods.
-				 */
-				if (_focus_via_click)
-					_focus_view_owner_via_click(_hovered->forwarded_focus());
-				else
+				if (_hovered->has_transient_focusable_domain()) {
 					transient_receiver = &_hovered->forwarded_focus();
+				} else {
+					/*
+					 * Distinguish the use of the builtin focus switching and the
+					 * alternative use of an external focus policy. In the latter
+					 * case, focusable domains are handled like transiently
+					 * focusable domains. The permanent focus change is triggered
+					 * by an external focus-policy component by posting and updated
+					 * focus ROM, which is then propagated into the user state via
+					 * the 'User_state::focus' and 'User_state::reset_focus'
+					 * methods.
+					 */
+					if (_focus_via_click)
+						_focus_view_owner_via_click(_hovered->forwarded_focus());
+					else
+						transient_receiver = &_hovered->forwarded_focus();
 
-				_last_clicked = _hovered;
+					_last_clicked = _hovered;
+				}
+			} else if (_touch_button(keycode)) {
+				_touched_position.with_result(
+					[&] (Point p) {
+						/* inject initial touch event when BTN_TOUCH occurred */
+						_touched->submit_input_event(Touch{0, (float)p.x, (float)p.y});
+						_touched->submit_input_event(Focus_enter()); },
+					[&] (Nowhere) { });
+	
+				transient_receiver = &_touched->forwarded_focus();
 			}
 		}
 
@@ -264,6 +283,17 @@ void User_state::_handle_input_event(Input::Event ev)
 		 */
 		if (!global_receiver)
 			_input_receiver = _focused;
+
+		/*
+		 * Inject initially suppressed touch event on BTN_TOUCH press. This can
+		 * only occur if the touched view is not focusable and the input stream
+		 * gets directed to the focused session instead.
+		 */
+		if (_touch_button(keycode) && _input_receiver)
+			_touched_position.with_result(
+				[&] (Point p) {
+					_input_receiver->submit_input_event(Touch{0, (float)p.x, (float)p.y}); },
+				[&] (Nowhere) { });
 	});
 
 	/*
@@ -274,6 +304,7 @@ void User_state::_handle_input_event(Input::Event ev)
 	                             || ev.wheel() || ev.seq_number();
 	if (forward_to_session) {
 
+		/* normally forward to focused session or global key receiver */
 		View_owner *receiver = _input_receiver;
 
 		if (_key_cnt == 0) {
@@ -290,17 +321,27 @@ void User_state::_handle_input_event(Input::Event ev)
 
 			if (ev.absolute_motion())
 				receiver = abs_motion_receiver();
+
+			/*
+			 * Suppress initial touch event (before any key press) because the
+			 * decision about the input receiver is only done when BTN_TOUCH
+			 * is pressed. We thus reinject the initial touch event as soon
+			 * as the decision was made.
+			 */
+			if (ev.touch())
+				receiver = nullptr;
 		}
 
-		if (ev.touch() || ev.touch_release())
-			if (_touched)
-				receiver = _touched;
-
+		/*
+		 * Articial seq number events are injected before the corresponding
+		 * press event (BTN_LEFT or BTN_TOUCH) that steers the transient focus
+		 * and sets the _input_receiver correspondingly.
+		 */
 		if (ev.seq_number()) {
 			receiver = _focused;
 			if (_hovered)
 				receiver = _hovered;
-			if (_touched)
+			if (_touched && _touch_sequence())
 				receiver = _touched;
 		}
 

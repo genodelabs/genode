@@ -188,6 +188,13 @@ class Nitpicker::User_state
 
 		bool _key_pressed() const { return _key_cnt > 0; }
 
+		bool _touch_sequence() const
+		{
+			return _touched_position.convert<bool>(
+				[&] (Point)   { return true; },
+				[&] (Nowhere) { return false; });
+		}
+
 		/**
 		 * Apply pending focus-change request that was issued during drag state
 		 */
