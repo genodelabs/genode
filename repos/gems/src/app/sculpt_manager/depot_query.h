@@ -72,9 +72,10 @@ static inline bool Sculpt::blueprint_rom_missing(Node const &blueprint, Path con
 		pkg.for_each_sub_node("missing_rom", [&] (Node const &missing_rom) {
 
 			/* ld.lib.so is always taken from the base system */
-			using Label = String<64>;
-			Label const label = missing_rom.attribute_value("label", Label());
-			if (label == "ld.lib.so")
+			using Name = String<64>;
+			Name const name = missing_rom.attribute_value("name",
+			                     missing_rom.attribute_value("label", Name()));
+			if (name == "ld.lib.so")
 				return;
 
 			/* some ingredient is not extracted yet, or actually missing */

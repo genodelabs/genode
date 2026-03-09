@@ -296,7 +296,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 			/* check for the completeness of all ROM ingredients */
 			bool any_rom_missing = false;
 			pkg.for_each_sub_node("missing_rom", [&] (Node const &missing_rom) {
-				Name const name = missing_rom.attribute_value("label", Name());
+				Name const name = missing_rom.attribute_value("name", Name());
 
 				/* ld.lib.so is special because it is provided by the base system */
 				if (name == "ld.lib.so")
@@ -759,7 +759,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 			if (!rom.has_attribute("path"))
 				return;
 
-			if (rom.attribute_value("label", Name()) != _config_name)
+			if (rom.attribute_value("name", Name()) != _config_name)
 				return;
 
 			/* we found the <rom> node for the config ROM */
@@ -797,14 +797,14 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 				return;
 
 			using Label = Name;
-			Path  const path  = rom.attribute_value("path",  Path());
-			Label const label = rom.attribute_value("label", Label());
-			Label const as    = rom.attribute_value("as",    label);
+			Path  const path = rom.attribute_value("path", Path());
+			Label const name = rom.attribute_value("name", Label());
+			Label const as   = rom.attribute_value("as",   name);
 
 			g.node("service", [&] {
 				g.attribute("name", "ROM");
 
-				if (route_binary_to_shim && label == _binary_name)
+				if (route_binary_to_shim && name == _binary_name)
 					g.attribute("label", "binary");
 				else
 					g.attribute("label_last", as);

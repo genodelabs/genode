@@ -57,7 +57,8 @@ schema runtime
 
 + node content
   + node rom
-    + attr label | type: any
+    + attr name  | type: any | default:
+    + attr label | type: any | default: | . deprecated, use 'name' instead
     + attr as    | type: any | default:
 
 + node config  | + anything

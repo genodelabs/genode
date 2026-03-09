@@ -30,7 +30,7 @@ namespace Depot_query {
 
 	using namespace Depot;
 
-	using Rom_label = String<64>;
+	using Rom_name = String<64>;
 
 	struct Require_verify;
 	struct Directory_cache;
@@ -328,7 +328,7 @@ struct Depot_query::Main
 
 	Architecture _architecture  { };
 
-	bool _file_exists(Directory::Path const &path, Rom_label const &file_name)
+	bool _file_exists(Directory::Path const &path, Rom_name const &file_name)
 	{
 		if (!_directory_cache.constructed()) {
 			error("directory cache is unexpectedly not constructed");
@@ -373,7 +373,7 @@ struct Depot_query::Main
 		});
 	}
 
-	Archive::Path _find_rom_in_pkg(File_content const &, Rom_label const &, Recursion_limit);
+	Archive::Path _find_rom_in_pkg(File_content const &, Rom_name const &, Recursion_limit);
 	void _gen_rom_path_nodes(Generator &, Node const &,
 	                         Archive::Path const &, Node const &);
 	void _gen_inherited_rom_path_nodes(Generator &, Node const &,
