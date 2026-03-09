@@ -511,9 +511,30 @@ void Main::parse_acpi_device_info(Node const &node, Generator &g)
 
 	node.for_each_sub_node("table", [&] (Node const &table) {
 		Table_name name = table.attribute_value("name", Table_name());
-		/* only the TPM2 table is supported at this time */
+		/* Trusted Platform Module table */
 		if (name == "TPM2") {
 			parse_tpm2_table(table, g);
+		}
+
+		/* Non-HD-Audio-Link table */
+		if (name == "NHLT") {
+			addr_t const addr = table.attribute_value("addr", 0UL);
+			size_t const size = table.attribute_value("size", 0UL);
+
+			if (!addr || !size) {
+				warning("NHLT invalid");
+				return;
+			}
+
+			g.node("device", [&]
+			{
+				g.attribute("name", "NHLT");
+				g.attribute("type", "acpi-table");
+				g.node("io_mem", [&] {
+					g.attribute("address", String<20>(Hex(addr)));
+					g.attribute("size", size);
+				});
+			});
 		}
 	});
 
