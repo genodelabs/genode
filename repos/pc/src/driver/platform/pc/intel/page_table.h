@@ -16,9 +16,9 @@
 
 #include <base/env.h>
 #include <base/node.h>
+#include <cpu/page_table.h>
 #include <util/register.h>
 
-#include <intel/page_table_base.h>
 #include <intel/report_helper.h>
 
 namespace Intel {
@@ -37,70 +37,133 @@ namespace Intel {
 
 		static bool present(access_t const v) { return R::get(v) || W::get(v); }
 
-		static access_t create(Page_flags const &flags)
-		{
-			return R::bits(1)
-				| W::bits(flags.writeable);
-		}
+		static access_t create(Page_flags const &flags) {
+			return R::bits(1) | W::bits(flags.writeable); }
 
 		/**
 		 * Return descriptor value with cleared accessed and dirty flags. These
 		 * flags can be set by the MMU.
 		 */
-		static access_t clear_mmu_flags(access_t value)
+		static access_t clear_mmu_flags(access_t const value)
 		{
-			A::clear(value);
-			D::clear(value);
-			return value;
+			access_t ret = value;
+			A::clear(ret);
+			D::clear(ret);
+			return ret;
 		}
+
+		static bool conflicts(access_t const old, access_t const desc) {
+			return (present(old) && clear_mmu_flags(old) != desc); }
+
+		static bool writeable(access_t const desc) {
+			return present(desc) && W::get(desc); }
 	};
 
-	/**
-	 * Level 1 descriptor
-	 */
-	template <unsigned _PAGE_SIZE_LOG2>
 	struct Level_1_descriptor;
 
-	/**
-	 * Base descriptor for page directories (intermediate level)
-	 */
-	struct Page_directory_base_descriptor : Common_descriptor
-	{
-		using Common = Common_descriptor;
-
-		struct Ps : Common::template Bitfield<7, 1> { };  /* page size */
-
-		static bool maps_page(access_t const v) { return Ps::get(v); }
-	};
 
 	/**
 	 * Intermediate level descriptor
 	 *
-	 * Wraps descriptors for page tables and pages.
+	 * Base descriptor for page directories (intermediate level)
 	 */
 	template <unsigned _PAGE_SIZE_LOG2>
-	struct Page_directory_descriptor : Page_directory_base_descriptor
+	struct Page_directory_descriptor : Common_descriptor
 	{
 		static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
 
-		struct Page;
-		struct Table;
+		using Base = Common_descriptor;
+
+		struct Ps : Base::template Bitfield<7, 1> { };  /* page size */
+		struct Table_address : Base::template Bitfield<12, 36> { };
+		struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
+		                                    48 - PAGE_SIZE_LOG2> { };
+
+		static Page_table_entry type(access_t const desc)
+		{
+			if (!present(desc)) return Page_table_entry::INVALID;
+			return (Ps::get(desc)) ? Page_table_entry::BLOCK
+			                       : Page_table_entry::TABLE;
+		}
+
+		template <typename ENTRY>
+		static void generate(unsigned long        index,
+		                     access_t             entry,
+		                     Genode::Generator   &g,
+		                     Report_helper const &report_helper)
+		{
+			using Genode::Hex;
+			using Hex_str = Genode::String<20>;
+
+			if (type(entry) == Page_table_entry::TABLE) {
+				g.node("page_directory", [&] () {
+					addr_t pd_addr = Table_address::masked(entry);
+					g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
+					g.attribute("value",   Hex_str(Hex(entry)));
+					g.attribute("address", Hex_str(Hex(pd_addr)));
+
+					report_helper.with_table<ENTRY>(pd_addr, [&] (ENTRY &pd) {
+						pd.generate(g, report_helper); });
+				});
+			}
+		}
+
+		static void generate_page(unsigned long      index,
+		                          access_t           entry,
+		                          Genode::Generator &g)
+		{
+			using Genode::Hex;
+			using Hex_str = Genode::String<20>;
+
+			g.node("page", [&] () {
+				addr_t addr = Pa::masked(entry);
+				g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
+				g.attribute("value",   Hex_str(Hex(entry)));
+				g.attribute("address", Hex_str(Hex(addr)));
+				g.attribute("accessed",(bool)A::get(entry));
+				g.attribute("dirty",   (bool)D::get(entry));
+				g.attribute("write",   (bool)W::get(entry));
+				g.attribute("read",    (bool)R::get(entry));
+			});
+		}
+
+		static typename Base::access_t create(addr_t const pa)
+		{
+			static Page_flags flags { RW, NO_EXEC, USER, NO_GLOBAL,
+			                          RAM, Genode::UNCACHED };
+			return Base::create(flags) | Table_address::masked(pa);
+		}
+
+		static typename Base::access_t create(Page_flags const &flags,
+		                                      addr_t const pa)
+		{
+			/* Ipat and Emt are ignored in legacy mode */
+
+			return Base::create(flags)
+			     | Ps::bits(1)
+			     | Pa::masked(pa);
+		}
+
+		static addr_t address(typename Base::access_t desc)
+		{
+			switch (type(desc)) {
+			case Page_table_entry::INVALID: break;
+			case Page_table_entry::TABLE: return Table_address::masked(desc);
+			case Page_table_entry::BLOCK: return Pa::masked(desc);
+			};
+			return 0;
+		}
 	};
 
-	/**
-	 * Level 4 descriptor
-	 */
-	template <unsigned _PAGE_SIZE_LOG2, unsigned _SIZE_LOG2>
 	struct Level_4_descriptor;
 }
 
 
-template <unsigned _PAGE_SIZE_LOG2>
 struct Intel::Level_1_descriptor : Common_descriptor
 {
 	using Common = Common_descriptor;
 
-	static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
+	static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
 
 	struct Pa  : Bitfield<12, 36> { };        /* physical address     */
 
@@ -133,97 +196,23 @@ struct Intel::Level_1_descriptor : Common_descriptor
 };
 
 
-template <unsigned _PAGE_SIZE_LOG2>
-struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
-	: Page_directory_base_descriptor
-{
-	using Base = Page_directory_base_descriptor;
-
-	/**
-	 * Physical address
-	 */
-	struct Pa : Base::template Bitfield<12, 36> { };
-
-	static typename Base::access_t create(addr_t const pa)
-	{
-		static Page_flags flags { RW, NO_EXEC, USER, NO_GLOBAL,
-		                          RAM, Genode::UNCACHED };
-		return Base::create(flags) | Pa::masked(pa);
-	}
-
-	template <typename ENTRY>
-	static void generate(unsigned long        index,
-	                     access_t             entry,
-	                     Genode::Generator   &g,
-	                     Report_helper const &report_helper)
-	{
-		using Genode::Hex;
-		using Hex_str = Genode::String<20>;
-
-		g.node("page_directory", [&] () {
-			addr_t pd_addr = Pa::masked(entry);
-			g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
-			g.attribute("value",   Hex_str(Hex(entry)));
-			g.attribute("address", Hex_str(Hex(pd_addr)));
-
-			report_helper.with_table<ENTRY>(pd_addr, [&] (ENTRY &pd) {
-				pd.generate(g, report_helper); });
-		});
-	}
-};
-
-
-template <unsigned _PAGE_SIZE_LOG2>
-struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Page
-	: Page_directory_base_descriptor
-{
-	using Base = Page_directory_base_descriptor;
-
-	/**
-	 * Physical address
-	 */
-	struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
-	                                     48 - PAGE_SIZE_LOG2> { };
-
-
-	static typename Base::access_t create(Page_flags const &flags,
-	                                      addr_t const pa)
-	{
-		/* Ipat and Emt are ignored in legacy mode */
-
-		return Base::create(flags)
-		     | Base::Ps::bits(1)
-		     | Pa::masked(pa);
-	}
-
-	static void generate_page(unsigned long      index,
-	                          access_t           entry,
-	                          Genode::Generator &g)
-	{
-		using Genode::Hex;
-		using Hex_str = Genode::String<20>;
-
-		g.node("page", [&] () {
-			addr_t addr = Pa::masked(entry);
-			g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
-			g.attribute("value",   Hex_str(Hex(entry)));
-			g.attribute("address", Hex_str(Hex(addr)));
-			g.attribute("accessed",(bool)A::get(entry));
-			g.attribute("dirty",   (bool)D::get(entry));
-			g.attribute("write",   (bool)W::get(entry));
-			g.attribute("read",    (bool)R::get(entry));
-		});
-	}
-};
-
-
-template <unsigned _PAGE_SIZE_LOG2, unsigned _SIZE_LOG2>
 struct Intel::Level_4_descriptor : Common_descriptor
 {
-	static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
-	static constexpr size_t SIZE_LOG2      = _SIZE_LOG2;
+	static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_512GB;
+	static constexpr size_t SIZE_LOG2      = SIZE_LOG2_256TB;
 
 	struct Pa  : Bitfield<12, SIZE_LOG2> { };    /* physical address */
+
+	static Page_table_entry type(access_t const desc)
+	{
+		return (!present(desc)) ? Page_table_entry::INVALID
+		                        : Page_table_entry::TABLE;
+	}
+
+	static access_t create(Page_flags flags, addr_t const pa)
+	{
+		return Common_descriptor::create(flags) | Pa::masked(pa);
+	}
 
 	static access_t create(addr_t const pa)
 	{
@@ -251,49 +240,53 @@ struct Intel::Level_4_descriptor : Common_descriptor
 				level3_table.generate(g, report_helper); });
 		});
 	}
+
+	static addr_t address(typename Common_descriptor::access_t desc) {
+		return Pa::masked(desc); }
 };
 
 
 namespace Intel {
 
+	enum {
+		L1_TABLE_SIZE_LOG2 = SIZE_LOG2_2MB,
+		L2_TABLE_SIZE_LOG2 = SIZE_LOG2_1GB,
+		L3_TABLE_SIZE_LOG2 = SIZE_LOG2_512GB,
+		L4_TABLE_SIZE_LOG2 = SIZE_LOG2_256TB,
+	};
+
 	struct Level_1_translation_table
 	:
-		Final_table<Level_1_descriptor<SIZE_LOG2_4KB>>
+		Page_table_leaf<Level_1_descriptor, SIZE_LOG2_4KB, L1_TABLE_SIZE_LOG2>
 	{
-		static constexpr unsigned address_width() { return SIZE_LOG2_2MB; }
-
 		void generate(Genode::Generator &, Report_helper const &) const;
-	} __attribute__((aligned(1 << ALIGNM_LOG2)));
+	};
 
 	struct Level_2_translation_table
 	:
-		Page_directory<Level_1_translation_table,
-		               Page_directory_descriptor<SIZE_LOG2_2MB>>
+		Page_table_node<Level_1_translation_table,
+		                Page_directory_descriptor<L1_TABLE_SIZE_LOG2>,
+		                L1_TABLE_SIZE_LOG2, L2_TABLE_SIZE_LOG2>
 	{
-		static constexpr unsigned address_width() { return SIZE_LOG2_1GB; }
-
 		void generate(Genode::Generator &, Report_helper const &) const;
-	} __attribute__((aligned(1 << ALIGNM_LOG2)));
+	};
 
 	struct Level_3_translation_table
 	:
-		Page_directory<Level_2_translation_table,
-		               Page_directory_descriptor<SIZE_LOG2_1GB>>
+		Page_table_node<Level_2_translation_table,
+		                Page_directory_descriptor<L2_TABLE_SIZE_LOG2>,
+		                L2_TABLE_SIZE_LOG2, L3_TABLE_SIZE_LOG2>
 	{
-		static constexpr unsigned address_width() { return SIZE_LOG2_512GB; }
-
 		void generate(Genode::Generator &, Report_helper const &) const;
-	} __attribute__((aligned(1 << ALIGNM_LOG2)));
+	};
 
 	struct Level_4_translation_table
 	:
-		Pml4_table<Level_3_translation_table,
-		           Level_4_descriptor<SIZE_LOG2_512GB, SIZE_LOG2_256TB>>
+		Page_table_node<Level_3_translation_table, Level_4_descriptor,
+		                L3_TABLE_SIZE_LOG2, L4_TABLE_SIZE_LOG2>
 	{
-		static constexpr unsigned address_width() { return SIZE_LOG2_256TB; }
-
 		void generate(Genode::Generator &, Report_helper const &) const;
-	} __attribute__((aligned(1 << ALIGNM_LOG2)));
+	};
 
 }
 

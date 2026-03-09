@@ -113,8 +113,7 @@ class Driver::Kernel_io_mmu::Device_pd : public Io_mmu::Domain
 		          Cap_quota_guard            &cap_guard,
 		          Allocator                  &md_alloc);
 
-		void add_range(Io_mmu::Range const &,
-		               addr_t const,
+		Result add_range(Io_mmu::Range const &, addr_t const,
 		               Dataspace_capability const) override;
 		void remove_range(Io_mmu::Range const &) override;
 };

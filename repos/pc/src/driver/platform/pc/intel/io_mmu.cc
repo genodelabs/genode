@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <cpu/clflush.h>
+
 /* local includes */
 #include <intel/io_mmu.h>
 
@@ -23,28 +25,44 @@ static void attribute_hex(Genode::Generator &g, char const * name,
 }
 
 
-void Intel::Io_mmu::Domain::add_range(Range const &range,
-                                      addr_t const paddr,
-                                      Dataspace_capability const)
+Intel::Io_mmu::Domain::Result
+Intel::Io_mmu::Domain::add_range(Range const &range, addr_t const paddr,
+                                 Dataspace_capability const)
 {
-	addr_t const             vaddr   { range.start };
-	size_t const             size    { range.size };
+	addr_t const vaddr { range.start };
+	size_t const size  { range.size };
 
 	Page_flags flags { RW, NO_EXEC, USER, NO_GLOBAL,
 	                   RAM, Genode::CACHED };
 
+	Result result = Error::DENIED;
+
 	_with_table([&] (auto &table) {
-		table.insert_translation(vaddr, paddr, size, flags, _table_allocator,
-		                         !_coherent_page_walk, _supported_page_sizes);
+		result = table.insert(vaddr, paddr, size, flags, _talloc,
+			/* lambda to flush cacheline of new descriptor value */
+			[&] (addr_t addr, size_t) {
+				if (!_coherent_page_walk) clflush((void*)addr);
+			},
+
+			/* lambda to return supported page sizes */
+			[&] (size_t size_log2) {
+				return ((1 << size_log2) & _supported_page_sizes);
+			});
 	});
+
+	return result;
 }
 
 
 void Intel::Io_mmu::Domain::remove_range(Range const &range)
 {
 	_with_table([&] (auto &table) {
-		table.remove_translation(range.start, range.size, _table_allocator,
-		                         !_coherent_page_walk); });
+		table.remove(range.start, range.size, _talloc,
+			/* lambda to return supported page sizes */
+			[&] (addr_t addr, size_t) {
+				if (!_coherent_page_walk) clflush((void*)addr);
+		});
+	});
 }
 
 
@@ -397,10 +415,10 @@ void Intel::Io_mmu::enregister(Device const &device, Driver::Io_mmu::Domain &dom
 		bdf = Pci::Bdf{ cfg.bus_num, cfg.dev_num, cfg.func_num }; });
 
 	Domain_id cur_domain = (intel_domain._level_4)
-		? root_table().insert_context<Level_4_translation_table::address_width()>(
-			bdf, intel_domain._translation_table_phys, intel_domain._domain_id)
-		: root_table().insert_context<Level_3_translation_table::address_width()>(
-			bdf, intel_domain._translation_table_phys, intel_domain._domain_id);
+		? root_table().insert_context<L4_TABLE_SIZE_LOG2>(
+			bdf, intel_domain._table_phys, intel_domain._domain_id)
+		: root_table().insert_context<L3_TABLE_SIZE_LOG2>(
+			bdf, intel_domain._table_phys, intel_domain._domain_id);
 
 	/*
 	 * We need to invalidate the context-cache entry for this device and
@@ -429,7 +447,7 @@ void Intel::Io_mmu::deregister(Device const &device, Driver::Io_mmu::Domain &dom
 	device.with_pci_config([&] (Device::Pci_config const &cfg) {
 		bdf = Pci::Bdf{ cfg.bus_num, cfg.dev_num, cfg.func_num }; });
 
-	root_table().remove_context(bdf, intel_domain._translation_table_phys);
+	root_table().remove_context(bdf, intel_domain._table_phys);
 
 	/* lookup default mappings and insert instead */
 	_default_mappings.copy_stage2(_managed_root_table, bdf);

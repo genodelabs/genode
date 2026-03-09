@@ -20,15 +20,12 @@ void Intel::Default_mappings::_insert_context(Managed_root_table &root,
                                               addr_t              paddr,
                                               Domain_id           domain_id)
 {
-	using L3_table = Level_3_translation_table;
-	using L4_table = Level_4_translation_table;
-
 	switch (_levels) {
 		case Translation_levels::LEVEL3:
-			root.insert_context<L3_table::address_width()>(bdf, paddr, domain_id);
+			root.insert_context<L3_TABLE_SIZE_LOG2>(bdf, paddr, domain_id);
 			break;
 		case Translation_levels::LEVEL4:
-			root.insert_context<L4_table::address_width()>(bdf, paddr, domain_id);
+			root.insert_context<L4_TABLE_SIZE_LOG2>(bdf, paddr, domain_id);
 			break;
 	}
 }
@@ -40,21 +37,32 @@ void Intel::Default_mappings::insert_translation(addr_t va, addr_t pa,
 	using L3_table = Level_3_translation_table;
 	using L4_table = Level_4_translation_table;
 
+	auto insert = [&] (auto &table) {
+		auto result = table.insert(va, pa, size, flags, _table_allocator,
+			/* lambda to flush cacheline of new descriptor value */
+			[&] (addr_t addr, size_t) {
+				if (_force_flush) clflush((void*)addr);
+			},
+
+			/* lambda to return supported page sizes */
+			[&] (size_t size_log2) {
+				return ((1 << size_log2) & page_sizes);
+			});
+		if (result.failed())
+			error("Could not insert range");
+	};
+
 	switch (_levels)
 	{
 		case Translation_levels::LEVEL3:
 			_table_allocator.with_table<L3_table>(_default_table_phys,
-				[&] (L3_table &t) {
-					t.insert_translation(va, pa, size, flags, _table_allocator,
-					                     _force_flush, page_sizes);
-				}, [&] () {});
+				[&] (L3_table &t) { insert(t); },
+				[&] () {});
 			break;
 		case Translation_levels::LEVEL4:
 			_table_allocator.with_table<L4_table>(_default_table_phys,
-				[&] (L4_table &t) {
-					t.insert_translation(va, pa, size, flags, _table_allocator,
-					                     _force_flush, page_sizes);
-				}, [&] () {});
+				[&] (L4_table &t) { insert(t); },
+				[&] () {});
 			break;
 	}
 }

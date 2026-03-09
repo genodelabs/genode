@@ -34,7 +34,7 @@
 #include <intel/invalidator.h>
 #include <intel/irq_remap_table.h>
 #include <intel/fault_handler.h>
-#include <expanding_page_table_allocator.h>
+#include <page_table_allocator.h>
 
 namespace Intel {
 	using namespace Genode;
@@ -71,43 +71,44 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 				friend class Intel::Io_mmu;
 
-				using Table_allocator   = Expanding_page_table_allocator<4096>;
+				using Table_allocator = Page_table_allocator;
+				using L4_table = Level_4_translation_table;
+				using L3_table = Level_3_translation_table;
 
 				Env           &_env;
 				Ram_allocator &_ram_alloc;
 
-				bool const _level_4;
-				bool const _coherent_page_walk;
+				bool     const _level_4;
+				bool     const _coherent_page_walk;
 				uint32_t const _supported_page_sizes;
 
-				Table_allocator   _table_allocator;
+				Table_allocator   _talloc;
 				Domain_id   const _domain_id;
 				Irq_allocator    &_irq_allocator;
 
-				addr_t _translation_table_phys {
-					_level_4 ?  _table_allocator.construct<Level_4_translation_table>()
-					         :  _table_allocator.construct<Level_3_translation_table>() };
+				addr_t _table_phys {
+					_level_4 ?  _talloc.construct<L4_table>()
+					         :  _talloc.construct<L3_table>() };
 
 				void _with_table(addr_t pa, auto const &fn) const
 				{
 					if (_level_4)
-						_table_allocator.with_table<Level_4_translation_table>(pa,
+						_talloc.with_table<L4_table>(pa,
 							[&] (auto &t) { fn(t); },
 							[&] () { });
 					else
-						_table_allocator.with_table<Level_3_translation_table>(pa,
+						_talloc.with_table<L3_table>(pa,
 							[&] (auto &t) { fn(t); },
 							[&] () { });
 				}
 
 				void _with_table(auto const &fn) const {
-					_with_table(_translation_table_phys, fn); }
+					_with_table(_table_phys, fn); }
 
 			public:
 
-				void add_range(Range const &,
-				               addr_t const,
-				               Dataspace_capability const) override;
+				Result add_range(Range const &, addr_t const,
+				                 Dataspace_capability const) override;
 				void remove_range(Range const &) override;
 
 				addr_t virt_addr(addr_t pa) const override
@@ -134,18 +135,16 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 					_level_4(level_4),
 					_coherent_page_walk(coherent_page_walk),
 					_supported_page_sizes(supported_page_sizes),
-					_table_allocator(_env, md_alloc, ram_alloc, 2),
+					_talloc(_env, md_alloc, ram_alloc, 2),
 					_domain_id(domain_id),
 					_irq_allocator(irq_allocator) { }
 
 				~Domain() override
 				{
 					if (_level_4)
-						_table_allocator.destruct<Level_4_translation_table>(
-							_translation_table_phys);
+						_talloc.destruct<L4_table>(_table_phys);
 					else
-						_table_allocator.destruct<Level_3_translation_table>(
-							_translation_table_phys);
+						_talloc.destruct<L3_table>(_table_phys);
 				}
 		};
 
@@ -654,7 +653,7 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 {
 	private:
 
-		using Table_allocator = Expanding_page_table_allocator<4096>;
+		using Table_allocator = Page_table_allocator;
 
 		Genode::Env &_env;
 

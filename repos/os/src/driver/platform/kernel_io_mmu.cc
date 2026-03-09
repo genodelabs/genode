@@ -71,43 +71,46 @@ bool Kernel_io_mmu::Device_pd::Region_map_client::upgrade_caps()
 }
 
 
-void Kernel_io_mmu::Device_pd::add_range(Io_mmu::Range        const &range,
-                                         addr_t               const,
-                                         Dataspace_capability const cap)
+Kernel_io_mmu::Device_pd::Result
+Kernel_io_mmu::Device_pd::add_range(Io_mmu::Range        const &range,
+                                    addr_t               const,
+                                    Dataspace_capability const cap)
 {
 	using namespace Genode;
 
-	bool retry = false;
+	if (range.start == 0) return Error::INVALID_RANGE;
 
-	if (range.start == 0) return;
-
-	do {
-		_pd.attach_dma(cap, range.start).with_result(
-			[&] (Ok) {
+	for (;;) {
+		Result const result = _pd.attach_dma(cap, range.start).convert<Result>(
+			[&] (Ok) -> Result {
 				/* trigger eager mapping of memory */
-				_pd.map(Pd_session::Virt_range { range.start, range.size });
-				retry = false;
+				switch (_pd.map(Pd_session::Virt_range { range.start,
+				                                         range.size })) {
+				case Pd_session::Map_result::OUT_OF_RAM:  return Error::OUT_OF_RAM;
+				case Pd_session::Map_result::OUT_OF_CAPS: return Error::OUT_OF_CAPS;
+				case Pd_session::Map_result::OK: ;
+				};
+				return Ok();
 			},
 			[&] (Pd_session::Attach_dma_error e) {
 				switch (e) {
 				case Pd_session::Attach_dma_error::OUT_OF_RAM:
-					if (!_address_space.upgrade_ram())
-						throw Out_of_ram();
-					retry = true;
-					break;
 				case Pd_session::Attach_dma_error::OUT_OF_CAPS:
-					if (!_address_space.upgrade_caps())
-						throw Out_of_caps();
-					retry = true;
-					break;
 				case Pd_session::Attach_dma_error::DENIED:
-					_address_space.detach(range.start);
 					error("Device PD: attach_dma denied!");
-					break;
 				}
+				return Error::DENIED;
 			}
 		);
-	} while (retry);
+
+		if (result == Error::OUT_OF_RAM && _address_space.upgrade_ram())
+			continue;
+
+		if (result == Error::OUT_OF_CAPS && _address_space.upgrade_caps())
+			continue;
+
+		return result;
+	}
 }
 
 

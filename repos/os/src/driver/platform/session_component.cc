@@ -301,7 +301,14 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 		                                              _dma_remapable());
 		guard.buf = &buf;
 
-		_domain.add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap);
+		_domain.add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap).with_error(
+			[] (auto err) {
+				if (err == decltype(err)::OUT_OF_RAM)
+					throw Out_of_ram();
+				if (err == decltype(err)::OUT_OF_CAPS)
+					throw Out_of_caps();
+		});
+
 	} catch (Dma_allocator::Out_of_virtual_memory) { }
 
 	guard.disarm();

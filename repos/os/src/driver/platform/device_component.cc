@@ -329,7 +329,14 @@ Device_component::Device_component(Registry<Device_component> &registry,
 				                       iomem.range.size, false);
 				session.with_io_mmu_domain([&] (auto &domain) {
 					domain.add_range(iomem.range, iomem.range.start,
-					                  iomem.io_mem->dataspace()); });
+					                 iomem.io_mem->dataspace()).with_error(
+						[] (auto err) {
+							if (err == decltype(err)::OUT_OF_RAM)
+								throw Out_of_ram();
+							if (err == decltype(err)::OUT_OF_CAPS)
+								throw Out_of_caps();
+					});
+				});
 			});
 		});
 

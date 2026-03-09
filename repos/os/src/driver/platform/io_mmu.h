@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/registry.h>
 #include <base/quota_guard.h>
+#include <cpu/page_table.h>
 #include <pci/types.h>
 #include <platform_session/platform_session.h>
 
@@ -61,11 +62,15 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 			public:
 
+				using Error  = Page_table_error;
+				using Result = Attempt<Ok, Error>;
+
 				Allocator & md_alloc() { return _md_alloc; }
 
 				/* interface for adding/removing DMA buffers */
-				virtual void add_range(Range const &, addr_t const,
-				                       Dataspace_capability const) {};
+				virtual Result add_range(Range const &, addr_t const,
+				                         Dataspace_capability const) {
+					return Ok(); };
 				virtual void remove_range(Range const &) {};
 
 				Domain(Allocator &md_alloc) : _md_alloc(md_alloc) { }

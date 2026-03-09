@@ -5,6 +5,7 @@ SRC_CC  += io_mmu.cc
 SRC_CC  += irq_controller.cc
 SRC_CC  += kernel_io_mmu.cc
 SRC_CC  += main.cc
+SRC_CC  += page_table_allocator.cc
 SRC_CC  += pci.cc
 SRC_CC  += root.cc
 SRC_CC  += session_component.cc

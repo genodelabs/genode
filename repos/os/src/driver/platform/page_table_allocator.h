@@ -1,6 +1,7 @@
 /*
  * \brief  Expanding page table allocator
  * \author Johannes Schlatow
+ * \author Stefan Kalkowski
  * \date   2023-10-18
  */
 
@@ -11,27 +12,28 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__PC__EXPANDING_PAGE_TABLE_ALLOCATOR_H_
-#define _SRC__DRIVERS__PLATFORM__PC__EXPANDING_PAGE_TABLE_ALLOCATOR_H_
+#ifndef _SRC__DRIVERS__PLATFORM__PAGE_TABLE_ALLOCATOR_H_
+#define _SRC__DRIVERS__PLATFORM__PAGE_TABLE_ALLOCATOR_H_
 
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/attached_ram_dataspace.h>
+#include <cpu/page_table.h>
 #include <pd_session/pd_session.h>
 #include <util/avl_tree.h>
 
 namespace Driver {
 	using namespace Genode;
 
-	template <size_t TABLE_SIZE>
-	class Expanding_page_table_allocator;
+	class Page_table_allocator;
 }
 
 
-template <Genode::size_t TABLE_SIZE>
-class Driver::Expanding_page_table_allocator
+class Driver::Page_table_allocator
 {
 	public:
+
+		static constexpr size_t TABLE_SIZE = 1 << SIZE_LOG2_4KB;
 
 		struct Alloc_failed : Exception { };
 
@@ -81,23 +83,32 @@ class Driver::Expanding_page_table_allocator
 						~Element() {
 							(void)_range_alloc.remove_range(_phys_addr, _dataspace.size()); }
 
-						bool matches(addr_t pa)
+						bool matches(addr_t pa) const
 						{
 							return pa >= _phys_addr &&
 							       pa < _phys_addr + _dataspace.size();
 						}
 
-						addr_t virt_addr(addr_t phys_addr) {
+						addr_t virt_addr(addr_t phys_addr) const {
 							return _virt_addr + (phys_addr - _phys_addr); }
+
+						void phys_addr(addr_t virt_addr, auto const &fn) const
+						{
+							if (virt_addr >= _virt_addr &&
+							    virt_addr <  _virt_addr + _dataspace.size())
+								fn(_phys_addr + (virt_addr - _virt_addr));
+						}
 
 						/*
 						 * Avl_node interface
 						 */
-						bool higher(Element * other) {
+						bool higher(Element * other) const {
 							return other->_phys_addr > _phys_addr; }
 				};
 
 			private:
+
+				friend class Page_table_allocator;
 
 				Avl_tree<Element> _tree { };
 				Env              &_env;
@@ -149,10 +160,10 @@ class Driver::Expanding_page_table_allocator
 
 	public:
 
-		Expanding_page_table_allocator(Genode::Env   &env,
-		                               Allocator     &md_alloc,
-		                               Ram_allocator &ram_alloc,
-		                               size_t         start_count)
+		Page_table_allocator(Genode::Env   &env,
+		                     Allocator     &md_alloc,
+		                     Ram_allocator &ram_alloc,
+		                     size_t         start_count)
 		: _allocator(&md_alloc),
 		  _backing_store(env, md_alloc, ram_alloc, _allocator, start_count*TABLE_SIZE)
 		{ }
@@ -194,53 +205,67 @@ class Driver::Expanding_page_table_allocator
 					error("Trying to destruct foreign table at ", Hex(phys_addr));
 				});
 		}
+
+		using Error  = Page_table_error;
+		using Result = Attempt<Ok, Error>;
+
+		template <typename TABLE, typename ENTRY>
+		Result create(typename ENTRY::access_t &descriptor)
+		{
+			Result result = Error::DENIED;
+
+			/* Unfortunately _alloc() still throws exceptions */
+			try {
+				addr_t phys_addr = _alloc();
+				_backing_store.with_virt_addr(phys_addr,
+					[&] (addr_t va) {
+						construct_at<TABLE>((void*)va);
+						descriptor = ENTRY::create(phys_addr);
+						result = Ok();
+					},
+					[&] () {});
+			} catch(Out_of_ram)  {
+				result = Error::OUT_OF_RAM;
+			} catch(Out_of_caps) {
+				result = Error::OUT_OF_CAPS;
+			} catch(...) {
+				error("error during table creation!"); }
+
+			return result;
+		}
+
+		template <typename TABLE>
+		void destroy(TABLE &table)
+		{
+			class Error {};
+			using Result = Attempt<addr_t, Error>;
+			Result result = Error();
+
+			/*
+			 * Non-optimal: we've to iterate through the whole tree,
+			 *              there is no indexing with virtual addresses
+			 */
+			_backing_store._tree.for_each([&] (auto const &e) {
+				e.phys_addr((addr_t)&table, [&] (addr_t pa) {
+					result = pa; });
+			});
+
+			result.with_result(
+				[&] (addr_t phys_addr) {
+					table.~TABLE();
+					_allocator.free((void*)phys_addr);
+				}, [] (auto) {});
+		}
+
+		template <typename TABLE>
+		Result lookup(addr_t phys_addr, auto const fn)
+		{
+			Result result = Error::INVALID_RANGE;
+			with_table<TABLE>(phys_addr,
+				[&] (TABLE &t) { result = fn(t); },
+				[] () {});
+			return result;
+		}
 };
 
-
-template <Genode::size_t TABLE_SIZE>
-Driver::Expanding_page_table_allocator<TABLE_SIZE>::Backing_store::~Backing_store()
-{
-	while (_tree.first()) {
-		Element * e = _tree.first();
-		_tree.remove(e);
-		destroy(_md_alloc, e);
-	}
-}
-
-
-template <Genode::size_t TABLE_SIZE>
-void Driver::Expanding_page_table_allocator<TABLE_SIZE>::Backing_store::grow()
-{
-	Element * e = new (_md_alloc) Element(_range_alloc, _ram_alloc,
-	                                      _env.rm(), _env.pd(), _chunk_size);
-
-	_tree.insert(e);
-
-	/* double _chunk_size */
-	_chunk_size = Genode::min(_chunk_size << 1, (size_t)MAX_CHUNK_SIZE);
-}
-
-
-template <Genode::size_t TABLE_SIZE>
-Genode::addr_t Driver::Expanding_page_table_allocator<TABLE_SIZE>::_alloc()
-{
-	Align const align { .log2 = Genode::log2(TABLE_SIZE, 0u) };
-
-	Alloc_result result = _allocator.alloc_aligned(TABLE_SIZE, align);
-
-	if (result.failed()) {
-
-		_backing_store.grow();
-
-		/* retry allocation */
-		result = _allocator.alloc_aligned(TABLE_SIZE, align);
-	}
-
-	return result.convert<addr_t>(
-		[&] (Allocator::Allocation &a)  -> addr_t {
-			a.deallocate = false;
-			return (addr_t)a.ptr; },
-		[&] (Alloc_error) -> addr_t { throw Alloc_failed(); });
-}
-
-#endif /* _SRC__DRIVERS__PLATFORM__PC__EXPANDING_PAGE_TABLE_ALLOCATOR_H_ */
+#endif /* _SRC__DRIVERS__PLATFORM__PAGE_TABLE_ALLOCATOR_H_ */
