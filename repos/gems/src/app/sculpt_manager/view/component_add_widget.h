@@ -73,7 +73,7 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 	{
 		bool result = false;
 		_apply_to_selected_route(action, [&] (Route const &route, Route::Id) {
-			if (route.required == Service::Type::FILE_SYSTEM)
+			if (route.required == Service::Type::FS)
 				result = true; });
 		return result;
 	}
@@ -98,7 +98,7 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 			/*
 			 * Present directory selector for file-system routes
 			 */
-			if (route.required == Service::Type::FILE_SYSTEM) {
+			if (route.required == Service::Type::FS) {
 				s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
 					Hosted<Vbox, Frame, Fs_route_widget> fs_route_widget(id);
 					s.widget(fs_route_widget, _selected_route, component,

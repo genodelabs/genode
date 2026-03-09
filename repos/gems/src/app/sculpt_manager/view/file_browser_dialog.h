@@ -320,7 +320,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 	{
 		s.sub_scope<Vbox>([&] (Scope<Vbox> &s) {
 			_runtime_config.for_each_service([&] (Service const &service) {
-				if (service.type == Service::Type::FILE_SYSTEM)
+				if (service.type == Service::Type::FS)
 					_view_file_system(s, service); }); });
 	}
 

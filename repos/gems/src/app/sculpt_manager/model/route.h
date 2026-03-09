@@ -35,7 +35,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::BLOCK:       return "block";
 		case Service::Type::EVENT:       return "event";
 		case Service::Type::CAPTURE:     return "capture";
-		case Service::Type::FILE_SYSTEM: return "file_system";
+		case Service::Type::FS:          return "fs";
 		case Service::Type::NIC:         return "nic";
 		case Service::Type::UPLINK:      return "uplink";
 		case Service::Type::GUI:         return "gui";
@@ -71,7 +71,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		case Service::Type::BLOCK:       return "Block device";
 		case Service::Type::EVENT:       return "Event";
 		case Service::Type::CAPTURE:     return "Capture";
-		case Service::Type::FILE_SYSTEM: return "File system";
+		case Service::Type::FS:          return "File system";
 		case Service::Type::NIC:         return "Network";
 		case Service::Type::UPLINK:      return "Network uplink";
 		case Service::Type::GUI:         return "GUI";
@@ -101,9 +101,12 @@ struct Sculpt::Route : List_model<Route>::Element
 
 	static Service::Type _required(Node const &node)
 	{
+		String<16> type = node.type();
+		if (type == "file_system") type = "fs";
+
 		for (unsigned i = 0; i < (unsigned)Service::Type::UNDEFINED; i++) {
 			Service::Type const s = (Service::Type)i;
-			if (node.has_type(node_type(s)))
+			if (type == node_type(s))
 				return s;
 		}
 
@@ -195,7 +198,7 @@ struct Sculpt::Route : List_model<Route>::Element
 				}
 			}
 
-			if (selected_service->type == Service::Type::FILE_SYSTEM)
+			if (selected_service->type == Service::Type::FS)
 				selected_service->generate(g, [&] {
 					if (selected_path.length() > 1)
 						g.attribute("prepend_resource", selected_path); });

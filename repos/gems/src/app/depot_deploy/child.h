@@ -193,6 +193,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 						_gen_provides_sub_node(g, service, "audio_in",    "Audio_in");
 						_gen_provides_sub_node(g, service, "audio_out",   "Audio_out");
 						_gen_provides_sub_node(g, service, "block",       "Block");
+						_gen_provides_sub_node(g, service, "fs",          "File_system");
 						_gen_provides_sub_node(g, service, "file_system", "File_system");
 						_gen_provides_sub_node(g, service, "framebuffer", "Framebuffer");
 						_gen_provides_sub_node(g, service, "input",       "Input");

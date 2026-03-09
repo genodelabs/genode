@@ -133,7 +133,7 @@ struct Sculpt::Dir_query : Noncopyable
 		_fs_dict.for_each([&] (Fs const &fs) {
 			bool exists = false;
 			runtime_config.for_each_service([&] (Service const &service) {
-				exists |= (service.type == Service::Type::FILE_SYSTEM)
+				exists |= (service.type == Service::Type::FS)
 				       && (service.fs_name() == fs.name); });
 			if (!exists) {
 				any_file_system_vanished = true;
@@ -146,7 +146,7 @@ struct Sculpt::Dir_query : Noncopyable
 
 		bool file_systems_changed = any_file_system_vanished;
 		runtime_config.for_each_service([&] (Service const &service) {
-			if (service.type == Service::Type::FILE_SYSTEM)
+			if (service.type == Service::Type::FS)
 				if (!_fs_dict.exists(service.fs_name())) {
 					new (alloc) Fs(_fs_dict, service.fs_name(), !service.server.valid());
 					file_systems_changed = true; } });

@@ -26,7 +26,7 @@ struct Sculpt::Service
 	using Label     = String<64>;
 
 	enum class Type {
-		AUDIO_IN, AUDIO_OUT, BLOCK, EVENT, CAPTURE, FILE_SYSTEM, NIC, GUI, GPU,
+		AUDIO_IN, AUDIO_OUT, BLOCK, EVENT, CAPTURE, FS, NIC, GUI, GPU,
 		RM, IO_MEM, IO_PORT, IRQ, REPORT, ROM, TERMINAL, TRACE, USB, RTC, I2C,
 		PLATFORM, PIN_STATE, PIN_CONTROL, VM, PD, UPLINK, PLAY, RECORD, UNDEFINED };
 
@@ -49,7 +49,7 @@ struct Sculpt::Service
 		case Type::BLOCK:       return "Block";
 		case Type::EVENT:       return "Event";
 		case Type::CAPTURE:     return "Capture";
-		case Type::FILE_SYSTEM: return "File_system";
+		case Type::FS:          return "File_system";
 		case Type::NIC:         return "Nic";
 		case Type::UPLINK:      return "Uplink";
 		case Type::GUI:         return "Gui";
@@ -83,7 +83,7 @@ struct Sculpt::Service
 	Service(Start_name const &server, Type type, Label const &label)
 	:
 		server(server), type(type), label(label), info(Subst("_", " ", server)),
-		match_label(type == Type::FILE_SYSTEM ? Match_label::FS : Match_label::EXACT)
+		match_label(type == Type::FS ? Match_label::FS : Match_label::EXACT)
 	{ }
 
 	/**

@@ -317,8 +317,8 @@ class Sculpt::Runtime_config
 				_event     { _r, Type::EVENT,       "filtered input events" },
 				_lz_capture{ _r, Type::CAPTURE,     "management GUI",                 "leitzentrale" },
 				_capture   { _r, Type::CAPTURE,     "system GUI",                     "global" },
-				_config_fs { _r, Type::FILE_SYSTEM, "writeable system configuration", "config", Service::Match_label::FS },
-				_report_fs { _r, Type::FILE_SYSTEM, "read-only system reports",       "report", Service::Match_label::FS },
+				_config_fs { _r, Type::FS,          "writeable system configuration", "config", Service::Match_label::FS },
+				_report_fs { _r, Type::FS,          "read-only system reports",       "report", Service::Match_label::FS },
 				_capslock  { _r, Type::ROM,         "global capslock state",          "capslock" },
 				_vimrc     { _r, Type::ROM,         "default vim configuration",      "config -> vimrc" },
 				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> managed/fonts" },
@@ -353,7 +353,7 @@ class Sculpt::Runtime_config
 		} _parent_services { };
 
 		Service const _used_fs_service { "default_fs_rw",
-		                                 Service::Type::FILE_SYSTEM,
+		                                 Service::Type::FS,
 		                                 { }, "used file system" };
 
 	public:

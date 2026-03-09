@@ -190,7 +190,7 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 
 			Id const service_id { Id::Value("service.", count++) };
 
-			if (service.type != Service::Type::FILE_SYSTEM)
+			if (service.type != Service::Type::FS)
 				return;
 
 			bool const fs_visible = (route.browsed.service_id == service_id.value)
