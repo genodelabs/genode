@@ -51,6 +51,7 @@ struct Depot_deploy::Main : Option::Action
 		Prio_levels     prio_levels;
 		Affinity::Space affinity_space;
 		bool            state_reporter;
+		Num_bytes       blueprint_buffer;
 		bool            launchers;
 
 		/*
@@ -73,6 +74,8 @@ struct Depot_deploy::Main : Option::Action
 				.state_reporter = config.with_sub_node("report",
 					[] (Node const &node) { return node.attribute_value("state", false); },
 					[]                    { return false; }),
+
+				.blueprint_buffer = config.attribute_value("blueprint_buffer", Num_bytes { }),
 
 				.launchers = config.attribute_value("launchers", false),
 				.depot_rom = config.attribute_value("depot_rom", Depot_rom { }),
@@ -105,6 +108,8 @@ struct Depot_deploy::Main : Option::Action
 		if (_attr.arch.valid()) {
 			_query_reporter.generate([&] (Generator &g) {
 				g.attribute("arch", _attr.arch);
+				if (_attr.blueprint_buffer > 0u)
+					g.attribute("blueprint_buffer", _attr.blueprint_buffer);
 				_children.gen_queries(g);
 			});
 		}
