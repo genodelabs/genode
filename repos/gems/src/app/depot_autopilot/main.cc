@@ -43,13 +43,7 @@ struct Depot_autopilot::Iteration
 
 	Action &_action;
 
-	struct Attr
-	{
-		Clock              total_start_time;
-		Arch               arch;
-		Child::Prio_levels prio_levels;
-		Affinity::Space    affinity_space;
-	};
+	struct Attr { Clock total_start_time; };
 
 	Attr const _attr;
 
@@ -57,10 +51,7 @@ struct Depot_autopilot::Iteration
 
 	Plan _plan { };
 
-	Expanding_reporter _query_reporter       { _env, "query" , "query"};
-	Expanding_reporter _init_config_reporter { _env, "config", "init.config"};
-
-	Children _children { _heap };
+	Expanding_reporter _deploy_reporter { _env, "deploy", "deploy"};
 
 	void _conclude_single_test(Test &test)
 	{
@@ -120,9 +111,7 @@ struct Depot_autopilot::Iteration
 	~Iteration()
 	{
 		_plan.print_conclusions();
-
 		_plan.apply_config(_heap, Node());
-		_children.apply_deploy(Node());
 	}
 
 	void select_next_test_if_idle()
@@ -145,69 +134,16 @@ struct Depot_autopilot::Iteration
 		_plan.apply_config   (_heap, config);
 		_plan.apply_blueprint(_heap, blueprint);
 
-		/* hide skipped start nodes from '_children' deploy config */
-		Generated_node deploy { _heap, config.num_bytes(), "config",
-			[&] (Generator &g) {
-				g.attribute("arch", _attr.arch);
-				_plan.gen_deploy_start_nodes(g); } };
-
-		deploy.node.with_result(
-			[&] (Node const &node) { _children.apply_deploy(node); },
-			[&] (Buffer_error) { warning("failed to generate deploy config"); });
-
-		_children.apply_blueprint(blueprint);
-
-		/* skip tests with missing pkg/archive content */
-		_children.for_each_incomplete([&] (Child::Name const &name) {
-			error(name, " is incomplete");
-			_plan.with_test(name, [&] (Test &test) {
-				test.state = Test::State::FAILED;
-				test.malformed = true; }); });
-
 		/* unblock selected test waiting for its blueprint */
 		_plan.with_selected_test_not_yet_running([&] (Test &test) {
 			if (test.blueprint_defined)
 				_try_run_test(_action.now()); });
-
-
-		/* update query for blueprints of all unconfigured start nodes */
-		_query_reporter.generate([&] (Generator &g) {
-			g.attribute("arch", _attr.arch);
-
-			auto copy_attribute = [&] (char const *attr) {
-				if (config.has_attribute(attr))
-					g.attribute(attr, config.attribute_value(attr, String<100>())); };
-
-			copy_attribute("blueprint_buffer");
-
-			_children.gen_queries(g);
-		});
 	}
 
-	void reconfigure_runtime(Node const &config)
+	void reconfigure_deploy()
 	{
-		/* generate init config containing all configured start nodes */
-		_init_config_reporter.generate([&] (Generator &g) {
-
-			/* insert content of '<static>' node as is */
-			config.with_optional_sub_node("static", [&] (Node const &static_config) {
-				(void)g.append_node_content(static_config, { 20 }); });
-
-			/*
-			 * Generate start nodes for deployed packages
-			 */
-
-			/* route ROM modules to the parent, see Child::_gen_routes */
-			Child::Depot_rom_server const parent { };
-
-			/* generate start node only for currently active test */
-			auto cond_fn = [&] (Child::Name const &name) { return _plan.running(name); };
-
-			config.with_optional_sub_node("common_routes", [&] (Node const &common_routes) {
-				_children.gen_start_nodes(g, common_routes,
-				                          _attr.prio_levels, _attr.affinity_space,
-				                          parent, cond_fn); });
-		});
+		_deploy_reporter.generate([&] (Generator &g) {
+			_plan.gen_deploy_start_nodes(g); });
 	}
 
 	Stats stats(Clock now, Node const &config) const
@@ -382,7 +318,7 @@ struct Depot_autopilot::Main : Log_session::Action, Iteration::Action
 
 		_log_root.current_session_done();
 		_iteration->select_next_test_if_idle();
-		_iteration->reconfigure_runtime(_config.node());
+		_iteration->reconfigure_deploy();
 
 		if (_iteration->all_done())
 			_iteration_done_handler.local_submit();
@@ -405,24 +341,14 @@ struct Depot_autopilot::Main : Log_session::Action, Iteration::Action
 		_config   .update();
 		_blueprint.update();
 
-		Arch const arch = _config.node().attribute_value("arch", Arch());
-		if (arch.length() <= 1) {
-			warning("config lacks 'arch' attribute");
-			return;
-		}
-
 		if (!_iteration.constructed())
 			_iteration.construct(_env, _heap, *this, Iteration::Attr {
-				.total_start_time = _start_time,
-				.arch             = arch,
-				.prio_levels      = { },
-				.affinity_space   = { }
-			});
+				.total_start_time = _start_time, });
 
 		/* propagate update of blueprint */
 		_iteration->apply_config_and_blueprint(_config.node(), _blueprint.node());
 		_iteration->select_next_test_if_idle();
-		_iteration->reconfigure_runtime(_config.node());
+		_iteration->reconfigure_deploy();
 	}
 
 	void _handle_iteration_done()

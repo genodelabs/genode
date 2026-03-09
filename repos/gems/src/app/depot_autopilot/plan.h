@@ -78,14 +78,6 @@ struct Depot_autopilot::Plan
 		});
 	}
 
-	bool running(Test::Name const &name) const
-	{
-		bool result = false;
-		_tests.for_each([&] (Test const &test) {
-			if (test.name == name) result = test.running(); });
-		return result;
-	}
-
 	bool all_done() const
 	{
 		bool result = true;
@@ -156,7 +148,9 @@ struct Depot_autopilot::Plan
 			if (!test.skip && !test.malformed)
 				g.node("start", [&] {
 					g.attribute("name", test.name);
-					g.attribute("pkg",  test.pkg); }); });
+					g.attribute("pkg",  test.pkg);
+					if (!test.running())
+						g.attribute("enabled", "no"); }); });
 	}
 };
 

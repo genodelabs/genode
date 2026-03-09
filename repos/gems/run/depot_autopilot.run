@@ -327,10 +327,13 @@ proc prepare_to_run_genode { } {
 		    + service Report
 		    + service ROM
 		  + config | verbose: no
-		    + policy | label:  depot_autopilot -> blueprint | report: depot_query -> blueprint
-		    + policy | label:  depot_autopilot -> state     | report: dynamic -> state
-		    + policy | label:  depot_query -> query         | report: depot_autopilot -> query
-		    + policy | label:  dynamic -> config            | report: depot_autopilot -> init.config
+		    + policy | label: depot_autopilot -> blueprint | report: depot_query -> blueprint
+		    + policy | label: depot_autopilot -> state     | report: dynamic -> state
+		    + policy | label: depot_deploy -> deploy       | report: depot_autopilot -> deploy
+		    + policy | label: depot_deploy -> blueprint    | report: depot_query -> blueprint
+		    + policy | label: depot_query -> query         | report: depot_deploy -> query
+		    + policy | label: dynamic -> config            | report: depot_deploy -> runtime
+
 		+ start vfs | priority: -1 | ram: 16M
 		  + provides | + service File_system
 		  + config
@@ -355,8 +358,27 @@ proc prepare_to_run_genode { } {
 
 		+ start depot_autopilot | priority: -1 | ram: 8M
 		  + provides | + service LOG
-		  + config | repeat: } $test_repeat { | arch: } [depot_spec] {
-		  |        | blueprint_buffer: 750K | children_label_prefix: dynamic
+		  + config | repeat: } $test_repeat { | children_label_prefix: dynamic
+		  | + previous-results
+		  |                    time_sec:  } [expr ($previous_time_ms + 999) / 1000] {
+		  |                    succeeded: } $previous_succeeded {
+		  |                    skipped:   } $previous_skipped {
+		  |                    failed:    } $previous_failed {
+		  |} "$quoted_previous_results" [test_pkgs_start_nodes] {
+		  |
+		  + route
+		    + service PD  | unscoped_label: depot_autopilot | + parent
+		    + service CPU | unscoped_label: depot_autopilot | + parent
+		    + service LOG | unscoped_label: depot_autopilot | + parent | label: test
+		    + service ROM | unscoped_label: depot_autopilot | + parent
+		    + service ROM | unscoped_label: ld.lib.so       | + parent
+		    + service ROM    | label: state                 | + child report_rom
+		    + service ROM    | label: blueprint             | + child report_rom
+		    + service Report | label: deploy                | + child report_rom
+		    + service Timer                                 | + child timer
+
+		+ start depot_deploy
+		  + config | arch: } [depot_spec] { | blueprint_buffer: 750K
 		  | + static
 		  |   + report
 		  |   + parent-provides
@@ -380,24 +402,12 @@ proc prepare_to_run_genode { } {
 		  |   + service TRACE                                      | + parent
 		  |   + service File_system | label: gcov -> depot -> /    | + parent
 		  |   + service File_system | label_suffix: gcov_data -> / | + parent
-		  | + previous-results
-		  |                    time_sec:  } [expr ($previous_time_ms + 999) / 1000] {
-		  |                    succeeded: } $previous_succeeded {
-		  |                    skipped:   } $previous_skipped {
-		  |                    failed:    } $previous_failed {
-		  |} "$quoted_previous_results" [test_pkgs_start_nodes] {
-		  |
 		  + route
-		    + service PD  | unscoped_label: depot_autopilot | + parent
-		    + service CPU | unscoped_label: depot_autopilot | + parent
-		    + service LOG | unscoped_label: depot_autopilot | + parent | label: test
-		    + service ROM | unscoped_label: depot_autopilot | + parent
-		    + service ROM | unscoped_label: ld.lib.so       | + parent
-		    + service ROM | label: blueprint                | + child report_rom
-		    + service ROM | label: state                    | + child report_rom
-		    + service Report | label: query                 | + child report_rom
-		    + service Report | label: init.config           | + child report_rom
-		    + service Timer | label:                        | + child timer
+		    + service ROM    | label: deploy    | + child report_rom
+		    + service ROM    | label: blueprint | + child report_rom
+		    + service Report | label: query     | + child report_rom
+		    + service Report | label: runtime   | + child report_rom
+		    + any-service                       | + parent
 
 		+ start dynamic | caps: 8000 | ram: 286M | priority: -1
 		  + binary init
@@ -426,7 +436,7 @@ proc prepare_to_run_genode { } {
 	# Create the rest of the boot modules
 	#
 
-	set build_components { app/depot_autopilot }
+	set build_components { app/depot_autopilot app/depot_deploy }
 	append build_components $test_builds
 	build $build_components
 

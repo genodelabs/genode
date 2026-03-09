@@ -22,7 +22,7 @@ namespace Depot_autopilot { struct Test; }
 
 struct Depot_autopilot::Test : List_model<Test>::Element
 {
-	using Name = Child::Name;
+	using Name = String<100>;
 
 	Name const name;
 

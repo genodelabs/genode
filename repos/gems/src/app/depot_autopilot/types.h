@@ -14,12 +14,13 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#include <util/list_model.h>
+#include <base/registry.h>
 #include <base/heap.h>
-#include <children.h>
 
 namespace Depot_autopilot {
 
-	using namespace Depot_deploy;
+	using namespace Genode;
 
 	struct Clock
 	{
@@ -44,8 +45,6 @@ namespace Depot_autopilot {
 			                   "skipped: ",   skipped);
 		}
 	};
-
-	using Arch = String<16>;
 
 	struct Exit { using Code = String<16>; Code code; };
 }
