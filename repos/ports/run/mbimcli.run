@@ -3,6 +3,8 @@ assert {[have_recipe pkg/test_usb_host-[board]]} \
 
 create_boot_directory
 
+source ${genode_dir}/repos/ports/run/lte_parameters.inc
+
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/black_hole \
                   [depot_user]/pkg/test_usb_host-[board] \
@@ -66,7 +68,7 @@ config | verbose: yes
   | + service Terminal
   + config
   | + device | vendor_id: 0x12d1 | product_id: 0x15c1 | configuration: 3
-  |   . MIBM config profile is 3 for Huawei ME906e, 0 lets Linux driver choose config
+  |   . MBIM config profile is 3 for Huawei ME906e, 0 lets Linux driver choose config
   + route
     + service Terminal
     | + child black_hole
@@ -96,7 +98,7 @@ config | verbose: yes
       + any-child
 + start mbimcli | ram: 32M | caps: 500
   + config | ld_verbose: false
-  | + network | apn: internet | user: internet | password: | pin: 4348
+  | + network | apn: } [apn_name] { | user: } [apn_user] { | password: } [apn_password] { | pin: } [sim_pin] {
   | + vfs
   | | + dir dev
   | | | + log
