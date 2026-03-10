@@ -60,6 +60,8 @@ class Depot_deploy::Children
 				option.children.for_each([&] (Child const &c) { unique_fn(c); }); });
 		}
 
+		Resource::Types const _resource_types { };
+
 	public:
 
 		Children(Allocator &alloc) : _alloc(alloc) { }
@@ -190,7 +192,8 @@ class Depot_deploy::Children
 		{
 			_for_each_child([&] (Child const &child) {
 				if (cond_fn(child.name))
-					child.gen_start_node(g, common, prio_levels, affinity_space,
+					child.gen_start_node(g, _resource_types,
+					                     common, prio_levels, affinity_space,
 					                     default_depot_rom); });
 		}
 

@@ -23,6 +23,9 @@
 #include <os/reporter.h>
 #include <depot/archive.h>
 
+/* local includes */
+#include "resource.h"
+
 namespace Depot_deploy {
 
 	using namespace Depot;
@@ -170,7 +173,9 @@ class Depot_deploy::Child : public Duplicate_checked,
 			   && (_config_pkg_path(child_node) == _blueprint_pkg_path);
 		}
 
-		inline void _gen_routes(Generator &, Node const &, Node const &,
+		inline void _gen_routes(Generator &,
+		                        Resource::Types const &resource_types,
+		                        Node const &, Node const &,
 		                        Depot_rom_server const &) const;
 
 		static void _gen_provides_sub_node(Generator &g, Node const &service,
@@ -229,6 +234,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 		}
 
 		inline void _gen_start_node(Generator              &,
+		                            Resource::Types  const &resource_types,
 		                            Node             const &common,
 		                            Node             const &child_node,
 		                            Prio_levels             prio_levels,
@@ -441,6 +447,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 		 *                            parent.
 		 */
 		void gen_start_node(Generator              &g,
+		                    Resource::Types  const &resource_types,
 		                    Node             const &common,
 		                    Prio_levels             prio_levels,
 		                    Affinity::Space         affinity_space,
@@ -448,8 +455,8 @@ class Depot_deploy::Child : public Duplicate_checked,
 		{
 			if (_enabled)
 				_with_node(_child_node, [&] (Node const &child_node) {
-					_gen_start_node(g, common, child_node, prio_levels,
-					                affinity_space, default_depot_rom);
+					_gen_start_node(g, resource_types, common, child_node,
+					                prio_levels, affinity_space, default_depot_rom);
 				}, [&] { });
 		}
 
@@ -499,6 +506,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 
 void Depot_deploy::Child::_gen_start_node(Generator              &g,
+                                          Resource::Types  const &resource_types,
                                           Node             const &common,
                                           Node             const &child_node,
                                           Prio_levels      const  prio_levels,
@@ -652,7 +660,7 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
 				});
 			}
 
-			_gen_routes(g, common, child_node,
+			_gen_routes(g, resource_types, common, child_node,
 			            _custom_depot_rom.length() > 1 ? _custom_depot_rom
 			                                           : default_depot_rom);
 		});
@@ -686,14 +694,27 @@ void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 
 
 void Depot_deploy::Child::_gen_routes(Generator &g,
-                                      Node const &common,
-                                      Node const &child_node,
+                                      Resource::Types  const &resource_types,
+                                      Node             const &common,
+                                      Node             const &child_node,
                                       Depot_rom_server const &depot_rom) const
 {
-	bool route_binary_to_shim = false;
-
 	if (_state != State::NO_PKG && !_pkg_node.constructed())
 		return;
+
+	bool route_binary_to_shim = false;
+
+	child_node.with_optional_sub_node("connect", [&] (Node const &connect) {
+		connect.for_each_sub_node([&] (Node const &conn) {
+			Resource const resource = Resource::from_node(resource_types, conn);
+			if (resource.type == Resource::PD)
+				route_binary_to_shim = true; }); });
+
+	child_node.with_optional_sub_node("route", [&] (Node const &route) {
+		route.for_each_sub_node([&] (Node const &service) {
+			Name const service_name = service.attribute_value("name", Name());
+			if (service_name == "PD" || service_name == "CPU")
+				route_binary_to_shim = true; }); });
 
 	using Path = String<160>;
 
@@ -706,41 +727,79 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 					g.node_attributes(target); }); }); });
 	};
 
-	/*
-	 * Add routes given in the start node.
-	 */
-	child_node.with_optional_sub_node("route", [&] (Node const &route) {
+	auto route_from_connection = [&] (Node const &conn)
+	{
+		Resource const resource = Resource::from_node(resource_types, conn);
+		if (resource.type == Resource::UNDEFINED) {
+			warning(name, ": unknown resource type: ", conn);
+			return;
+		}
 
-		route.for_each_sub_node("service", [&] (Node const &service) {
-			Name const service_name = service.attribute_value("name", Name());
+		g.node("service", [&] {
+			g.attribute("name", resource.service_name());
 
-			/* supplement env-session routes for the shim */
-			if (service_name == "PD" || service_name == "CPU") {
-				route_binary_to_shim = true;
-
-				g.node("service", [&] {
-					g.attribute("name", service_name);
-					g.attribute("unscoped_label", name);
-					g.node("parent", [&] { });
-				});
+			Resource::Name const name = conn.attribute_value("name", Resource::Name());
+			bool const named = (name.length() > 1);
+			if (named) {
+				using Prefix = String<Resource::Name::capacity() + 3>;
+				if (resource.type == Resource::FS)
+					g.attribute("label_prefix", Prefix { name, " ->" });
+				else if (resource.type == Resource::ROM)
+					g.attribute("label_last", name);
+				else
+					g.attribute("label", name);
+			} else {
+				if (conn.has_attribute("label_last")) {
+					using Last = Resource::Name;
+					Last const last = conn.attribute_value("label_last", Last());
+					g.attribute("label_last", last);
+				}
 			}
 
-			copy_route(service);
-		});
-	});
+			if (conn.num_sub_nodes() != 1) {
+				warning(name, ": invalid connection: ", conn);
+				return;
+			}
+			conn.for_each_sub_node([&] (Node const &target) {
+				g.node(target.type().string(), [&] {
+					g.node_attributes(target); }); }); });
+	};
 
 	/*
 	 * If the subsystem is hosted under a shim, make the shim binary available
+	 * and supplement env-session routes for the shim
 	 */
-	if (route_binary_to_shim)
+	if (route_binary_to_shim) {
 		g.node("service", [&] {
 			g.attribute("name", "ROM");
 			g.attribute("unscoped_label", "shim");
-			g.node("parent", [&] {
-				g.attribute("label", "shim"); }); });
+			g.node("parent", [&] { g.attribute("label", "shim"); }); });
+		g.node("service", [&] {
+			g.attribute("name", "CPU");
+			g.attribute("unscoped_label", name);
+			g.node("parent", [&] { }); });
+		g.node("service", [&] {
+			g.attribute("name", "PD");
+			g.attribute("unscoped_label", name);
+			g.node("parent", [&] { }); });
+	}
 
 	/*
-	 * Add routes given in the launcher definition.
+	 * Add routes given in the start node (deprecated)
+	 */
+	child_node.with_optional_sub_node("route", [&] (Node const &route) {
+		route.for_each_sub_node("service", [&] (Node const &service) {
+			copy_route(service); }); });
+
+	/*
+	 * Add routes according to the child's connect node
+	 */
+	child_node.with_optional_sub_node("connect", [&] (Node const &connect) {
+		connect.for_each_sub_node([&] (Node const &connection) {
+			route_from_connection(connection); }); });
+
+	/*
+	 * Add routes given in the launcher definition (deprecated)
 	 */
 	_with_node(_launcher_node, [&] (Node const &launcher) {
 		launcher.with_optional_sub_node("route", [&] (Node const &route) {

@@ -223,14 +223,14 @@ deploy
         :
 
 + start system_shell | pkg: } [depot_user]/pkg/[current_pkg system_shell] {
-  + route
-    + service Gui                                  | + child wm
-    + service File_system | label_prefix: fonts -> | + child fonts_fs
-    + service File_system | label: config          | + parent
-    + service File_system                          | + child inspect_vfs
-    + service Report | label: clipboard            | + parent | label: clipboard
-    + service ROM | label: clipboard               | + parent | label: clipboard
-    + service ROM | label: vimrc                   | + parent | label: vimrc
+  + connect
+    + gui              | + child wm
+    + fs fonts         | + child fonts_fs
+    + fs config        | + parent
+    + fs               | + child inspect_vfs
+    + report clipboard | + parent | label: clipboard
+    + rom clipboard    | + parent | label: clipboard
+    + rom vimrc        | + parent | label: vimrc
 -
 }
 set fd [open [run_dir]/genode/deploy.config w]
