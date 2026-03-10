@@ -773,6 +773,7 @@ if {[have_board rpi]} {
 	set skip_test(test-libc_connect_lxip)            true
 	set skip_test(test-libc_connect_vfs_server_lwip) true
 	set skip_test(test-libc_connect_vfs_server_lxip) true
+	set skip_test(test-libc_udp_unreachable_lxip)    true
 	set skip_test(test-spark)                        true
 	set skip_test(test-spark_exception)              true
 	set skip_test(test-spark_secondary_stack)        true
