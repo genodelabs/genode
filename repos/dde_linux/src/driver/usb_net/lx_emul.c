@@ -145,6 +145,9 @@ int netdev_register_kobject(struct net_device * ndev)
 }
 
 
+/*
+ * QMI
+ */
 #define KBUILD_MODNAME "lx_emul"
 #include <linux/usb/usbnet.h>
 
@@ -158,6 +161,35 @@ void usb_notify_add_device(struct usb_device * udev)
 	    (!udev->actconfig || udev->actconfig->desc.bConfigurationValue != config)) {
 		int err = usb_set_configuration(udev, config);
 		if (err) printk("set configuration failed: %d\n", err);
+	}
+
+	/*
+	 * Use usb_notify_add_device to search for interfaces claimed by the 'qmi_wwan'
+	 * driver and enable raw-IP mode for these interfaces within 'qmi_wwan'
+	 */
+	unsigned interfaces = udev->actconfig->desc.bNumInterfaces;
+
+	for (unsigned i = 0; i < interfaces; i++) {
+
+		struct usb_interface *intf = usb_ifnum_to_if(udev, i);
+		char const           *name = intf->dev.driver->name;
+
+		if (strncmp(name, "qmi_wwan", 8) == 0) {
+			struct usbnet *dev = usb_get_intfdata(intf);
+
+			printk("found 'qmi_wwan' driver for interface %u\n", i);
+
+			struct attribute *raw_ip = dev->net->sysfs_groups[0]->attrs[0];
+			if (strncmp(raw_ip->name, "raw_ip", 6)) continue;
+
+			printk("configuring raw-IP mode for 'qmi_wwan'\n");
+
+			struct device_attribute *dev_attr = container_of(raw_ip,
+			                                                 struct device_attribute,
+			                                                 attr);
+			char buf[] = { 'Y' };
+			dev_attr->store(&dev->net->dev, NULL, buf, 1);
+		}
 	}
 }
 

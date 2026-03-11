@@ -904,14 +904,6 @@ void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,
 }
 
 
-#include <linux/rtnetlink.h>
-
-int rtnl_trylock(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/signal.h>
 
 int send_signal_locked(int sig,struct kernel_siginfo * info,struct task_struct * t,enum pid_type type)

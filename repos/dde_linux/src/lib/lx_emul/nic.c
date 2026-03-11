@@ -7,12 +7,13 @@
  */
 
 /*
- * Copyright (C) 2024 Genode Labs GmbH
+ * Copyright (C) 2024-2026 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2 or later.
  */
 
+#include <linux/etherdevice.h>
 #include <linux/kthread.h>
 #include <linux/netdevice.h>
 #include <lx_emul/nic.h>
@@ -23,6 +24,15 @@
 static struct genode_uplink *dev_genode_uplink(struct net_device *dev)
 {
 	return (struct genode_uplink *)dev->ifalias;
+}
+
+
+/* device uses raw-IP packets and no Ethernet frames */
+static bool raw_ip_device(struct net_device *dev)
+{
+	return dev->addr_len == 0 &&
+	       (dev->flags & IFF_NOARP) &&
+	       (dev->flags & IFF_POINTOPOINT);
 }
 
 
@@ -44,6 +54,16 @@ static unsigned long uplink_tx_packet_content(struct genode_uplink_tx_packet_con
 	struct sk_buff * const skb = ctx->skb;
 
 	skb_push(skb, ETH_HLEN);
+
+	/* fill out Ethernet frame header for raw-IP */
+	if (raw_ip_device(skb->dev)) {
+		skb_reset_mac_header(skb);
+		eth_hdr(skb)->h_proto = htons(ETH_P_IP); /* TODO: IPv6 */
+
+		/* setting dest only suffices for the nic_router */
+		eth_zero_addr(eth_hdr(skb)->h_source);
+		memcpy(eth_hdr(skb)->h_dest, skb->dev->dev_addr, ETH_ALEN);
+	}
 
 	if (dst_len < skb->len) {
 		printk("uplink_tx_packet_content: packet exceeds uplink packet size\n");
@@ -102,20 +122,24 @@ static void handle_create_uplink(struct net_device *dev)
 
 	memset(&args, 0, sizeof(args));
 
-	if (dev->addr_len != sizeof(args.mac_address)) {
-		printk("error: net device has unexpected addr_len %u\n", dev->addr_len);
+	unsigned char addr_len = dev->addr_len;
+
+	if (raw_ip_device(dev))
+		addr_len = ETH_ALEN;
+
+	if (addr_len != sizeof(args.mac_address)) {
+		printk("error: net device has unexpected addr_len %u\n", addr_len);
 		return;
 	}
 
-	{
-		unsigned i;
-		for (i = 0; i < dev->addr_len; i++)
-			args.mac_address[i] = dev->dev_addr[i];
-	}
+	unsigned i;
+	for (i = 0; i < addr_len; i++)
+		args.mac_address[i] = dev->dev_addr[i];
 
 	args.label = &dev->name[0];
 
 	dev->ifalias = (struct dev_ifalias *)genode_uplink_create(&args);
+
 }
 
 
@@ -148,6 +172,10 @@ static genode_uplink_rx_result_t uplink_rx_one_packet(struct genode_uplink_rx_co
 	skb_copy_to_linear_data(skb, ptr, len);
 	skb_put(skb, len);
 	skb->dev = ctx->dev;
+
+	/* remove Ethernet header for raw-IP */
+	if (raw_ip_device(skb->dev))
+		skb_pull(skb, ETH_HLEN);
 
 	if (dev_queue_xmit(skb) < 0) {
 		printk("lx_user: failed to xmit packet\n");

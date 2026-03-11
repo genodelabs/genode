@@ -238,6 +238,15 @@ int rtnl_is_locked(void)
 
 #include <linux/rtnetlink.h>
 
+int rtnl_trylock(void)
+{
+	lx_emul_trace(__func__);
+	return 1;
+}
+
+
+#include <linux/rtnetlink.h>
+
 struct sk_buff * rtmsg_ifinfo_build_skb(int type, struct net_device *dev,
                                         unsigned int change, u32 event,
                                         gfp_t flags, int * new_nsid,
@@ -584,6 +593,7 @@ void nohz_balance_enter_idle(int cpu)
 	lx_emul_trace(__func__);
 }
 #endif
+
 
 /*
  * USB options
