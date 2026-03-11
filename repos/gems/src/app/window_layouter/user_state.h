@@ -418,6 +418,10 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 	e.handle_absolute_motion([&] (int x, int y) {
 		_pointer_curr = Point(x, y); });
 
+	e.handle_touch([&] (Input::Touch_id id, float x, float y) {
+		if (id.value == 0)
+			_pointer_curr = Point((int)x, (int)y); });
+
 	/* track number of pressed buttons/keys */
 	if (e.press())   _key_cnt++;
 	if (e.release()) _key_cnt--;
