@@ -106,7 +106,7 @@ struct Sculpt::Main : Input_event_handler,
 		_child_states.for_each([&] (Child_state &) { }); /* restore orig. order */
 	}
 
-	Input::Seq_number _global_input_seq_number { };
+	Input::Seq_number_generator _seq_number_generator { };
 
 	Gui::Connection _gui { _env, "input" };
 
@@ -115,7 +115,7 @@ struct Sculpt::Main : Input_event_handler,
 	/* becomes true once the graphics driver is up */
 	bool _gui_mode_ready() const { return _panorama.ok(); };
 
-	Gui::Root _gui_root { _env, _heap, *this, _global_input_seq_number };
+	Gui::Root _gui_root { _env, _heap, *this, _seq_number_generator };
 
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
@@ -1032,7 +1032,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		Keyboard_focus_guard focus_guard { *this, ev };
 
-		Dialog::Event::Seq_number const seq_number { _global_input_seq_number.value };
+		Dialog::Event::Seq_number const seq_number { _seq_number_generator.value() };
 
 		_dialog_runtime.route_input_event(seq_number, ev);
 
@@ -1040,14 +1040,14 @@ struct Sculpt::Main : Input_event_handler,
 		 * Detect clicks outside the popup dialog (for closing it)
 		 */
 		if (ev.key_press(Input::BTN_LEFT)) {
-			_emitted_click_seq_number = _global_input_seq_number;
+			_emitted_click_seq_number = { _seq_number_generator.value() };
 			_popup_clicked = Popup_clicked::MAYBE;
 		}
 		if (ev.touch()) {
-			if (_emitted_touch_seq_number.value != _global_input_seq_number.value)
+			if (_emitted_touch_seq_number.value != _seq_number_generator.value())
 				_popup_touched = Popup_touched::MAYBE;
 
-			_emitted_touch_seq_number = _global_input_seq_number;
+			_emitted_touch_seq_number = { _seq_number_generator.value() };
 		}
 
 		bool need_generate_dialog = false;
@@ -1218,7 +1218,7 @@ struct Sculpt::Main : Input_event_handler,
 		if (_popup.state == Popup::VISIBLE)
 			return;
 
-		_popup_opened_seq_number = _global_input_seq_number;
+		_popup_opened_seq_number = { _seq_number_generator.value() };
 		_popup_clicked = Popup_clicked::MAYBE;
 		_popup_touched = Popup_touched::MAYBE;
 
@@ -1238,7 +1238,7 @@ struct Sculpt::Main : Input_event_handler,
 		if (_popup_closed_seq_number.value == _popup_opened_seq_number.value)
 			return;
 
-		bool const popup_opened = (_popup_opened_seq_number.value == _global_input_seq_number.value);
+		bool const popup_opened = (_popup_opened_seq_number.value == _seq_number_generator.value());
 		if (popup_opened)
 			return;
 

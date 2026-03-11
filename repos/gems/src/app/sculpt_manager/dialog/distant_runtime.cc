@@ -12,40 +12,18 @@
  */
 
 #include <dialog/distant_runtime.h>
+#include <input/seq_number_generator.h>
 #include <xml.h>
 
 using namespace Sculpt;
 using namespace Dialog;
 
-
-static bool click(Input::Event const &event)
-{
-	bool result = false;
-
-	if (event.key_press(Input::BTN_LEFT))
-		result = true;
-
-	event.handle_touch([&] (Input::Touch_id id, float, float) {
-		if (id.value == 0)
-			result = true; });
-
-	return result;
-}
+static bool click(Input::Event const &event) {
+	return Input::Seq_number_generator::click(event); }
 
 
-static bool clack(Input::Event const &event)
-{
-	bool result = false;
-
-	if (event.key_release(Input::BTN_LEFT))
-		result = true;
-
-	event.handle_touch_release([&] (Input::Touch_id id) {
-		if (id.value == 0)
-			result = true; });
-
-	return result;
-}
+static bool clack(Input::Event const &event) {
+	return Input::Seq_number_generator::clack(event); }
 
 
 bool Distant_runtime::apply_runtime_state(Node const &state)

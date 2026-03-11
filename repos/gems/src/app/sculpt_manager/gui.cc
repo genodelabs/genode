@@ -19,36 +19,6 @@
 #include <base/heap.h>
 
 
-static bool click(Input::Event const &event)
-{
-	bool result = false;
-
-	if (event.key_press(Input::BTN_LEFT))
-		result = true;
-
-	event.handle_touch([&] (Input::Touch_id id, float, float) {
-		if (id.value == 0)
-			result = true; });
-
-	return result;
-}
-
-
-static bool clack(Input::Event const &event)
-{
-	bool result = false;
-
-	if (event.key_release(Input::BTN_LEFT))
-		result = true;
-
-	event.handle_touch_release([&] (Input::Touch_id id) {
-		if (id.value == 0)
-			result = true; });
-
-	return result;
-}
-
-
 struct Gui::Session_component : Rpc_object<Gui::Session>,
                                 private Input::Session_component::Action
 {
@@ -56,7 +26,7 @@ struct Gui::Session_component : Rpc_object<Gui::Session>,
 
 	Input_event_handler &_event_handler;
 
-	Input::Seq_number &_global_input_seq_number;
+	Input::Seq_number_generator &_seq_number_generator;
 
 	Genode::Connection<Gui::Session> _connection;
 
@@ -78,8 +48,6 @@ struct Gui::Session_component : Rpc_object<Gui::Session>,
 	Signal_handler<Session_component> _input_handler {
 		_env.ep(), *this, &Session_component::_handle_input };
 
-	bool _clicked = false;
-
 	void _handle_input()
 	{
 		_gui_input.for_each_event([&] (Input::Event ev) {
@@ -88,33 +56,22 @@ struct Gui::Session_component : Rpc_object<Gui::Session>,
 			 * Assign new event sequence number, pass seq event to menu view
 			 * to ensure freshness of hover information.
 			 */
-			bool const orig_clicked = _clicked;
-
-			if (click(ev)) _clicked = true;
-			if (clack(ev)) _clicked = false;
-
-			bool const new_seq = (!orig_clicked && _clicked);
-
-			if (new_seq)
-				_global_input_seq_number.value++;
+			_seq_number_generator.apply_event(ev);
+			_seq_number_generator.submit(_input_component);
 
 			/* handle event locally within the sculpt manager */
 			_event_handler.handle_input_event(ev);
 
 			_input_component.submit(ev);
-
-			/* pass seq event after touch to pass it to the correct client */
-			if (new_seq)
-				_input_component.submit(_global_input_seq_number);
 		});
 	}
 
 	Session_component(Env &env, char const *args,
-	                  Input_event_handler &event_handler,
-	                  Input::Seq_number   &global_input_seq_number)
+	                  Input_event_handler         &event_handler,
+	                  Input::Seq_number_generator &seq_number_generator)
 	:
 		_env(env), _event_handler(event_handler),
-		_global_input_seq_number(global_input_seq_number),
+		_seq_number_generator(seq_number_generator),
 		_connection(env, session_label_from_args(args), Ram_quota { 36*1024 }, { })
 	{
 		_gui_input.sigh(_input_handler);
@@ -170,7 +127,7 @@ struct Gui::Session_component : Rpc_object<Gui::Session>,
 Gui::Root::Create_result Gui::Root::_create_session(const char *args)
 {
 	return *new (md_alloc()) Session_component(_env, args, _event_handler,
-	                                           _global_input_seq_number);
+	                                           _seq_number_generator);
 }
 
 
@@ -186,13 +143,13 @@ void Gui::Root::_destroy_session(Session_component &s)
 }
 
 
-Gui::Root::Root(Env &env, Allocator &md_alloc,
-                Input_event_handler &event_handler,
-                Input::Seq_number   &global_input_seq_number)
+Gui::Root::Root(Env &env, Allocator         &md_alloc,
+                Input_event_handler         &event_handler,
+                Input::Seq_number_generator &seq_number_generator)
 :
 	Root_component<Session_component>(env.ep(), md_alloc),
 	_env(env), _event_handler(event_handler),
-	_global_input_seq_number(global_input_seq_number)
+	_seq_number_generator(seq_number_generator)
 {
 	env.parent().announce(env.ep().manage(*this));
 }

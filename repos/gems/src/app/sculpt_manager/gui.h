@@ -18,6 +18,7 @@
 #include <root/component.h>
 #include <gui_session/gui_session.h>
 #include <base/component.h>
+#include <input/seq_number_generator.h>
 
 /* local includes */
 #include "input_event_handler.h"
@@ -35,14 +36,14 @@ namespace Gui {
 struct Gui::Root : Genode::Root_component<Session_component>
 {
 	Env &_env;
-	Input_event_handler &_event_handler;
-	Input::Seq_number   &_global_input_seq_number;
+	Input_event_handler         &_event_handler;
+	Input::Seq_number_generator &_seq_number_generator;
 
 	Create_result _create_session(const char *) override;
 	void          _upgrade_session(Session_component &, const char *) override;
 	void          _destroy_session(Session_component &) override;
 
-	Root(Env &, Allocator &, Input_event_handler &, Input::Seq_number &);
+	Root(Env &, Allocator &, Input_event_handler &, Input::Seq_number_generator &);
 
 	~Root();
 };

@@ -113,13 +113,13 @@ struct Sculpt::Main : Input_event_handler,
 		_child_states.for_each([&] (Child_state &) { }); /* restore orig. order */
 	}
 
-	Input::Seq_number _global_input_seq_number { };
+	Input::Seq_number_generator _seq_number_generator { };
 
 	Gui::Connection _gui { _env, "input" };
 
 	bool _gui_mode_ready = false;  /* becomes true once the graphics driver is up */
 
-	Gui::Root _gui_root { _env, _heap, *this, _global_input_seq_number };
+	Gui::Root _gui_root { _env, _heap, *this, _seq_number_generator };
 
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
@@ -1254,7 +1254,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void handle_input_event(Input::Event const &ev) override
 	{
-		Dialog::Event::Seq_number const seq_number { _global_input_seq_number.value };
+		Dialog::Event::Seq_number const seq_number { _seq_number_generator.value() };
 		_dialog_runtime.route_input_event(seq_number, ev);
 
 		bool need_generate_dialog = false;
