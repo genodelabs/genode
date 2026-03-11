@@ -15,38 +15,17 @@
 #include <base/attached_ram_dataspace.h>
 #include <gui_session/connection.h>
 #include <input/component.h>
+#include <input/seq_number_generator.h>
 
 using namespace Dialog;
 
 
-static bool click(Input::Event const &event)
-{
-	bool result = false;
-
-	if (event.key_press(Input::BTN_LEFT))
-		result = true;
-
-	event.handle_touch([&] (Input::Touch_id id, float, float) {
-		if (id.value == 0)
-			result = true; });
-
-	return result;
-}
+static bool click(Input::Event const &event) {
+	return Input::Seq_number_generator::click(event); }
 
 
-static bool clack(Input::Event const &event)
-{
-	bool result = false;
-
-	if (event.key_release(Input::BTN_LEFT))
-		result = true;
-
-	event.handle_touch_release([&] (Input::Touch_id id) {
-		if (id.value == 0)
-			result = true; });
-
-	return result;
-}
+static bool clack(Input::Event const &event) {
+	return Input::Seq_number_generator::clack(event); }
 
 
 struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
@@ -91,14 +70,8 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 			 * Assign new event sequence number, pass seq event to menu view
 			 * to ensure freshness of hover information.
 			 */
-			bool const orig_clicked = _clicked;
-
-			if (click(ev)) _clicked = true;
-			if (clack(ev)) _clicked = false;
-
-			bool const new_seq = (!orig_clicked && _clicked);
-			if (new_seq)
-				_view._runtime._global_seq_number.value++;
+			_view._runtime._seq_number_generator.apply_event(ev);
+			_view._runtime._seq_number_generator.submit(_input_component);
 
 			/* local event (click/clack) handling */
 			_view._handle_input_event(ev);
@@ -106,11 +79,6 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 			/* forward event to menu_view */
 			_input_component.submit(ev);
 
-			/* pass seq event after touch to pass it to the correct client */
-			if (new_seq) {
-				Input::Seq_number seq_number { _view._runtime._global_seq_number.value };
-				_input_component.submit(seq_number);
-			}
 		});
 	}
 
@@ -391,7 +359,7 @@ void Sandboxed_runtime::View::_handle_input_event(Input::Event const &event)
 	if (event.absolute_motion()) _hover_observable_without_click = true;
 	if (event.touch())           _hover_observable_without_click = false;
 
-	Event::Seq_number const global_seq = _runtime._global_seq_number;
+	Event::Seq_number const global_seq = { _runtime._seq_number_generator.value() };
 
 	if (click(event) && !_click_seq_number.constructed()) {
 		_click_seq_number.construct(global_seq);
@@ -401,7 +369,8 @@ void Sandboxed_runtime::View::_handle_input_event(Input::Event const &event)
 	if (clack(event))
 		_clack_seq_number.construct(global_seq);
 
-	_try_handle_click_and_clack();
+	if (click(event) || clack(event))
+		_try_handle_click_and_clack();
 
 	_runtime._optional_event_handler.handle_event(Event { global_seq, event });
 }

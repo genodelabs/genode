@@ -21,6 +21,7 @@
 #include <report_session/report_session.h>
 #include <sandbox/sandbox.h>
 #include <dialog/types.h>
+#include <input/seq_number_generator.h>
 
 namespace Dialog { struct Sandboxed_runtime; }
 
@@ -59,7 +60,7 @@ class Dialog::Sandboxed_runtime : Noncopyable
 
 		using Views = Dictionary<View, Top_level_dialog::Name>;
 
-		Event::Seq_number _global_seq_number { 1 };
+		Input::Seq_number_generator _seq_number_generator { };
 
 		Views _views { };
 
@@ -288,7 +289,7 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 		bool _dragged() const
 		{
 			return _click_seq_number.constructed()
-			   && *_click_seq_number == _runtime._global_seq_number
+			   &&  _click_seq_number->value == _runtime._seq_number_generator.value()
 			   &&  _click_delivered;
 		}
 
@@ -329,7 +330,7 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 
 					static Node omitted_hover { };
 
-					At const at { _view._runtime._global_seq_number,
+					At const at { { _view._runtime._seq_number_generator.value() },
 					              supply_hover ? hover : omitted_hover };
 
 					Scope<> top_level_scope(g, at, dragged, { _view._dialog.name });
