@@ -574,7 +574,7 @@ config | prio_levels: 2
 + start runtime | caps: 50000 | ram: 32G | priority: -1 | managing_system: yes
   + binary monitor
   + route
-    + service ROM | label: config                    | + child config_fs_rom | label: managed/runtime
+    + service ROM | label: config                    | + child config_fs_rom | label: init
     + service ROM | label_prefix: config ->          | + child config_fs_rom
     + service ROM | label_prefix: report ->          | + child report_fs_rom
     + service ROM | label: capslock                  | + child report_rom
@@ -637,7 +637,6 @@ if {[llength [ingredients_of_type presets]] > 0} {
 # configs that are managed by the sculpt manager if absent
 set optional_configs {
 	nic_router
-	runtime
 	gpu
 }
 
@@ -708,16 +707,6 @@ foreach file { en_us de_ch de_de fr_ch fr_fr fr_bepo special } {
 	check_syntax $from
 	copy_config $from $to }
 
-
-#
-# Pre-populate the managed/ directory of the config fs to avoid diagnostic
-# warnings by components starting up before the sculpt manager has generated
-# the directory content for the first time.
-#
-
-proc managed_config_path { name } {
-	return [file join [initial_config_dir] managed $name] }
-
 set fd [open [file join [initial_config_dir] install] w]
 puts $fd "install | managed: yes | arch: [depot_spec]\n-"
 close $fd
@@ -725,16 +714,6 @@ close $fd
 set fd [open [managed_config_path depot_query] w]
 puts $fd "query\n-"
 close $fd
-
-foreach config { runtime } {
-	set ingredient [single_ingredient $config "default"]
-	if {$ingredient != ""} {
-		set from [ingredient_path $config $ingredient]
-		set to   [managed_config_path $config]
-		check_syntax $from
-		copy_config $from $to
-	}
-}
 
 
 #

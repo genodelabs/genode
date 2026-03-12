@@ -795,7 +795,7 @@ struct Sculpt::Main : Input_event_handler,
 		_software_add_widget { Id { "software_add" }, _build_info, _sculpt_version,
 		                       _network._nic_state, _index_update_queue,
 		                       _index_rom, _download_queue,
-		                       _cached_runtime_config, _dir_query,
+		                       _cached_init_config, _dir_query,
 		                       *this, _scan_rom };
 
 	Conditional_widget<Software_update_widget>
@@ -812,7 +812,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Conditional_widget<Graph>
 		_graph { Id { "graph" },
-		         _runtime_state, _cached_runtime_config, _storage._storage_devices,
+		         _runtime_state, _cached_init_config, _storage._storage_devices,
 		         _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
 		         _fb_config_model, _hovered_display, _popup.state, _deploy._children };
 
@@ -1150,16 +1150,16 @@ struct Sculpt::Main : Input_event_handler,
 	 * manager, we still obtain it as a separate ROM session to keep the GUI
 	 * part decoupled from the lower-level runtime configuration generator.
 	 */
-	Rom_handler<Main> _runtime_config_rom {
-		_env, "config -> managed/runtime", *this, &Main::_handle_runtime_config };
+	Rom_handler<Main> _init_config_rom {
+		_env, "config -> init", *this, &Main::_handle_init_config };
 
-	Runtime_config _cached_runtime_config { _heap };
+	Runtime_config _cached_init_config { _heap };
 
-	void _handle_runtime_config(Node const &runtime_config)
+	void _handle_init_config(Node const &init_config)
 	{
-		_cached_runtime_config.update_from_node(runtime_config);
+		_cached_init_config.update_from_node(init_config);
 
-		if (_dir_query.update(_heap, _cached_runtime_config).runtime_reconfig_needed)
+		if (_dir_query.update(_heap, _cached_init_config).runtime_reconfig_needed)
 			generate_runtime_config();
 
 		_generate_dialog(); /* update graph */

@@ -964,16 +964,16 @@ struct Sculpt::Main : Input_event_handler,
 	 * manager, we still obtain it as a separate ROM session to keep the GUI
 	 * part decoupled from the lower-level runtime configuration generator.
 	 */
-	Rom_handler<Main> _runtime_config_rom {
-		_env, "config -> managed/runtime", *this, &Main::_handle_runtime_config };
+	Rom_handler<Main> _init_config_rom {
+		_env, "config -> init", *this, &Main::_handle_init_config };
 
-	Runtime_config _cached_runtime_config { _heap };
+	Runtime_config _cached_init_config { _heap };
 
-	void _handle_runtime_config(Node const &runtime_config)
+	void _handle_init_config(Node const &init_config)
 	{
-		_cached_runtime_config.update_from_node(runtime_config);
+		_cached_init_config.update_from_node(init_config);
 
-		if (_dir_query.update(_heap, _cached_runtime_config).runtime_reconfig_needed)
+		if (_dir_query.update(_heap, _cached_init_config).runtime_reconfig_needed)
 			generate_runtime_config();
 
 		_graph_view.refresh();
@@ -1714,11 +1714,11 @@ struct Sculpt::Main : Input_event_handler,
 	                                          _launchers, _network._nic_state,
 	                                          _index_update_queue, _index_rom,
 	                                          _download_queue, _runtime_state,
-	                                          _cached_runtime_config, _dir_query,
+	                                          _cached_init_config, _dir_query,
 	                                          _scan_rom, *this };
 
 	Dialog_view<File_browser_dialog> _file_browser_dialog { _dialog_runtime,
-	                                                        _cached_runtime_config,
+	                                                        _cached_init_config,
 	                                                        _file_browser_state, *this };
 
 	void _update_window_layout(Node const &, Node const &);
@@ -1911,7 +1911,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Popup _popup { };
 
-	Graph _graph { _runtime_state, _cached_runtime_config, _storage._storage_devices,
+	Graph _graph { _runtime_state, _cached_init_config, _storage._storage_devices,
 	               _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
 	               _fb_config_model, _hovered_display, _popup.state, _deploy._children };
 
@@ -2610,7 +2610,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 	/* power-management features depend on optional acpi_support subsystem */
 	{
-		bool const acpi_support = _cached_runtime_config.present_in_runtime("acpi_support");
+		bool const acpi_support = _cached_init_config.present_in_runtime("acpi_support");
 		Power_features const orig_power_features = _power_features;
 		_power_features.poweroff = acpi_support;
 		_power_features.suspend  = acpi_support && _drivers.suspend_supported();;
