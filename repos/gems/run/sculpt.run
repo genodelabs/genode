@@ -413,7 +413,7 @@ config | prio_levels: 2
     } [log_route] {
     + service ROM | label: config            | + child config_fs_rom | label: drivers
     + service ROM | label_last: gpu.config   | + child config_fs_rom | label: gpu
-    + service ROM | label_last: system       | + child config_fs_rom | label: managed/system
+    + service ROM | label_last: system       | + child config_fs_rom | label: system
     + service ROM | label_last: modem.config | + child config_fs_rom | label: managed/modem
     + service ROM | label_last: audio.config | + child config_fs_rom | label: managed/audio
     + service ROM | label_last: sleep_states | + child report_fs_rom | label: runtime/acpi_support/sleep_states
@@ -726,7 +726,7 @@ set fd [open [managed_config_path depot_query] w]
 puts $fd "query\n-"
 close $fd
 
-foreach config { wifi runtime system } {
+foreach config { wifi runtime } {
 	set ingredient [single_ingredient $config "default"]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]

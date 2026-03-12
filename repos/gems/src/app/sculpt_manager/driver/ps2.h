@@ -42,7 +42,7 @@ struct Sculpt::Ps2_driver : private Noncopyable
 				gen_common_routes(g);
 				gen_parent_rom_route(g, "capslock", "capslock");
 				gen_parent_rom_route(g, "numlock",  "numlock");
-				gen_parent_rom_route(g, "system",   "config -> managed/system");
+				gen_parent_rom_route(g, "system",   "config -> system");
 				gen_parent_route<Rom_session>   (g);
 				gen_service_node<Event::Session>(g, [&] {
 					g.node("parent", [&] {

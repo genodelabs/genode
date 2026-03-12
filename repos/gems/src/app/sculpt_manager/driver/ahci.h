@@ -57,7 +57,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_parent_rom_route(g, "ahci");
-				gen_parent_rom_route(g, "system",   "config -> managed/system");
+				gen_parent_rom_route(g, "system",   "config -> system");
 				gen_common_routes(g);
 			});
 		});

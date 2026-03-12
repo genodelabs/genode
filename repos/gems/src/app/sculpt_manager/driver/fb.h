@@ -82,7 +82,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				gen_parent_route<Platform::Session>(g);
 				gen_parent_rom_route(g, "intel_gpu");
 				gen_parent_rom_route(g, "config", "config -> gpu");
-				gen_parent_rom_route(g, "system", "config -> managed/system");
+				gen_parent_rom_route(g, "system", "config -> system");
 				gen_parent_route<Rm_session>(g);
 				gen_common_routes(g);
 			});

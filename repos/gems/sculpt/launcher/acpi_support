@@ -4,6 +4,6 @@ launcher | pkg: acpica | priority: -2
   + service IO_PORT                    | + parent
   + service Platform                   | + parent | label: acpica
   + service ROM | label: platform_info | + parent | label: platform_info
-  + service ROM | label: system        | + parent | label: config -> managed/system
+  + service ROM | label: system        | + parent | label: config -> system
   + service Report                     | + parent
 -

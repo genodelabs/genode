@@ -176,7 +176,7 @@ config
     |   + service Report | label: dir_query_config    | + child config_fs_report | label: managed -> dir_query
     |   + service Report | label: nitpicker_config    | + child config_fs_report | label: nitpicker
     |   + service Report | label: usb_config          | + child config_fs_report | label: managed -> usb
-    |   + service Report | label: system_config       | + child config_fs_report | label: managed -> system
+    |   + service Report | label: system_config       | + child config_fs_report | label: system
     |   + service Report | label: event_filter_config | + child config_fs_report | label: event_filter
     |   + service Report | label: installation_config | + child config_fs_report | label: managed -> installation
     |   + service Report | label: depot_query         | + child config_fs_report | label: managed -> depot_query

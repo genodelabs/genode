@@ -1,4 +1,4 @@
-system | state:
+system | managed: yes | state:
 .
 . supported states when acpica is present: poweroff, reset
 .
