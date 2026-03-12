@@ -355,7 +355,9 @@ void Depot_query::Main::_gen_index_node_rec(Generator &g, Node const &node,
 
 		if (node.has_type("pkg")) {
 			g.node("pkg", [&] {
-				g.attribute("path", node.attribute_value("path", Archive::Path()));
+				g.attribute("name", node.attribute_value("name",
+				                      node.attribute_value("path", /* deprecated */
+				                        Archive::Path())));
 				g.attribute("info", node.attribute_value("info", String<200>()));
 			});
 		}

@@ -481,7 +481,7 @@ class Sculpt::Runtime_state : public Runtime_info
 					return unique_name;
 				},
 				[&] (Depot::Archive::Unknown) {
-					warning("pkg has unkonwn name: ", pkg);
+					warning("pkg has unknown name: ", pkg);
 					return Start_name { };
 				});
 		}

@@ -252,7 +252,9 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 
 				[&] /* enter pkg */ (Node const &item) {
 
-					auto path = item.attribute_value("path", Component::Path());
+					auto path = item.attribute_value("name",
+					              item.attribute_value("path", /* deprecated */
+					                Component::Path()));
 					auto info = item.attribute_value("info", Component::Info());
 
 					action.new_construction(path, verify, info);

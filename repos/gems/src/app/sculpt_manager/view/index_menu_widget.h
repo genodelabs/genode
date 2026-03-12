@@ -88,7 +88,9 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 				}
 
 				if (item.has_type("pkg")) {
-					auto const path = item.attribute_value("path", Depot::Archive::Path());
+					auto const path = item.attribute_value("name",
+					                    item.attribute_value("path", /* deprecated */
+					                      Depot::Archive::Path()));
 
 					Depot::Archive::name(path).with_result(
 						[&] (Depot::Archive::Name const &name) {

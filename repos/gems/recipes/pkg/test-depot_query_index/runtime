@@ -6,7 +6,7 @@ runtime | ram: 32M | caps: 1000 | binary: init
   : [report_rom]   index
   : [report_rom]   + index | user: genodelabs | version: 19.02
   : [report_rom]     + index Demos
-  : [report_rom]       + pkg | path: nano3d | info: simple software-rendering demo
+  : [report_rom]       + pkg nano3d | info: simple software-rendering demo
   : [report_rom]   + missing | user: genodelabs | version: 19.03
   : [report_rom]   -
 
