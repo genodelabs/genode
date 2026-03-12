@@ -24,7 +24,6 @@ PATCH_FILES := \
                iwlwifi_limit_rx_bufs.patch \
                i915_memcpy_32bit.patch \
                i915_meteorlake.patch \
-               i915_min_alignment.patch \
                i915_dsb.patch
 
 PATCHES += $(addprefix patches/,$(PATCH_FILES))

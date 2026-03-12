@@ -180,6 +180,14 @@ void folio_mark_accessed(struct folio *folio)
 }
 
 
+bool folio_mark_dirty(struct folio * folio)
+{
+	if (!folio_test_dirty(folio))
+		return !folio_test_set_dirty(folio);
+	return false;
+}
+
+
 void check_move_unevictable_folios(struct folio_batch *fbatch)
 {
 	lx_emul_trace(__func__);
