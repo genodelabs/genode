@@ -14,7 +14,7 @@ schema runtime
   + node audio_in
   + node audio_out
   + node fs
-    + attr label     | type: any  | default:
+    + attr name      | type: any  | default:
     + attr writeable | type: bool | default:
   + node file_system | . deprecated, use 'fs' instead
     + attr label     | type: any  | default:
@@ -23,13 +23,20 @@ schema runtime
   + node input
   + node event
   + node log
-  + node nic      | + attr label | type: any | default:
-  + node uplink   | + attr label | type: any | default:
-  + node block    | + attr label | type: any | default:
-  + node gui      | + attr label | type: any | default:
-  + node report   | + attr label | type: any | default:
-  + node rom      | + attr label | type: any | default:
-  + node terminal | + attr label | type: any | default:
+  + node nic      | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
+  + node uplink   | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
+  + node block    | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
+  + node gui      | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
+  + node report   | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
+  + node rom      | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
+  + node terminal | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
   + node gpu
   + node usb
   + node timer
@@ -40,7 +47,8 @@ schema runtime
   + node capture
   + node play
   + node record
-  + node platform | + attr label | type: any | default:
+  + node platform | + attr name  | type: any | default:
+                  | + attr label | type: any | default: | . deprecated, use 'name'
   + node pin_state
   + node pin_control
   + node io_mem

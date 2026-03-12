@@ -59,8 +59,8 @@ class Sculpt::Runtime_config
 				Service::Type_name const service =
 					node.attribute_value("name", Service::Type_name());
 
-					Service::Label const dst_label =
-					parent.attribute_value("label", Service::Label());
+				Service::Name const dst_label =
+					parent.attribute_value("label", Service::Name());
 
 				bool const ignored_service = (service == "CPU")
 				                          || (service == "PD")

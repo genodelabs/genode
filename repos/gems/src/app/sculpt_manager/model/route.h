@@ -23,9 +23,9 @@ namespace Sculpt { struct Route; }
 
 struct Sculpt::Route : List_model<Route>::Element
 {
-	using Id    = String<32>;
-	using Info  = String<80>;
-	using Label = Service::Label;
+	using Id   = String<32>;
+	using Info = String<80>;
+	using Name = Service::Name;
 
 	static char const *node_type(Service::Type type)
 	{
@@ -114,7 +114,7 @@ struct Sculpt::Route : List_model<Route>::Element
 	}
 
 	Service::Type const required;
-	Label         const required_label;
+	Name          const required_name;
 
 	Constructible<Service> selected_service { };
 
@@ -164,14 +164,15 @@ struct Sculpt::Route : List_model<Route>::Element
 	Route(Node const &node)
 	:
 		required(_required(node)),
-		required_label(node.attribute_value("label", Label()))
+		required_name(node.attribute_value("name",
+		                 node.attribute_value("label", Name()))) /* deprecated */
 	{ }
 
 	void print(Output &out) const
 	{
 		Genode::print(out, _pretty_name(required));
-		if (required_label.valid())
-			Genode::print(out, " (", Pretty(required_label), ") ");
+		if (required_name.valid())
+			Genode::print(out, " (", Pretty(required_name), ") ");
 	}
 
 	void generate(Generator &g) const
@@ -183,17 +184,17 @@ struct Sculpt::Route : List_model<Route>::Element
 
 		gen_named_node(g, "service", Service::name_attr(required), [&] {
 
-			if (required_label.valid()) {
+			if (required_name.valid()) {
 
 				switch (selected_service->match_label) {
 				case Service::Match_label::LAST:
-					g.attribute("label_last", required_label);
+					g.attribute("label_last", required_name);
 					break;
 				case Service::Match_label::FS:
-					g.attribute("label_prefix", Label(required_label, " ->"));
+					g.attribute("label_prefix", Name(required_name, " ->"));
 					break;
 				case Service::Match_label::EXACT:
-					g.attribute("label", required_label);
+					g.attribute("label", required_name);
 					break;
 				}
 			}
@@ -210,7 +211,8 @@ struct Sculpt::Route : List_model<Route>::Element
 	bool matches(Node const &node) const
 	{
 		return required == _required(node)
-		    && required_label == node.attribute_value("label", Label());
+		    && required_name == node.attribute_value("name",
+		                           node.attribute_value("label", Name())); /* deprecated */
 	}
 
 	static bool type_matches(Node const &node)

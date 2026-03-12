@@ -23,7 +23,7 @@ struct Sculpt::Service
 {
 	using Type_name = String<16>;
 	using Info      = String<32>;
-	using Label     = String<64>;
+	using Name      = String<64>;
 
 	enum class Type {
 		AUDIO_IN, AUDIO_OUT, BLOCK, EVENT, CAPTURE, FS, NIC, GUI, GPU,
@@ -34,7 +34,7 @@ struct Sculpt::Service
 
 	Start_name  server { }; /* invalid for parent service */
 	Type        type;
-	Label       label;
+	Name        name;
 	Info        info;
 	Match_label match_label;
 
@@ -80,27 +80,27 @@ struct Sculpt::Service
 	/**
 	 * Constructor for child service
 	 */
-	Service(Start_name const &server, Type type, Label const &label)
+	Service(Start_name const &server, Type type, Name const &name)
 	:
-		server(server), type(type), label(label), info(Subst("_", " ", server)),
+		server(server), type(type), name(name), info(Subst("_", " ", server)),
 		match_label(type == Type::FS ? Match_label::FS : Match_label::EXACT)
 	{ }
 
 	/**
 	 * Constructor for default_fs_rw
 	 */
-	Service(Start_name const &server, Type type, Label const &label, Info const &info)
+	Service(Start_name const &server, Type type, Name const &name, Info const &info)
 	:
-		server(server), type(type), label(label), info(info), match_label(Match_label::FS)
+		server(server), type(type), name(name), info(info), match_label(Match_label::FS)
 	{ }
 
 	/**
 	 * Constructor for parent service
 	 */
-	Service(Type type, Info const &info, Label const &label = Label(),
+	Service(Type type, Info const &info, Name const &name = Name(),
 	        Match_label match_label = Match_label::EXACT)
 	:
-		type(type), label(label), info(info), match_label(match_label)
+		type(type), name(name), info(info), match_label(match_label)
 	{ }
 
 	void generate(Generator &g, auto const &attr_fn) const
@@ -112,11 +112,11 @@ struct Sculpt::Service
 			if (!parent)
 				g.attribute("name", server);
 
-			if (label.valid() && match_label == Match_label::EXACT)
-				g.attribute("label", label);
+			if (name.valid() && match_label == Match_label::EXACT)
+				g.attribute("label", name);
 
-			if (label.valid() && match_label == Match_label::FS)
-				g.attribute("identity", label);
+			if (name.valid() && match_label == Match_label::FS)
+				g.attribute("identity", name);
 
 			attr_fn();
 		});
@@ -131,7 +131,7 @@ struct Sculpt::Service
 	{
 		bool const parent = !server.valid();
 		if (parent)
-			return label;   /* "report" and "config" file system */
+			return name;   /* "report" and "config" file system */
 
 		return server;      /* file system provided by a child */
 	}

@@ -132,7 +132,7 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 	static Dir_query::Identity _identity(Component const &component,
 	                                     Route const &route)
 	{
-		return { component.name, " -> ", route.required_label };
+		return { component.name, " -> ", route.required_name };
 	}
 
 	static void _for_each_browsed_leading_sub_path(Path const &p, auto const &fn)

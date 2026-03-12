@@ -1544,7 +1544,7 @@ struct Sculpt::Main : Input_event_handler,
 			                                       Priority::LEITZENTRALE,
 			                                       Ram_quota{8*1024*1024}, Cap_quota{200});
 
-			Service::Label const rom_label("report -> /runtime/", start_name, "/listing");
+			Service::Name const rom_label("report -> /runtime/", start_name, "/listing");
 
 			_file_browser_state.query_result.construct(_env, rom_label.string());
 			_file_browser_state.query_result->sigh(_fs_query_result_handler);

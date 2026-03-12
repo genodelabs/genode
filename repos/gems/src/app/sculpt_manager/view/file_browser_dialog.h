@@ -269,7 +269,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 	void _view_file_system(Scope<Vbox> &s, Service const &service) const
 	{
 		bool       const parent = !service.server.valid();
-		Start_name const name   = parent ? Start_name(service.label) : service.server;
+		Start_name const name   = parent ? Start_name(service.name) : service.server;
 		Start_name const pretty_name { Pretty(name) };
 		bool       const selected = (_state.browsed_fs == name);
 
