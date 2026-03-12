@@ -1,4 +1,4 @@
-config | focus: rom
+config | focus: rom | managed: yes
 + capture
 + event
 + report | hover: yes | focus: yes | clicked: yes | keystate: no | panorama: yes

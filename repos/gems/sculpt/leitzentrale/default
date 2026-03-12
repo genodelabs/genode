@@ -174,7 +174,7 @@ config
     |   + service Report | label: nic_router_config   | + child config_fs_report | label: managed -> nic_router
     |   + service Report | label: fb_config           | + child config_fs_report | label: managed -> fb
     |   + service Report | label: dir_query_config    | + child config_fs_report | label: managed -> dir_query
-    |   + service Report | label: nitpicker_config    | + child config_fs_report | label: managed -> nitpicker
+    |   + service Report | label: nitpicker_config    | + child config_fs_report | label: nitpicker
     |   + service Report | label: usb_config          | + child config_fs_report | label: managed -> usb
     |   + service Report | label: system_config       | + child config_fs_report | label: managed -> system
     |   + service Report | label: event_filter_config | + child config_fs_report | label: event_filter

@@ -1775,9 +1775,11 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_nitpicker_config(Node const &node)
 	{
 		_nitpicker_config.generate([&] (Generator &g) {
-			g.node_attributes(node);
+			node.for_each_attribute([&] (Node::Attribute const &a) {
+				if (a.name != "managed")
+					g.attribute(a.name.string(), a.value.start, a.value.num_bytes); });
 			node.for_each_sub_node([&] (Node const &sub_node) {
-				if (sub_node.has_type("capture") && sub_node.num_sub_nodes() == 0) {
+				if (sub_node.has_type("capture")) {
 					g.node("capture", [&] {
 
 						/* generate panorama of fb-driver sessions */

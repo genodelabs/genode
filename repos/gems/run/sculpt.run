@@ -436,7 +436,7 @@ config | prio_levels: 2
     + service Capture
     + service Event
   + route
-    + service ROM | label: config      | + child config_fs_rom | label: managed/nitpicker
+    + service ROM | label: config      | + child config_fs_rom | label: nitpicker
     + service ROM | label: focus       | + child nit_focus
     + service Report | label: panorama | + child fs_report
     + service Report | label: keystate | + child report_logger
@@ -726,7 +726,7 @@ set fd [open [managed_config_path depot_query] w]
 puts $fd "query\n-"
 close $fd
 
-foreach config { wifi runtime system nitpicker } {
+foreach config { wifi runtime system } {
 	set ingredient [single_ingredient $config "default"]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]
