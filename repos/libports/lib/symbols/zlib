@@ -1,16 +1,26 @@
 adler32 T
 adler32_combine T
 adler32_combine64 T
+adler32_z T
 compress T
 compress2 T
+compress2_z T
 compressBound T
+compressBound_z T
+compress_z T
 crc32 T
 crc32_combine T
 crc32_combine64 T
+crc32_combine_gen T
+crc32_combine_gen64 T
+crc32_combine_op T
+crc32_z T
 deflate T
 deflateBound T
+deflateBound_z T
 deflateCopy T
 deflateEnd T
+deflateGetDictionary T
 deflateInit2_ T
 deflateInit_ T
 deflateParams T
@@ -21,9 +31,12 @@ deflateResetKeep T
 deflateSetDictionary T
 deflateSetHeader T
 deflateTune T
+deflateUsed T
 deflate_copyright R 68
+dl_unwind_find_exidx W
 get_crc_table T
 gz_error T
+gz_intmax T
 gzbuffer T
 gzclearerr T
 gzclose T
@@ -34,6 +47,8 @@ gzdopen T
 gzeof T
 gzerror T
 gzflush T
+gzfread T
+gzfwrite T
 gzgetc T
 gzgetc_ T
 gzgets T
@@ -58,6 +73,7 @@ inflate T
 inflateBack T
 inflateBackEnd T
 inflateBackInit_ T
+inflateCodesUsed T
 inflateCopy T
 inflateEnd T
 inflateGetDictionary T
@@ -73,10 +89,15 @@ inflateSetDictionary T
 inflateSync T
 inflateSyncPoint T
 inflateUndermine T
+inflateValidate T
 inflate_copyright R 47
 inflate_fast T
+inflate_fixed T
 inflate_table T
 uncompress T
+uncompress2 T
+uncompress2_z T
+uncompress_z T
 zError T
 z_errmsg D 80
 zcalloc T

@@ -1,9 +1,10 @@
 LICENSE   := zlib
-VERSION   := 1.2.8
+VERSION   := 1.3.2
 DOWNLOADS := zlib.archive
 
-URL(zlib) := http://downloads.sourceforge.net/project/libpng/zlib/$(VERSION)/zlib-$(VERSION).tar.gz
-SHA(zlib) := 36658cb768a54c1d4dec43c3116c27ed893e88b02ecfcb44f2166f9c0b7f2a0d
+URL(zlib) := https://zlib.net/zlib-$(VERSION).tar.xz
+SHA(zlib) := d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3
+SIG(zlib) := ${URL(zlib)}.asc
 DIR(zlib) := src/lib/zlib
 
 DIRS := include/zlib
