@@ -321,7 +321,7 @@ class Sculpt::Runtime_config
 				_report_fs { _r, Type::FS,          "read-only system reports",       "report", Service::Match_label::FS },
 				_capslock  { _r, Type::ROM,         "global capslock state",          "capslock" },
 				_vimrc     { _r, Type::ROM,         "default vim configuration",      "config -> vimrc" },
-				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> managed/fonts" },
+				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> fonts" },
 				_pf_info   { _r, Type::ROM,         "platform information",           "platform_info" },
 				_bld_info  { _r, Type::ROM,         "build information",              "build_info" },
 				_system    { _r, Type::ROM,         "system status",                  "config -> managed/system" },

@@ -49,7 +49,7 @@ config | arch: | info: simple desktop environment
 
 + start fonts_fs | priority: -3 | pkg: fonts_fs
   + route
-    + service ROM | label: config | + parent | label: config -> managed/fonts
+    + service ROM | label: config | + parent | label: config -> fonts
 
 + start wm_backdrop | priority: -3 | pkg: sticks_blue_backdrop
   + route | + service Gui | + parent | label: backdrop

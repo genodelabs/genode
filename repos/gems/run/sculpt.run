@@ -636,7 +636,6 @@ if {[llength [ingredients_of_type presets]] > 0} {
 
 # configs that are managed by the sculpt manager if absent
 set optional_configs {
-	fonts
 	nic_router
 	event_filter
 	wifi
@@ -653,6 +652,7 @@ foreach config $optional_configs {
 
 # configs that are expected to be always present
 set required_configs {
+	fonts
 	nitpicker
 	deploy
 	fb
@@ -726,7 +726,7 @@ set fd [open [managed_config_path depot_query] w]
 puts $fd "query\n-"
 close $fd
 
-foreach config { fonts wifi runtime event_filter system nitpicker } {
+foreach config { wifi runtime event_filter system nitpicker } {
 	set ingredient [single_ingredient $config "default"]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]

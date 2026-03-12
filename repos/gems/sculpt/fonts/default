@@ -1,4 +1,4 @@
-config | copy: yes | paste: yes
+config | copy: yes | paste: yes | managed: yes
 
 + vfs
   + rom Vera.ttf

@@ -301,7 +301,7 @@ void Sculpt::gen_inspect_view(Generator             &g,
 			gen_service_node<Rom_session>(g, [&] {
 				g.attribute("label", "terminal.config");
 				g.node("parent", [&] {
-					g.attribute("label", String<64>("config -> managed/fonts")); }); });
+					g.attribute("label", String<64>("config -> fonts")); }); });
 
 			gen_service_node<Rom_session>(g, [&] {
 				g.attribute("label", "terminal -> clipboard");

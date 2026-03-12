@@ -170,7 +170,7 @@ config
     |   + service Report | label: runtime_config      | + child config_fs_report | label: managed -> runtime
     |   + service Report | label: deploy_config       | + child config_fs_report | label: managed -> deploy
     |   + service Report | label: wifi_config         | + child config_fs_report | label: managed -> wifi
-    |   + service Report | label: fonts_config        | + child config_fs_report | label: managed -> fonts
+    |   + service Report | label: fonts_config        | + child config_fs_report | label: fonts
     |   + service Report | label: nic_router_config   | + child config_fs_report | label: managed -> nic_router
     |   + service Report | label: fb_config           | + child config_fs_report | label: managed -> fb
     |   + service Report | label: dir_query_config    | + child config_fs_report | label: managed -> dir_query
@@ -196,7 +196,7 @@ config
     | + binary vfs
     | + provides | + service File_system
     | + route
-    |   + service ROM | label: config | + parent | label: config -> managed/fonts
+    |   + service ROM | label: config | + parent | label: config -> fonts
     |   + any-service                 | + parent
     |
     + start log_terminal | caps: 120 | ram: 8M | priority: -1
