@@ -369,14 +369,14 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				if (_state == IDLE)
 					return;
 
-				ev.handle_touch_release([&] (Input::Touch_id) {
-					if (_multitouch.fingers_present() == 0) {
+				if (ev.key_release(Input::BTN_TOUCH)) {
 						/* emit release events if gesture had been triggered */
 						if (_state == TRIGGERED)
 							_emit_from_node(destination, _node, true);
+
+						/* cancel gesture detection */
 						cancel();
-					}
-				});
+				}
 			}
 
 			void generate(Source::Sink &, Buffer_action &buffer) override
@@ -506,17 +506,15 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				if (_state == IDLE)
 					return;
 
-				ev.handle_touch_release([&] (Input::Touch_id) {
-					if (_multitouch.fingers_present() == 0) {
-						_timeout.discard();
+				if (ev.key_release(Input::BTN_TOUCH)) {
+					_timeout.discard();
 
-						/* emit release events if gesture had been triggered */
-						if (_state == TRIGGERED)
-							_emit_from_node(destination, _node, true);
+					/* emit release events if gesture had been triggered */
+					if (_state == TRIGGERED)
+						_emit_from_node(destination, _node, true);
 
-						cancel();
-					}
-				});
+					cancel();
+				}
 			}
 
 			void generate(Source::Sink &destination, Buffer_action &buffer) override
@@ -558,7 +556,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 			Input::Event ev = event;
 
 			bool active    { false };
-			if (ev.touch() || ev.touch_release()) {
+			if (ev.touch() || ev.touch_release() || ev.key_release(Input::BTN_TOUCH)) {
 				struct Triggered_gesture { Gesture const &gesture; };
 				Constructible<Triggered_gesture> triggered_gesture;
 
@@ -603,29 +601,28 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 					destination.submit(ev);
 				}
 
+				/* buffer touch events if any active gesture in detect */
+				if (active && _state == DETECT)
+					_buffer.store(ev);
+
 			} else if (_state != DETECT) {
 				/* pass all non-touch events in IDLE or TRIGGERED */
 				destination.submit(ev);
-			}
-
-			if (active && _state == DETECT) {
-				/* buffer all events if there is any gesture in DETECT */
+			} else if (_state == DETECT) {
+				/* buffer all non-touch events if there is any gesture in DETECT */
 				_buffer.store(ev);
 			}
 
-			ev.handle_touch_release([&] (Input::Touch_id) {
-				/* cancel all gestures if all fingers have been released */
-				if (_multitouch.fingers_present() == 0) {
-					_state = State::IDLE;
-					
-					_gestures.for_each([&] (Gesture &gesture) {
-						gesture.cancel(); });
+			/* cancel all gestures on touch release */
+			if (ev.key_release(Input::BTN_TOUCH)) {
+				_state = State::IDLE;
+				
+				_gestures.for_each([&] (Gesture &gesture) {
+					gesture.cancel(); });
 
-					_buffer.submit(destination);
-					_buffer.clear();
-				}
-			});
-
+				_buffer.submit(destination);
+				_buffer.clear();
+			}
 		}
 
 	public:
