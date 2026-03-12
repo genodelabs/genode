@@ -354,6 +354,9 @@ void User_state::_handle_input_event(Input::Event ev)
 		_drag = false;
 
 		if (_global_key_sequence || _transient_focus) {
+			if (_input_receiver && (_input_receiver != _focused))
+				_input_receiver->submit_input_event(Focus_leave());
+
 			_input_receiver      = _focused;
 			_global_key_sequence = false;
 			_transient_focus     = false;
