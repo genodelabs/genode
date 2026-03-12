@@ -95,7 +95,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 					gen_named_node(g, "child", "intel_gpu"); });
 				gen_capture_route(g);
 				gen_parent_rom_route(g, "pc_intel_fb");
-				gen_parent_rom_route(g, "config", "config -> managed/fb");
+				gen_parent_rom_route(g, "config", "config -> fb");
 				gen_parent_rom_route(g, "intel_opregion", "report -> drivers/intel_opregion");
 				gen_parent_route<Rm_session>(g);
 				gen_common_routes(g);
@@ -107,7 +107,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				gen_parent_route<Platform::Session>(g);
 				gen_capture_route(g);
 				gen_parent_rom_route(g, "vesa_fb");
-				gen_parent_rom_route(g, "config", "config -> managed/fb");
+				gen_parent_rom_route(g, "config", "config -> fb");
 				gen_parent_route<Io_mem_session>(g);
 				gen_parent_route<Io_port_session>(g);
 				gen_common_routes(g);

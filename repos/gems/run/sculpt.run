@@ -736,8 +736,6 @@ foreach config { runtime } {
 	}
 }
 
-copy_config [file join [initial_config_dir] fb] [managed_config_path fb]
-
 
 #
 # VERSION file at the root of the config fs, add newline for 'cat /VERSION'

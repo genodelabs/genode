@@ -197,7 +197,7 @@ struct Sculpt::Main : Input_event_handler,
 	void trigger_suspend() override
 	{
 		_system_state.state = System_state::BLANKING;
-		_fb_config.suspend_connectors();
+		_fb_config_model.suspend_connectors();
 		_generate_fb_config();
 		_broadcast_system_state();
 	}
@@ -366,7 +366,7 @@ struct Sculpt::Main : Input_event_handler,
 			_driver_options.suspending = false;
 			_drivers.update_options(_driver_options);
 
-			_fb_config.resume_connectors();
+			_fb_config_model.resume_connectors();
 			_generate_fb_config();
 		}
 
@@ -1783,7 +1783,7 @@ struct Sculpt::Main : Input_event_handler,
 					g.node("capture", [&] {
 
 						/* generate panorama of fb-driver sessions */
-						Panorama_config(_fb_config).gen_policy_entries(g);
+						Panorama_config(_fb_config_model).gen_policy_entries(g);
 
 						/* default policy for capture applications like screenshot */
 						g.node("default-policy", [&] { });
@@ -1799,29 +1799,28 @@ struct Sculpt::Main : Input_event_handler,
 
 	Fb_connectors _fb_connectors { };
 
-	Rom_handler<Main> _manual_fb_handler { _env, "config -> fb", *this, &Main::_handle_manual_fb };
+	Managed_config<Main> _fb_config {
+		_env, _heap, "config", "fb", *this, &Main::_handle_fb_config };
 
-	Expanding_reporter _managed_fb_reporter { _env, "config", "fb_config"};
-
-	Fb_config _fb_config { };
+	Fb_config _fb_config_model { };
 
 	void _generate_fb_config()
 	{
-		_managed_fb_reporter.generate([&] (Generator &g) {
-			_fb_config.generate_managed_fb(g); });
+		_fb_config.generate([&] (Generator &g) {
+			_fb_config_model.generate_managed_fb(g); });
 
 		/* update nitpicker config if the new fb config affects the panorama */
 		Panorama_config const orig = _panorama_config;
-		_panorama_config = Panorama_config(_fb_config);
-		if (orig != Panorama_config(_fb_config))
+		_panorama_config = Panorama_config(_fb_config_model);
+		if (orig != Panorama_config(_fb_config_model))
 			_nitpicker_config.trigger_update();
 	}
 
-	void _handle_manual_fb(Node const &node)
+	void _handle_fb_config(Node const &node)
 	{
-		_fb_config = { };
-		_fb_config.import_manual_config(node);
-		_fb_config.apply_connectors(_fb_connectors);
+		_fb_config_model = { };
+		_fb_config_model.import_manual_config(node);
+		_fb_config_model.apply_connectors(_fb_connectors);
 
 		_generate_fb_config();
 	}
@@ -1833,7 +1832,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_drivers.with_fb_connectors([&] (Node const &node) {
 			if (_fb_connectors.update(_heap, node).progress) {
-				_fb_config.apply_connectors(_fb_connectors);
+				_fb_config_model.apply_connectors(_fb_connectors);
 				_generate_fb_config();
 				_handle_gui_mode();
 				_graph_view.refresh();
@@ -1847,7 +1846,7 @@ struct Sculpt::Main : Input_event_handler,
 	void select_fb_mode(Fb_connectors::Name                const &conn,
 	                    Fb_connectors::Connector::Mode::Id const &mode) override
 	{
-		_fb_config.select_fb_mode(conn, mode, _fb_connectors);
+		_fb_config_model.select_fb_mode(conn, mode, _fb_connectors);
 		_generate_fb_config();
 	}
 
@@ -1856,7 +1855,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void disable_fb_connector(Fb_connectors::Name const &conn) override
 	{
-		_fb_config.disable_connector(conn);
+		_fb_config_model.disable_connector(conn);
 		_generate_fb_config();
 	}
 
@@ -1865,7 +1864,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void toggle_fb_merge_discrete(Fb_connectors::Name const &conn) override
 	{
-		_fb_config.toggle_merge_discrete(conn);
+		_fb_config_model.toggle_merge_discrete(conn);
 		_generate_fb_config();
 	}
 
@@ -1874,7 +1873,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void swap_fb_connector(Fb_connectors::Name const &conn) override
 	{
-		_fb_config.swap_connector(conn);
+		_fb_config_model.swap_connector(conn);
 		_generate_fb_config();
 	}
 
@@ -1883,7 +1882,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void fb_brightness(Fb_connectors::Name const &conn, unsigned percent) override
 	{
-		_fb_config.brightness(conn, percent);
+		_fb_config_model.brightness(conn, percent);
 		_generate_fb_config();
 	}
 
@@ -1892,7 +1891,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void fb_rotation(Fb_connectors::Name const &conn, Fb_connectors::Orientation::Rotate r) override
 	{
-		_fb_config.rotation(conn, r);
+		_fb_config_model.rotation(conn, r);
 		_generate_fb_config();
 	}
 
@@ -1901,7 +1900,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void fb_toggle_flip(Fb_connectors::Name const &conn) override
 	{
-		_fb_config.toggle_flip(conn);
+		_fb_config_model.toggle_flip(conn);
 		_generate_fb_config();
 	}
 
@@ -1914,7 +1913,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Graph _graph { _runtime_state, _cached_runtime_config, _storage._storage_devices,
 	               _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
-	               _fb_config, _hovered_display, _popup.state, _deploy._children };
+	               _fb_config_model, _hovered_display, _popup.state, _deploy._children };
 
 	struct Graph_dialog : Dialog::Top_level_dialog
 	{
@@ -2576,7 +2575,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 	}
 
 	if (_system_state.state == System_state::BLANKING &&
-	    !_fb_config.any_connector_enabled()) {
+	    !_fb_config_model.any_connector_enabled()) {
 
 		_system_state.state = System_state::DRIVERS_STOPPING;
 		_broadcast_system_state();
