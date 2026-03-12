@@ -157,8 +157,8 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 		if (!_download_queue.any_active_download())
 			_depot_query.trigger_depot_query();
 
-		/* feed missing packages to installation queue */
-		update_installation();
+		/* feed missing packages to install queue */
+		update_install();
 
 		/* apply runtime condition checks */
 		if (update_child_conditions())

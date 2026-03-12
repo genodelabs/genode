@@ -1024,7 +1024,7 @@ struct Sculpt::Main : Input_event_handler,
 			_download_queue.add(c.path, c.verify); });
 
 		/* incorporate new download-queue content into update */
-		_deploy.update_installation();
+		_deploy.update_install();
 
 		generate_runtime_config();
 	}
@@ -1553,7 +1553,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_download_queue.remove_inactive_downloads();
 		_download_queue.add(path, verify);
-		_deploy.update_installation();
+		_deploy.update_install();
 		generate_runtime_config();
 	}
 
@@ -2368,7 +2368,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 				unsigned const orig_download_count = _index_update_queue.download_count;
 				_index_update_queue.try_schedule_downloads();
 				if (_index_update_queue.download_count != orig_download_count)
-					_deploy.update_installation();
+					_deploy.update_install();
 
 				/* update depot-user selection after adding new depot URL */
 				if (_depot_user_selection_visible())

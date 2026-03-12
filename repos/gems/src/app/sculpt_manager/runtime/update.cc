@@ -59,7 +59,7 @@ void Sculpt::gen_update_start_content(Generator &g)
 		gen_parent_rom_route(g, "libarchive.lib.so");
 		gen_parent_rom_route(g, "liblzma.lib.so");
 		gen_parent_rom_route(g, "config",       "depot_download.config");
-		gen_parent_rom_route(g, "installation", "config -> managed/installation");
+		gen_parent_rom_route(g, "installation", "config -> install");
 		gen_parent_route<Cpu_session>    (g);
 		gen_parent_route<Pd_session>     (g);
 		gen_parent_route<Rm_session>     (g);

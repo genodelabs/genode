@@ -178,7 +178,7 @@ config
     |   + service Report | label: usb_config          | + child config_fs_report | label: usb
     |   + service Report | label: system_config       | + child config_fs_report | label: system
     |   + service Report | label: event_filter_config | + child config_fs_report | label: event_filter
-    |   + service Report | label: installation_config | + child config_fs_report | label: managed -> installation
+    |   + service Report | label: install_config      | + child config_fs_report | label: install
     |   + service Report | label: depot_query         | + child config_fs_report | label: managed -> depot_query
     |   + service Report                              | + child report_rom
     |   + service ROM | label_prefix: report ->       | + parent

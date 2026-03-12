@@ -184,14 +184,15 @@ struct Sculpt::Deploy
 		});
 	}
 
-	bool _manual_installation_scheduled = false;
+	bool _manual_install_scheduled = false;
 
-	Managed_config<Deploy> _installation {
-		_env, _alloc, "installation", "installation", *this, &Deploy::_handle_installation };
+	Managed_config<Deploy> _install {
+		_env, _alloc, "install", "install", *this, &Deploy::_handle_install };
 
-	void _handle_installation(Node const &manual_config)
+	void _handle_install(Node const &config)
 	{
-		_manual_installation_scheduled = manual_config.has_sub_node("archive");
+		_manual_install_scheduled = config.type() != "empty"
+		                        && !config.attribute_value("managed", false);
 		handle_deploy();
 	}
 
@@ -199,7 +200,7 @@ struct Sculpt::Deploy
 
 	bool update_needed() const
 	{
-		return _manual_installation_scheduled
+		return _manual_install_scheduled
 		    || _download_queue.any_active_download();
 	}
 
@@ -279,18 +280,18 @@ struct Sculpt::Deploy
 		_children.gen_queries(g);
 	}
 
-	void update_installation()
+	void update_install()
 	{
-		/* feed missing packages to installation queue */
-		if (_installation.try_generate_manually_managed())
+		/* feed missing packages to install queue */
+		if (_install.try_generate_manually_managed())
 			return;
 
 		_children.for_each_missing_pkg_path([&] (Depot::Archive::Path const path) {
 			_download_queue.add(path, Verify { true }); });
 
-		_installation.generate([&] (Generator &g) {
+		_install.generate([&] (Generator &g) {
 			g.attribute("arch", _arch);
-			_download_queue.gen_installation_entries(g);
+			_download_queue.gen_install_entries(g);
 		});
 	}
 

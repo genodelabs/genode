@@ -38,7 +38,7 @@ struct Sculpt::Download_queue : Noncopyable
 			path(path), verify(verify.value), state(State::DOWNLOADING)
 		{ }
 
-		void gen_installation_entry(Generator &g) const
+		void gen_install_entry(Generator &g) const
 		{
 			if (state != State::DOWNLOADING)
 				return;
@@ -159,10 +159,10 @@ struct Sculpt::Download_queue : Noncopyable
 			destroy(_alloc, &download); });
 	}
 
-	void gen_installation_entries(Generator &g) const
+	void gen_install_entries(Generator &g) const
 	{
 		_downloads.for_each([&] (Download const &download) {
-			download.gen_installation_entry(g); });
+			download.gen_install_entry(g); });
 	}
 
 	bool any_active_download()    const { return _state_present(Download::State::DOWNLOADING); }

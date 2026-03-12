@@ -718,8 +718,8 @@ foreach file { en_us de_ch de_de fr_ch fr_fr fr_bepo special } {
 proc managed_config_path { name } {
 	return [file join [initial_config_dir] managed $name] }
 
-set fd [open [managed_config_path installation] w]
-puts $fd "installation | arch: [depot_spec]\n-"
+set fd [open [file join [initial_config_dir] install] w]
+puts $fd "install | managed: yes | arch: [depot_spec]\n-"
 close $fd
 
 set fd [open [managed_config_path depot_query] w]
