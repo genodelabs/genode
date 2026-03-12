@@ -228,7 +228,7 @@ void Sculpt::Network::_handle_nic_router_state(Node const &state)
 
 void Sculpt::Network::_update_nic_target_from_config(Node const &config)
 {
-	_nic_target.policy = config.has_type("empty")
+	_nic_target.policy = config.has_type("empty") || config.attribute_value("managed", false)
 	                   ? Nic_target::MANAGED : Nic_target::MANUAL;
 
 	/* obtain uplink information from configuration */

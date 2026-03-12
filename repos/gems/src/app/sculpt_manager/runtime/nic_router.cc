@@ -36,7 +36,7 @@ void Sculpt::gen_nic_router_start_content(Generator &g)
 	g.tabular_node("route", [&] {
 		gen_parent_rom_route(g, "nic_router");
 		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_rom_route(g, "config", "config -> managed/nic_router");
+		gen_parent_rom_route(g, "config", "config -> nic_router");
 		gen_parent_route<Cpu_session>     (g);
 		gen_parent_route<Pd_session>      (g);
 		gen_parent_route<Rm_session>      (g);
