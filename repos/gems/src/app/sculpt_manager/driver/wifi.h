@@ -85,7 +85,7 @@ struct Sculpt::Wifi_driver : private Noncopyable
 				gen_service_node<Rom_session>(g, [&] {
 					g.attribute("label", "wifi_config");
 					g.node("parent", [&] {
-						g.attribute("label", "config -> managed/wifi"); }); });
+						g.attribute("label", "config -> wifi"); }); });
 			});
 		});
 	};

@@ -169,7 +169,7 @@ config
     |   + service ROM | label: config                 | + parent | label: config -> manager
     |   + service Report | label: runtime_config      | + child config_fs_report | label: managed -> runtime
     |   + service Report | label: deploy_config       | + child config_fs_report | label: managed -> deploy
-    |   + service Report | label: wifi_config         | + child config_fs_report | label: managed -> wifi
+    |   + service Report | label: wifi_config         | + child config_fs_report | label: wifi
     |   + service Report | label: fonts_config        | + child config_fs_report | label: fonts
     |   + service Report | label: nic_router_config   | + child config_fs_report | label: managed -> nic_router
     |   + service Report | label: fb_config           | + child config_fs_report | label: managed -> fb

@@ -101,20 +101,23 @@ struct Sculpt::Network : Noncopyable
 	Managed_config<Network> _wlan_config {
 		_env, _alloc, "config", "wifi", *this, &Network::_handle_wlan_config };
 
-	void _handle_wlan_config(Node const &)
+	void _handle_wlan_config(Node const &config)
 	{
-		if (_wlan_config.try_generate_manually_managed()) {
-			_wlan_config_policy = Wlan_config_policy::MANUAL;
+		Wlan_config_policy const orig_policy = _wlan_config_policy;
+		_wlan_config_policy = config.has_type("empty") || config.attribute_value("managed", false)
+		                    ? Wlan_config_policy::MANAGED : Wlan_config_policy::MANUAL;
+
+		if (_wlan_config_policy == Wlan_config_policy::MANUAL) {
 			_action.network_config_changed();
 			return;
 		}
 
-		_wlan_config_policy = Wlan_config_policy::MANAGED;;
-
-		if (_wifi_connection.connected())
-			wifi_connect(_wifi_connection.bssid);
-		else
-			wifi_disconnect();
+		if (orig_policy != _wlan_config_policy) { /* manual -> managed */
+			if (_wifi_connection.connected())
+				wifi_connect(_wifi_connection.bssid);
+			else
+				wifi_disconnect();
+		}
 	}
 
 	void _update_nic_target_from_config(Node const &);

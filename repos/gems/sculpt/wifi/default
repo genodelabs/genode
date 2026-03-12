@@ -1,4 +1,4 @@
-wifi | scan_interval: 5 | rfkill: no | verbose: no
+wifi | managed: yes | scan_interval: 5 | rfkill: no | verbose: no
 x network | ssid:
             protection: NONE
             passphrase:

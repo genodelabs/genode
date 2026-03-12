@@ -97,7 +97,7 @@ config
     |   + service Report | label: runtime_config      | + child config_fs_report | label: managed -> runtime
     |   + service Report | label: deploy_config       | + child config_fs_report | label: managed -> deploy
     |   + service Report | label: system_config       | + child config_fs_report | label: system
-    |   + service Report | label: wifi_config         | + child config_fs_report | label: managed -> wifi
+    |   + service Report | label: wifi_config         | + child config_fs_report | label: wifi
     |   + service Report | label: modem_config        | + child config_fs_report | label: managed -> modem
     |   + service Report | label: audio_config        | + child config_fs_report | label: managed -> audio
     |   + service Report | label: nic_router_config   | + child config_fs_report | label: managed -> nic_router
