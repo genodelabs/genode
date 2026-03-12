@@ -1,4 +1,4 @@
-config | bios_handoff: no
+config | managed: yes | bios_handoff: no
 .
 . available devices are listed at /report/runtime/usb/devices
 .

@@ -122,6 +122,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	{
 		g.node("policy", [&] {
 			g.attribute("label_prefix", driver);
+			g.attribute("generated", "yes");
 			g.node("device", [&] {
 				g.attribute("name", driver); }); });
 	}

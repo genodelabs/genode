@@ -102,7 +102,7 @@ config
     |   + service Report | label: audio_config        | + child config_fs_report | label: managed -> audio
     |   + service Report | label: nic_router_config   | + child config_fs_report | label: nic_router
     |   + service Report | label: dir_query_config    | + child config_fs_report | label: managed -> dir_query
-    |   + service Report | label: usb_config          | + child config_fs_report | label: managed -> usb
+    |   + service Report | label: usb_config          | + child config_fs_report | label: usb
     |   + service Report | label: installation_config | + child config_fs_report | label: managed -> installation
     |   + service Report | label: depot_query         | + child config_fs_report | label: managed -> depot_query
     |   + service Report                              | + child report_rom
