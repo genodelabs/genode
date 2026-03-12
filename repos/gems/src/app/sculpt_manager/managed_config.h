@@ -29,6 +29,8 @@ struct Sculpt::Managed_config
 {
 	Env &_env;
 
+	Allocator &_alloc;
+
 	using Rom_name = String<32>;
 	using Label    = Session_label;
 
@@ -42,6 +44,8 @@ struct Sculpt::Managed_config
 	 * Configuration supplied by the user
 	 */
 	Attached_rom_dataspace _manual_config_rom;
+
+	Constructible<Buffered_node> _buffered { };
 
 	/*
 	 * Resulting configuration
@@ -65,7 +69,15 @@ struct Sculpt::Managed_config
 	{
 		_update_manual_config_rom();
 
-		(_obj.*_handle)(_manual_config_rom.node());
+		Node const &node = _manual_config_rom.node();
+
+		bool const same = _buffered.constructed() && !_buffered->differs_from(node);
+		if (same)
+			return;
+
+		_buffered.construct(_alloc, node);
+
+		(_obj.*_handle)(node);
 	}
 
 	void with_manual_config(auto const &fn) const
@@ -99,11 +111,11 @@ struct Sculpt::Managed_config
 		_config.generate([&] (Generator &g) { fn(g); });
 	}
 
-	Managed_config(Env &env, Node::Type const &node_type,
+	Managed_config(Env &env, Allocator &alloc, Node::Type const &node_type,
 	               Rom_name const &rom_name,
 	               HANDLER &obj, void (HANDLER::*handle) (Node const &))
 	:
-		_env(env), _obj(obj), _handle(handle),
+		_env(env), _alloc(alloc), _obj(obj), _handle(handle),
 		_manual_config_rom(_env, Label("config -> ", rom_name).string()),
 		_config(_env, node_type.string(), Label(rom_name, "_config").string())
 	{
@@ -113,7 +125,11 @@ struct Sculpt::Managed_config
 		_update_manual_config_rom();
 	}
 
-	void trigger_update() { _manual_config_handler.local_submit(); }
+	void trigger_update()
+	{
+		_buffered.destruct();
+		_manual_config_handler.local_submit();
+	}
 };
 
 #endif /* _MANAGED_CONFIG_H_ */

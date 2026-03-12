@@ -135,7 +135,7 @@ struct Sculpt::Main : Input_event_handler,
 	                                 .poweroff = false };
 
 	Managed_config<Main> _system_config {
-		_env, "system", "system", *this, &Main::_handle_system_config };
+		_env, _heap, "system", "system", *this, &Main::_handle_system_config };
 
 	void _broadcast_system_state()
 	{
@@ -221,7 +221,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Managed_config<Main> _fonts_config {
-		_env, "config", "fonts", *this, &Main::_handle_fonts_config };
+		_env, _heap, "config", "fonts", *this, &Main::_handle_fonts_config };
 
 	void _handle_fonts_config(Node const &config)
 	{
@@ -251,7 +251,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Managed_config<Main> _event_filter_config {
-		_env, "config", "event_filter", *this, &Main::_handle_event_filter_config };
+		_env, _heap, "config", "event_filter", *this, &Main::_handle_event_filter_config };
 
 	void _generate_event_filter_config(Generator &);
 
@@ -310,7 +310,7 @@ struct Sculpt::Main : Input_event_handler,
 		.fb_on_dedicated_cpu = _mnt_pocket
 	};
 
-	Drivers _drivers { _env, _child_states, *this, *this };
+	Drivers _drivers { _env, _heap, _child_states, *this, *this };
 
 	Drivers::Resumed _resumed = _drivers.resumed();
 
@@ -931,7 +931,7 @@ struct Sculpt::Main : Input_event_handler,
 	Runtime_state _runtime_state { _heap, _storage._selected_target };
 
 	Managed_config<Main> _runtime_config {
-		_env, "config", "runtime", *this, &Main::_handle_runtime };
+		_env, _heap, "config", "runtime", *this, &Main::_handle_runtime };
 
 	bool _manually_managed_runtime = false;
 
@@ -1493,7 +1493,7 @@ struct Sculpt::Main : Input_event_handler,
 			generate_runtime_config();
 	}
 
-	Dir_query _dir_query { _env, *this };
+	Dir_query _dir_query { _env, _heap, *this };
 
 	Signal_handler<Main> _fs_query_result_handler {
 		_env.ep(), *this, &Main::_handle_fs_query_result };
@@ -1770,7 +1770,7 @@ struct Sculpt::Main : Input_event_handler,
 	 **********************************/
 
 	Managed_config<Main> _nitpicker_config {
-		_env, "config", "nitpicker", *this, &Main::_handle_nitpicker_config };
+		_env, _heap, "config", "nitpicker", *this, &Main::_handle_nitpicker_config };
 
 	void _handle_nitpicker_config(Node const &node)
 	{

@@ -78,7 +78,7 @@ class Sculpt::Drivers : Noncopyable
 
 	public:
 
-		Drivers(Env &, Children &, Info const &, Action &);
+		Drivers(Env &, Allocator &, Children &, Info const &, Action &);
 
 		void update_usb();
 		void update_soc(Board_info::Soc);

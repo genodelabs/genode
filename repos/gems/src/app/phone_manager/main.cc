@@ -136,7 +136,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ***********************/
 
 	Managed_config<Main> _system_config {
-		_env, "system", "system", *this, &Main::_handle_system_config };
+		_env, _heap, "system", "system", *this, &Main::_handle_system_config };
 
 	struct System
 	{
@@ -215,7 +215,7 @@ struct Sculpt::Main : Input_event_handler,
 		.fb_on_dedicated_cpu = false
 	};
 
-	Drivers _drivers { _env, _child_states, *this, *this };
+	Drivers _drivers { _env, _heap, _child_states, *this, *this };
 
 	Board_info::Options _driver_options { };
 
@@ -990,7 +990,7 @@ struct Sculpt::Main : Input_event_handler,
 	Runtime_state _runtime_state { _heap, _storage._selected_target };
 
 	Managed_config<Main> _runtime_config {
-		_env, "config", "runtime", *this, &Main::_handle_runtime };
+		_env, _heap, "config", "runtime", *this, &Main::_handle_runtime };
 
 	/**
 	 * Component::Construction_info interface
@@ -1497,7 +1497,7 @@ struct Sculpt::Main : Input_event_handler,
 			generate_runtime_config();
 	}
 
-	Dir_query _dir_query { _env, *this };
+	Dir_query _dir_query { _env, _heap, *this };
 
 	/**
 	 * Software_options_widget::Action interface

@@ -32,6 +32,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 	};
 
 	Env        &_env;
+	Allocator  &_alloc;
 	Info const &_info;
 	Action     &_action;
 
@@ -73,7 +74,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 	}
 
 	Managed_config<Usb_driver> _usb_config {
-		_env, "config", "usb", *this, &Usb_driver::_handle_usb_config };
+		_env, _alloc, "config", "usb", *this, &Usb_driver::_handle_usb_config };
 
 	void _handle_usb_config(Node const &config)
 	{
@@ -99,9 +100,9 @@ struct Sculpt::Usb_driver : private Noncopyable
 		});
 	}
 
-	Usb_driver(Env &env, Info const &info, Action &action)
+	Usb_driver(Env &env, Allocator &alloc, Info const &info, Action &action)
 	:
-		_env(env), _info(info), _action(action)
+		_env(env), _alloc(alloc), _info(info), _action(action)
 	{
 		_usb_config.trigger_update();
 	}

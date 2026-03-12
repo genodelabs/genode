@@ -187,7 +187,7 @@ struct Sculpt::Deploy
 	bool _manual_installation_scheduled = false;
 
 	Managed_config<Deploy> _installation {
-		_env, "installation", "installation", *this, &Deploy::_handle_installation };
+		_env, _alloc, "installation", "installation", *this, &Deploy::_handle_installation };
 
 	void _handle_installation(Node const &manual_config)
 	{

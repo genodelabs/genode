@@ -48,6 +48,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		using Info   = Drivers::Info;
 
 		Env        &_env;
+		Allocator  &_alloc;
 		Children   &_children;
 		Info const &_info;
 		Action     &_action;
@@ -101,7 +102,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		Ps2_driver   _ps2_driver   { };
 		Touch_driver _touch_driver { };
 		Fb_driver    _fb_driver    { _env, _action };
-		Usb_driver   _usb_driver   { _env, *this, *this };
+		Usb_driver   _usb_driver   { _env, _alloc, *this, *this };
 		Ahci_driver  _ahci_driver  { _env, *this };
 		Nvme_driver  _nvme_driver  { _env, *this };
 		Mmc_driver   _mmc_driver   { _env, *this };
@@ -120,9 +121,10 @@ class Sculpt::Drivers::Instance : Noncopyable,
 
 	public:
 
-		Instance(Env &env, Children &children, Info const &info, Action &action)
+		Instance(Env &env, Allocator &alloc,
+		         Children &children, Info const &info, Action &action)
 		:
-			_env(env), _children(children), _info(info), _action(action)
+			_env(env), _alloc(alloc), _children(children), _info(info), _action(action)
 		{ }
 
 		void update_usb() { _usb_driver.update(_children, _board_info); }
@@ -198,9 +200,10 @@ Drivers::Instance &Drivers::_construct_instance(auto &&... args)
 }
 
 
-Sculpt::Drivers::Drivers(Env &env, Children &children, Info const &info, Action &action)
+Sculpt::Drivers::Drivers(Env &env, Allocator &alloc,
+                         Children &children, Info const &info, Action &action)
 :
-	_instance(_construct_instance(env, children, info, action))
+	_instance(_construct_instance(env, alloc, children, info, action))
 { }
 
 void Drivers::_with(With_storage_devices::Ft    const &fn) const { _instance.with(fn); }

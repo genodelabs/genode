@@ -113,10 +113,10 @@ struct Sculpt::Dir_query : Noncopyable
 		_gen_fs_query_config();
 	}
 
-	Dir_query(Env &env, Action &action)
+	Dir_query(Env &env, Allocator &alloc, Action &action)
 	:
 		_action(action),
-		_fs_query_config(env, "config", "dir_query",
+		_fs_query_config(env, alloc, "config", "dir_query",
 		                 *this, &Dir_query::_handle_fs_query_config)
 	{
 		_fs_query_config.trigger_update();
