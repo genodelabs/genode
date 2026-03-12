@@ -74,7 +74,7 @@ endif
 
 RUNTIME_CONTENT        = $(call file_content,$(addprefix $(RECIPE_DIR)/,runtime))
 RUNTIME_LOOKS_LIKE_XML = $(filter 1,$(firstword $(RUNTIME_CONTENT:<%=1)))
-RUNTIME_HSD           := $(GENODE_DIR)/repos/gems/src/app/depot_deploy/runtime.hsd
+RUNTIME_HSD           := $(GENODE_DIR)/repos/gems/src/app/depot_deploy/pkg_runtime.hsd
 
 checked_runtime_valid:
 ifeq ($(filter $(RECIPE_FILES),runtime),runtime)
