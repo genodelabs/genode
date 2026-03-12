@@ -36,8 +36,6 @@ class Event_filter::Touch_click_source : public Source, Source::Filter
 
 		Source &_source;
 
-		bool _pressed = false;
-
 		/**
 		 * Filter interface
 		 */
@@ -45,11 +43,14 @@ class Event_filter::Touch_click_source : public Source, Source::Filter
 		{
 			Input::Event ev = event;
 
-			/* forward original event */
-			if (!ev.touch_release())
-				destination.submit(ev);
+			/* insert BTN_LEFT before BTN_TOUCH press to not mess with key count */
+			if (ev.key_press(Input::BTN_TOUCH))
+				destination.submit(Input::Press   { Input::BTN_LEFT });
 
-			/* supplement mouse click and absolute motion */
+			/* forward original event */
+			destination.submit(ev);
+
+			/* supplement absolute motion */
 			ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
 
 				/* respond to first finger only */
@@ -57,28 +58,11 @@ class Event_filter::Touch_click_source : public Source, Source::Filter
 					return;
 
 				destination.submit(Input::Absolute_motion{ int(x), int(y) });
-
-				if (!_pressed) {
-					destination.submit(Input::Press { Input::BTN_LEFT });
-					_pressed = true;
-				}
 			});
 
-			/* supplement mouse clack */
-			ev.handle_touch_release([&] (Input::Touch_id id) {
-
-				if (id.value != 0)
-					return;
-
-				if (_pressed) {
-					destination.submit(Input::Release { Input::BTN_LEFT });
-					_pressed = false;
-				}
-			});
-
-			/* forward original event */
-			if (ev.touch_release())
-				destination.submit(ev);
+			/* insert BTN_LEFT after BTN_TOUCH release */
+			if (ev.key_release(Input::BTN_TOUCH))
+				destination.submit(Input::Release { Input::BTN_LEFT });
 		}
 
 	public:
