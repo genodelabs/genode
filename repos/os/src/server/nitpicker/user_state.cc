@@ -191,10 +191,10 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		View_owner *transient_receiver = nullptr;
 
-		if (_mouse_button(keycode))
+		if (_mouse_button(keycode)) {
 			_clicked_count++;
-
-		_last_clicked = nullptr;
+			_last_clicked = nullptr;
+		}
 
 		auto focus_switch_needed = [&] (View_owner const *owner) {
 			return (owner != _focused) && _takes_input(owner, _focused); };
@@ -489,6 +489,10 @@ User_state::handle_input_events(Input_batch batch)
 	 * Determine condition for generating an updated "clicked" report
 	 */
 	bool const click_occurred = (old_clicked_count != _clicked_count);
+
+	/* always deliver clicks outside any client */
+	if (!_last_clicked)
+		_last_clicked_redeliver = true;
 
 	bool const clicked_report_up_to_date =
 		(_last_clicked == old_last_clicked) && !_last_clicked_redeliver;
