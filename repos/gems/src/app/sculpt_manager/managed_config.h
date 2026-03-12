@@ -62,7 +62,11 @@ struct Sculpt::Managed_config
 	{
 		_manual_config_rom.update();
 
-		_mode = _manual_config_rom.node().has_type("empty") ? MANAGED : MANUAL;
+		_mode = MANUAL;
+		if (_manual_config_rom.node().has_type("empty"))
+			_mode = MANAGED;
+		else if (_manual_config_rom.node().attribute_value("managed", false))
+			_mode = MANAGED;
 	}
 
 	void _handle_manual_config()
@@ -108,7 +112,11 @@ struct Sculpt::Managed_config
 
 	void generate(auto const &fn)
 	{
-		_config.generate([&] (Generator &g) { fn(g); });
+		_config.generate([&] (Generator &g) {
+			if (_mode == MANAGED)
+				g.attribute("managed", "yes");
+			fn(g);
+		});
 	}
 
 	Managed_config(Env &env, Allocator &alloc, Node::Type const &node_type,
