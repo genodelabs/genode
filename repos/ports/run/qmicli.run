@@ -1,0 +1,167 @@
+assert {[have_recipe pkg/test_usb_host-[board]]} \
+	"Recipe for 'pkg/test_usb_host-[board]' not available."
+
+create_boot_directory
+
+source ${genode_dir}/repos/ports/run/lte_parameters.inc
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/black_hole \
+                  [depot_user]/pkg/test_usb_host-[board] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libiconv \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/usb_net \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/ffi \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/zlib \
+                  [depot_user]/src/glib/2.85.4-2025-08-25 \
+                  [depot_user]/src/libqmi/1.38.0-2026-03-03 \
+                  [depot_user]/src/qmicli/2026-03-04
+
+build { app/ping driver/usb_net }
+
+install_config {
+config | verbose: yes
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
++ default | caps: 200
++ start timer | ram: 2M
+  + provides
+  | + service Timer
+  + route
+    + any-service
+      + parent
++ start report_rom | ram: 2M
+  + provides
+  | + service Report
+  | + service ROM
+  + config | verbose: yes
+  | + policy | label:  nic_router -> config | report: qmicli -> nic_router.config
+  + route
+    + any-service
+      + parent
++ start black_hole | ram: 2M
+  + provides
+  | + service Terminal
+  + config
+  | + terminal
+  + route
+    + service Timer
+    | + child timer
+    + any-service
+      + parent
++ start usb_net | ram: 16M
+  + provides
+  | + service Terminal
+  + config
+  | + device | vendor_id: 0x12d1 | product_id: 0x15c1 | configuration: 3
+  |   . MBIM config profile is 3 for Huawei ME906e, 0 lets Linux driver choose config
+  + route
+    + service Terminal
+    | + child black_hole
+    + any-service
+      + parent
+      + any-child
++ start usb | ram: 32M | caps: 1500 | managing_system: yes
+  + binary init
+  + provides
+  | + service Usb
+  + route
+    + service ROM | label: config
+    | + parent | label: drivers.config
+    + service Timer
+    | + child timer
+    + any-service
+      + parent
++ start nic_router | ram: 16M | caps: 500
+  + provides
+  | + service Nic
+  | + service Uplink
+  + route
+    + service ROM | label: config
+    | + child report_rom
+    + any-service
+      + parent
+      + any-child
++ start qmicli | ram: 32M | caps: 500
+  + config | ld_verbose: true
+  | + network | apn: } [apn_name] { | user: } [apn_user] { | password: } [apn_password] { | pin: } [sim_pin] {
+  | + vfs
+  | | + dir dev
+  | | | + log
+  | | | + inline rtc
+  | | | | : 2020-08-05 00:01
+  | | | + dir pipe
+  | | | | + pipe
+  | | | + terminal cdc-wdm0 | raw: yes
+  | | + ram
+  | + libc | stdout: /dev/log | stderr: /dev/log
+  |        | rtc: /dev/rtc    | pipe: /dev/pipe
+  + route
+    + service Terminal | + child usb_net
+    + any-service
+      + parent
+      + any-child
++ start ping | ram: 8M
+  + config | period_sec: 1 | verbose: yes | count: 5 | dst_ip: 94.130.141.202
+  + route
+    + any-service
+      + parent
+      + any-child
+-
+}
+
+#
+# Define USB host controller config
+#
+# * Quectel EG-25g
+# * Huawai ME906e
+#
+# Change to your modem and adjust "configuration" for 'usb_net'
+#
+set config {
+config | bios_handoff: no
+  + policy | label_prefix: usb_net
+    + device | vendor_id: 0x2c7c | product_id: 0x125
+    + device | vendor_id: 0x12d1 | product_id: 0x15c1
+-
+}
+
+set fd [open [run_dir]/genode/usb_host.config w]
+puts $fd $config
+close $fd
+
+build_boot_image [build_artifacts]
+
+if {[have_include "power_on/qemu"]} {
+
+	if { [expr ![info exists env(BUS)] || ![info exists env(DEVICE)]] } {
+		puts stderr "BUS and/or DEVICE environment variables not found."
+		exit 1
+	}
+
+	puts "Using BUS $env(BUS) DEVICE $env(DEVICE)"
+
+	append qemu_args " -nographic  "
+	append qemu_args " -usb -device nec-usb-xhci,id=xhci "
+	append qemu_args " -device usb-host,hostbus=$env(BUS),hostaddr=$env(DEVICE),bus=xhci.0 "
+}
+
+if {[expr ![have_cmd_switch --autopilot]]} {
+	run_genode_until forever
+} else {
+	run_genode_until {child "ping" exited with exit value 0} 60
+}
