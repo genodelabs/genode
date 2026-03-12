@@ -1,4 +1,4 @@
-config
+config | managed: yes
 .
 . this configuration is used only before the sculpt manager runs
 .

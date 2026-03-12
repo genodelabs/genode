@@ -458,7 +458,7 @@ config | prio_levels: 2
 + start event_filter | caps: 120 | ram: 2M | priority: -1
   + provides | + service Event
   + route
-    + service ROM | label: config           | + child config_fs_rom | label: managed/event_filter
+    + service ROM | label: config           | + child config_fs_rom | label: event_filter
     + service ROM | label_prefix: keyboard/ | + child config_fs_rom
     + service ROM | label: numlock.remap    | + child numlock_remap_rom
     + service ROM | label: capslock         | + child report_rom
@@ -637,7 +637,6 @@ if {[llength [ingredients_of_type presets]] > 0} {
 # configs that are managed by the sculpt manager if absent
 set optional_configs {
 	nic_router
-	event_filter
 	wifi
 	runtime
 	gpu
@@ -652,6 +651,7 @@ foreach config $optional_configs {
 
 # configs that are expected to be always present
 set required_configs {
+	event_filter
 	fonts
 	nitpicker
 	deploy
@@ -726,7 +726,7 @@ set fd [open [managed_config_path depot_query] w]
 puts $fd "query\n-"
 close $fd
 
-foreach config { wifi runtime event_filter system nitpicker } {
+foreach config { wifi runtime system nitpicker } {
 	set ingredient [single_ingredient $config "default"]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]
