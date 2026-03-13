@@ -173,7 +173,7 @@ config
     |   + service Report | label: fonts_config        | + child config_fs_report | label: fonts
     |   + service Report | label: nic_router_config   | + child config_fs_report | label: nic_router
     |   + service Report | label: fb_config           | + child config_fs_report | label: fb
-    |   + service Report | label: dir_query_config    | + child config_fs_report | label: managed -> dir_query
+    |   + service Report | label: dir_query_config    | + child config_fs_report | label: dir_query
     |   + service Report | label: nitpicker_config    | + child config_fs_report | label: nitpicker
     |   + service Report | label: usb_config          | + child config_fs_report | label: usb
     |   + service Report | label: system_config       | + child config_fs_report | label: system

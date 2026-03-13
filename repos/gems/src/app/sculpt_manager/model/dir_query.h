@@ -253,7 +253,7 @@ struct Sculpt::Dir_query : Noncopyable
 
 			g.tabular_node("route", [&] {
 				gen_parent_rom_route(g, "fs_query");
-				gen_parent_rom_route(g, "config", "config -> managed/dir_query");
+				gen_parent_rom_route(g, "config", "config -> dir_query");
 				gen_parent_rom_route(g, "ld.lib.so");
 				gen_parent_rom_route(g, "vfs.lib.so");
 

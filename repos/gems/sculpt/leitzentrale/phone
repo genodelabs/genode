@@ -101,7 +101,7 @@ config
     |   + service Report | label: modem_config        | + child config_fs_report | label: managed -> modem
     |   + service Report | label: audio_config        | + child config_fs_report | label: managed -> audio
     |   + service Report | label: nic_router_config   | + child config_fs_report | label: nic_router
-    |   + service Report | label: dir_query_config    | + child config_fs_report | label: managed -> dir_query
+    |   + service Report | label: dir_query_config    | + child config_fs_report | label: dir_query
     |   + service Report | label: usb_config          | + child config_fs_report | label: usb
     |   + service Report | label: install_config      | + child config_fs_report | label: install
     |   + service Report | label: depot_query         | + child config_fs_report | label: managed -> depot_query
