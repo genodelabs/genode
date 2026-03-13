@@ -711,7 +711,7 @@ set fd [open [file join [initial_config_dir] install] w]
 puts $fd "install | managed: yes | arch: [depot_spec]\n-"
 close $fd
 
-set fd [open [managed_config_path depot_query] w]
+set fd [open [file join [initial_config_dir] depot_query] w]
 puts $fd "query\n-"
 close $fd
 

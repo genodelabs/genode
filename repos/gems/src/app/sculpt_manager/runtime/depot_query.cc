@@ -34,7 +34,7 @@ void Sculpt::gen_depot_query_start_content(Generator &g)
 		gen_parent_rom_route(g, "depot_query");
 		gen_parent_rom_route(g, "ld.lib.so");
 		gen_parent_rom_route(g, "vfs.lib.so");
-		gen_parent_rom_route(g, "query", "config -> managed/depot_query");
+		gen_parent_rom_route(g, "query", "config -> depot_query");
 
 		gen_parent_route<Cpu_session>     (g);
 		gen_parent_route<Pd_session>      (g);
