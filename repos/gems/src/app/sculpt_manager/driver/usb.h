@@ -148,7 +148,15 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 		start_node(_net, "usb_net", [&] {
 			g.node("config", [&] {
-				g.attribute("mac", "02:00:00:00:01:05");
+				g.node("device", [&] {
+					/*
+					 * Only set for * Quectel EG-25g, setting the MAC-address doesn't work
+					 * for all devices, so better stick to the defaults
+					 */
+					g.attribute("vendor_id",  "0x2c7c");
+					g.attribute("product_id", "0x0125");
+					g.attribute("mac", "02:00:00:00:01:05");
+				});
 			});
 			g.tabular_node("route", [&] {
 				gen_service_node<Usb::Session>(g, [&] {

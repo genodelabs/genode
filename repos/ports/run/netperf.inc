@@ -270,7 +270,9 @@ proc usb_start_nodes { } { return {
 
 + start nic | caps: 200 | ram: 20M | priority: -1
   + binary usb_net
-  + config | mac: 02:00:00:00:01:01
+  + config
+  | + device | vendor_id: 0x0b95 | product_id: 0x1790 | mac: 02:00:00:00:01:01 | . AX88179A
+  |   . RTL8156 cannot handle mac address setting
   + route
     + service Uplink | + child nic_router
     + any-service
