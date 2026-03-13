@@ -264,8 +264,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		bool const orig_settings_available = _settings.interactive_settings_available();
 
-		_settings.manual_event_filter_config =
-			_event_filter_config.try_generate_manually_managed();
+		_settings.manual_event_filter_config = !_event_filter_config.managed;
 
 		if (!_settings.manual_event_filter_config)
 			_event_filter_config.generate([&] (Generator &g) {
@@ -746,8 +745,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_deploy_config(Node const &deploy)
 	{
-		/* force managed mode */
-		_deploy_config._mode = Managed_config<Main>::MANAGED;
+		/* force managed mode regardless if 'deploy' has a 'managed' attribute */
+		_deploy_config.managed = true;
 
 		_deploy_config.generate([&] (Generator &g) {
 			_deploy.handle_deploy_config(g, deploy); });
@@ -958,7 +957,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void generate_runtime_config() override
 	{
-		if (!_runtime_config.try_generate_manually_managed())
+		if (_runtime_config.managed)
 			_runtime_config.generate([&] (Generator &g) {
 				_generate_runtime_config(g); });
 	}
@@ -2319,7 +2318,7 @@ void Sculpt::Main::_handle_gui_mode()
 		update_runtime_config = true;
 	}
 
-	_settings.manual_fonts_config = _fonts_config.try_generate_manually_managed();
+	_settings.manual_fonts_config = !_fonts_config.managed;
 
 	if (!_settings.manual_fonts_config) {
 
@@ -2732,7 +2731,7 @@ void Sculpt::Main::_generate_runtime_config(Generator &g) const
 		g.node("start", [&] {
 			gen_launcher_query_start_content(g); });
 
-		_deploy_config.with_manual_config([&] (Node const &deploy) {
+		_deploy_config.with_node([&] (Node const &deploy) {
 			_deploy.gen_runtime_start_nodes(g, deploy, _prio_levels, _affinity_space); });
 	}
 }

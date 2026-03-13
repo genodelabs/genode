@@ -198,7 +198,7 @@ struct Sculpt::Network : Noncopyable
 		/*
 		 * Evaluate and forward initial manually managed config
 		 */
-		_nic_router_config.with_manual_config([&] (Node const &config) {
+		_nic_router_config.with_node([&] (Node const &config) {
 			_update_nic_target_from_config(config); });
 
 		if (_nic_target.manual())

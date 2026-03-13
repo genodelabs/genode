@@ -73,7 +73,7 @@ void Sculpt::Network::handle_key_press(Codepoint code)
 
 void Sculpt::Network::_generate_nic_router_config()
 {
-	if (_nic_router_config.try_generate_manually_managed())
+	if (!_nic_router_config.managed)
 		return;
 
 	if (!_nic_target.nic_router_needed()) {

@@ -248,10 +248,10 @@ struct Sculpt::Deploy
 
 	void update_install()
 	{
-		/* feed missing packages to install queue */
-		if (_install.try_generate_manually_managed())
+		if (!_install.managed)
 			return;
 
+		/* feed missing packages to install queue */
 		_children.for_each_missing_pkg_path([&] (Depot::Archive::Path const path) {
 			_download_queue.add(path, Verify { true }); });
 

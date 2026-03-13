@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -34,86 +34,54 @@ struct Sculpt::Managed_config
 	using Rom_name = String<32>;
 	using Label    = Session_label;
 
-	enum Mode { MANAGED, MANUAL } _mode { MANAGED };
+	bool managed = true;
 
 	HANDLER &_obj;
 
-	void (HANDLER::*_handle) (Node const &);
+	void (HANDLER::*_fn) (Node const &);
 
 	/*
-	 * Configuration supplied by the user
+	 * Imported configuration
 	 */
-	Attached_rom_dataspace _manual_config_rom;
+	Attached_rom_dataspace _rom;
 
 	Constructible<Buffered_node> _buffered { };
 
 	/*
-	 * Resulting configuration
+	 * Exported configuration
 	 */
-	Expanding_reporter _config;
+	Expanding_reporter _report;
 
-	Signal_handler<Managed_config> _manual_config_handler {
-		_env.ep(), *this, &Managed_config::_handle_manual_config };
+	Signal_handler<Managed_config> _handler {
+		_env.ep(), *this, &Managed_config::_handle };
 
-	/**
-	 * Update manual config, decide between manual or managed mode of operation
-	 */
-	void _update_manual_config_rom()
+	void _handle()
 	{
-		_manual_config_rom.update();
+		_rom.update();
 
-		_mode = MANUAL;
-		if (_manual_config_rom.node().has_type("empty"))
-			_mode = MANAGED;
-		else if (_manual_config_rom.node().attribute_value("managed", false))
-			_mode = MANAGED;
-	}
+		Node const &config = _rom.node();
 
-	void _handle_manual_config()
-	{
-		_update_manual_config_rom();
+		managed = config.has_type("empty")
+		       || config.attribute_value("managed", false);
 
-		Node const &node = _manual_config_rom.node();
-
-		bool const same = _buffered.constructed() && !_buffered->differs_from(node);
+		bool const same = _buffered.constructed() && !_buffered->differs_from(config);
 		if (same)
 			return;
 
-		_buffered.construct(_alloc, node);
+		_buffered.construct(_alloc, config);
 
-		(_obj.*_handle)(node);
+		(_obj.*_fn)(config);
 	}
 
-	void with_manual_config(auto const &fn) const
+	void with_node(auto const &fn) const
 	{
-		fn(_manual_config_rom.node());
-	}
-
-	/**
-	 * \return true if manually-managed configuration could be used
-	 */
-	bool try_generate_manually_managed()
-	{
-		if (_mode == MANAGED)
-			return false;
-
-		/*
-		 * If a manually managed config at 'config/' is provided, copy its
-		 * content to the effective config at 'config/managed/'.
-		 */
-		_config.generate([&] (Generator &g) {
-			Node const &node = _manual_config_rom.node();
-			g.node_attributes(node);
-			if (!g.append_node_content(node, { 20 }))
-				warning("manual config is too deeply nested: ", node);
-		});
-		return true;
+		fn(_rom.node());
 	}
 
 	void generate(auto const &fn)
 	{
-		_config.generate([&] (Generator &g) {
-			if (_mode == MANAGED)
+		_report.generate([&] (Generator &g) {
+			if (managed)
 				g.attribute("managed", "yes");
 			fn(g);
 		});
@@ -121,22 +89,20 @@ struct Sculpt::Managed_config
 
 	Managed_config(Env &env, Allocator &alloc, Node::Type const &node_type,
 	               Rom_name const &rom_name,
-	               HANDLER &obj, void (HANDLER::*handle) (Node const &))
+	               HANDLER &obj, void (HANDLER::*fn) (Node const &))
 	:
-		_env(env), _alloc(alloc), _obj(obj), _handle(handle),
-		_manual_config_rom(_env, Label("config -> ", rom_name).string()),
-		_config(_env, node_type.string(), Label(rom_name, "_config").string())
+		_env(env), _alloc(alloc), _obj(obj), _fn(fn),
+		_rom(_env, Label("config -> ", rom_name).string()),
+		_report(_env, node_type.string(), Label(rom_name, "_config").string())
 	{
-		_manual_config_rom.sigh(_manual_config_handler);
-
-		/* determine initial '_mode' */
-		_update_manual_config_rom();
+		_rom.sigh(_handler);
+		trigger_update();
 	}
 
 	void trigger_update()
 	{
 		_buffered.destruct();
-		_manual_config_handler.local_submit();
+		_handler.local_submit();
 	}
 };
 

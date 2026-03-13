@@ -637,8 +637,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_deploy_config(Node const &deploy)
 	{
-		/* force managed mode */
-		_deploy_config._mode = Managed_config<Main>::MANAGED;
+		/* force managed mode regardless if 'deploy' has a 'managed' attribute */
+		_deploy_config.managed = true;
 
 		_deploy_config.generate([&] (Generator &g) {
 			_deploy.handle_deploy_config(g, deploy); });
@@ -1065,7 +1065,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void generate_runtime_config() override
 	{
-		if (!_runtime_config.try_generate_manually_managed())
+		if (_runtime_config.managed)
 			_runtime_config.generate([&] (Generator &g) {
 				_generate_runtime_config(g); });
 	}
@@ -2056,7 +2056,7 @@ struct Sculpt::Main : Input_event_handler,
 		_gui.info_sigh(_gui_mode_handler);
 		_handle_gui_mode();
 
-		_system_config.with_manual_config([&] (Node const &system) {
+		_system_config.with_node([&] (Node const &system) {
 			_system = System::from_node(system); });
 
 		_update_managed_system_config();
@@ -2500,7 +2500,7 @@ void Sculpt::Main::_generate_runtime_config(Generator &g) const
 		g.node("start", [&] {
 			gen_launcher_query_start_content(g); });
 
-		_deploy_config.with_manual_config([&] (Node const &deploy) {
+		_deploy_config.with_node([&] (Node const &deploy) {
 			_deploy.gen_runtime_start_nodes(g, deploy, _prio_levels, _affinity_space); });
 	}
 }
