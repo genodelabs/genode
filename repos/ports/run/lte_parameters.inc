@@ -35,3 +35,17 @@ if {[sim_pin] == "1234"} {
 	puts "environment variables."
 	puts ""
 }
+
+if {[have_include "power_on/qemu"]} {
+
+	if { [expr ![info exists env(BUS)] || ![info exists env(DEVICE)]] } {
+		puts stderr "Qemu: BUS and/or DEVICE environment variables not found."
+		exit 1
+	}
+
+	puts "Using BUS $env(BUS) DEVICE $env(DEVICE)"
+
+	append qemu_args " -nographic  "
+	append qemu_args " -usb -device nec-usb-xhci,id=xhci "
+	append qemu_args " -device usb-host,hostbus=$env(BUS),hostaddr=$env(DEVICE),bus=xhci.0 "
+}

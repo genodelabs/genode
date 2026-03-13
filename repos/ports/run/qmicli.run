@@ -116,7 +116,7 @@ config | verbose: yes
       + parent
       + any-child
 + start ping | ram: 8M
-  + config | period_sec: 1 | verbose: yes | count: 5 | dst_ip: 94.130.141.202
+  + config | period_sec: 1 | verbose: no | count: 5 | dst_ip: 94.130.141.202
   + route
     + any-service
       + parent
@@ -145,20 +145,6 @@ puts $fd $config
 close $fd
 
 build_boot_image [build_artifacts]
-
-if {[have_include "power_on/qemu"]} {
-
-	if { [expr ![info exists env(BUS)] || ![info exists env(DEVICE)]] } {
-		puts stderr "BUS and/or DEVICE environment variables not found."
-		exit 1
-	}
-
-	puts "Using BUS $env(BUS) DEVICE $env(DEVICE)"
-
-	append qemu_args " -nographic  "
-	append qemu_args " -usb -device nec-usb-xhci,id=xhci "
-	append qemu_args " -device usb-host,hostbus=$env(BUS),hostaddr=$env(DEVICE),bus=xhci.0 "
-}
 
 if {[expr ![have_cmd_switch --autopilot]]} {
 	run_genode_until forever
