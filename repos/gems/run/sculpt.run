@@ -628,7 +628,7 @@ config | prio_levels: 2
 #
 
 # directory structure
-foreach subdir { launcher depot managed keyboard } {
+foreach subdir { launcher depot keyboard } {
 	file mkdir [file join [initial_config_dir] $subdir] }
 
 if {[llength [ingredients_of_type presets]] > 0} {

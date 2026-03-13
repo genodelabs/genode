@@ -562,10 +562,6 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		/*
 		 * Drop intermediate results that will be superseded by a newer query.
-		 * This is important because an outdated blueprint would be disregarded
-		 * by 'handle_deploy' anyway while at the same time a new query is
-		 * issued. This can result a feedback loop where blueprints are
-		 * requested but never applied.
 		 */
 		if (blueprint.attribute_value("version", 0U) != _query_version.value)
 			return;
@@ -573,7 +569,7 @@ struct Sculpt::Main : Input_event_handler,
 		_runtime_state.apply_to_construction([&] (Component &component) {
 			component.try_apply_blueprint(blueprint); });
 
-		_deploy.handle_deploy();
+		trigger_redeploy();
 		_generate_dialog();
 	}
 
@@ -620,25 +616,34 @@ struct Sculpt::Main : Input_event_handler,
 		});
 
 		_generate_dialog();
-		_deploy.handle_deploy();
+		trigger_redeploy();
 	}
 
 	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
 	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
+
+	Managed_config<Main> _deploy_config {
+		_env, _heap, "deploy", "deploy", *this, &Main::_handle_deploy_config };
 
 	/**
 	 * Deploy::Action interface
 	 */
 	void refresh_deploy_dialog() override { _generate_dialog(); }
 
-	Rom_handler<Main> _manual_deploy_rom {
-		_env, "config -> deploy", *this, &Main::_handle_manual_deploy };
+	/**
+	 * Deploy::Action interface
+	 */
+	void trigger_redeploy() override { _deploy_config.trigger_update(); }
 
-	void _handle_manual_deploy(Node const &manual_deploy)
+	void _handle_deploy_config(Node const &deploy)
 	{
+		/* force managed mode */
+		_deploy_config._mode = Managed_config<Main>::MANAGED;
+
+		_deploy_config.generate([&] (Generator &g) {
+			_deploy.handle_deploy_config(g, deploy); });
+
 		_runtime_state.reset_abandoned_and_launched_children();
-		_deploy.use_as_deploy_template(manual_deploy);
-		_deploy.update_managed_deploy_config();
 	}
 
 
@@ -1041,8 +1046,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_state.launch_construction();
 
-		/* trigger change of the deployment */
-		_deploy.update_managed_deploy_config();
+		trigger_redeploy();
 	}
 
 	bool _manually_managed_runtime = false;
@@ -1404,9 +1408,7 @@ struct Sculpt::Main : Input_event_handler,
 	void remove_deployed_component(Start_name const &name) override
 	{
 		_runtime_state.abandon(name);
-
-		/* update config/managed/deploy with the component 'name' removed */
-		_deploy.update_managed_deploy_config();
+		trigger_redeploy();
 	}
 
 	/*
@@ -1427,9 +1429,7 @@ struct Sculpt::Main : Input_event_handler,
 		else {
 
 			_runtime_state.restart(name);
-
-			/* update config/managed/deploy with the component 'name' removed */
-			_deploy.update_managed_deploy_config();
+			trigger_redeploy();
 		}
 	}
 
@@ -1475,9 +1475,7 @@ struct Sculpt::Main : Input_event_handler,
 					dir.for_each_sub_node("file", [&] (Node const &file) {
 						if (file.attribute_value("name", Presets::Info::Name()) == name) {
 							file.with_optional_sub_node("config", [&] (Node const &config) {
-								_runtime_state.reset_abandoned_and_launched_children();
-								_deploy.use_as_deploy_template(config);
-								_deploy.update_managed_deploy_config(); }); } }); } }); });
+								_handle_deploy_config(config); }); } }); } }); });
 	}
 
 	/**
@@ -1505,9 +1503,7 @@ struct Sculpt::Main : Input_event_handler,
 	void enable_optional_component(Path const &launcher) override
 	{
 		_runtime_state.launch(launcher, launcher);
-
-		/* trigger change of the deployment */
-		_deploy.update_managed_deploy_config();
+		trigger_redeploy();
 	}
 
 	/**
@@ -1516,9 +1512,7 @@ struct Sculpt::Main : Input_event_handler,
 	void disable_optional_component(Path const &launcher) override
 	{
 		_runtime_state.abandon(launcher);
-
-		/* update config/managed/deploy with the component 'name' removed */
-		_deploy.update_managed_deploy_config();
+		trigger_redeploy();
 	}
 
 	/**
@@ -2075,9 +2069,6 @@ struct Sculpt::Main : Input_event_handler,
 				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
 				                                  node.attribute_value("height", 1U)); }); });
 
-		/*
-		 * Generate initial config/managed/deploy configuration
-		 */
 		_generate_modem_config();
 		generate_runtime_config();
 		_generate_dialog();
@@ -2509,7 +2500,8 @@ void Sculpt::Main::_generate_runtime_config(Generator &g) const
 		g.node("start", [&] {
 			gen_launcher_query_start_content(g); });
 
-		_deploy.gen_runtime_start_nodes(g, _prio_levels, _affinity_space);
+		_deploy_config.with_manual_config([&] (Node const &deploy) {
+			_deploy.gen_runtime_start_nodes(g, deploy, _prio_levels, _affinity_space); });
 	}
 }
 

@@ -75,7 +75,7 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 }
 
 
-void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
+void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 {
 	/* determine CPU architecture of deployment */
 	Arch const orig_arch = _arch;
@@ -171,6 +171,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 
 
 void Sculpt::Deploy::gen_runtime_start_nodes(Generator      &g,
+                                             Node     const &deploy,
                                              Prio_levels     prio_levels,
                                              Affinity::Space affinity_space) const
 {
@@ -187,21 +188,18 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Generator      &g,
 	g.node("start", [&] {
 		gen_depot_query_start_content(g); });
 
-	_managed_deploy_rom.with_node([&] (Node const &managed_deploy) {
+	/* insert content of '<static>' node as is */
+	deploy.with_optional_sub_node("static",
+		[&] (Node const &static_config) {
+			(void)g.append_node_content(static_config, { 20 }); });
 
-		/* insert content of '<static>' node as is */
-		managed_deploy.with_optional_sub_node("static",
-			[&] (Node const &static_config) {
-				(void)g.append_node_content(static_config, { 20 }); });
-
-		/* generate start nodes for deployed packages */
-		managed_deploy.with_optional_sub_node("common_routes",
-			[&] (Node const &common_routes) {
-				_children.gen_start_nodes(g, common_routes,
-				                          prio_levels, affinity_space, "depot_rom",
-				                          [] (auto const &) { return true; });
-				g.node("monitor", [&] {
-					_children.gen_monitor_policy_nodes(g);});
-			});
-	});
+	/* generate start nodes for deployed packages */
+	deploy.with_optional_sub_node("common_routes",
+		[&] (Node const &common_routes) {
+			_children.gen_start_nodes(g, common_routes,
+			                          prio_levels, affinity_space, "depot_rom",
+			                          [] (auto const &) { return true; });
+			g.node("monitor", [&] {
+				_children.gen_monitor_policy_nodes(g);});
+		});
 }

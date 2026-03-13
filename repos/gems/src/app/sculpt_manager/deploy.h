@@ -45,7 +45,11 @@ struct Sculpt::Deploy
 
 	Runtime_info const &_runtime_info;
 
-	struct Action : Interface { virtual void refresh_deploy_dialog() = 0; };
+	struct Action : Interface
+	{
+		virtual void refresh_deploy_dialog() = 0;
+		virtual void trigger_redeploy() = 0;
+	};
 
 	Action &_action;
 
@@ -77,40 +81,10 @@ struct Sculpt::Deploy
 		                 .initial   = { Ram_quota{8*1024*1024}, Cap_quota{200} },
 		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
 
-	/*
-	 * Report written to '/config/managed/deploy'
-	 *
-	 * This report takes the manually maintained '/config/deploy' and the
-	 * interactive state as input.
-	 */
-	Expanding_reporter _managed_deploy_config { _env, "config", "deploy_config" };
-
-	/* config obtained from '/config/managed/deploy' */
-	Rom_handler<Deploy> _managed_deploy_rom {
-		_env, "config -> managed/deploy", *this, &Deploy::_handle_managed_deploy };
-
-	Constructible<Buffered_node> _template { };
-
-	void use_as_deploy_template(Node const &deploy)
+	void handle_deploy_config(Generator &g, Node const &deploy)
 	{
-		_template.construct(_alloc, deploy);
-	}
+		_process_deploy(deploy);
 
-	void update_managed_deploy_config()
-	{
-		if (!_template.constructed())
-			return;
-
-		Node const &deploy = *_template;
-
-		if (deploy.type() == "empty")
-			return;
-
-		_update_managed_deploy_config(deploy);
-	}
-
-	void _update_managed_deploy_config(Node const &deploy)
-	{
 		/*
 		 * Ignore intermediate states that may occur when manually updating
 		 * the config/deploy configuration. Depending on the tool used,
@@ -120,68 +94,65 @@ struct Sculpt::Deploy
 		if (deploy.type() == "empty")
 			return;
 
-		_managed_deploy_config.generate([&] (Generator &g) {
+		Arch const arch = deploy.attribute_value("arch", Arch());
+		if (arch.valid())
+			g.attribute("arch", arch);
 
-			Arch const arch = deploy.attribute_value("arch", Arch());
-			if (arch.valid())
-				g.attribute("arch", arch);
+		/* copy <common_routes> from manual deploy config */
+		deploy.for_each_sub_node("common_routes", [&] (Node const &node) {
+			(void)g.append_node(node, Generator::Max_depth { 10 }); });
 
-			/* copy <common_routes> from manual deploy config */
-			deploy.for_each_sub_node("common_routes", [&] (Node const &node) {
-				(void)g.append_node(node, Generator::Max_depth { 10 }); });
+		/*
+		 * Copy the <start> node from manual deploy config, unless the
+		 * component was interactively killed by the user.
+		 */
+		deploy.for_each_sub_node("start", [&] (Node const &node) {
+			Start_name const name = node.attribute_value("name", Start_name());
+			if (_runtime_info.abandoned_by_user(name))
+				return;
 
-			/*
-			 * Copy the <start> node from manual deploy config, unless the
-			 * component was interactively killed by the user.
-			 */
-			deploy.for_each_sub_node("start", [&] (Node const &node) {
-				Start_name const name = node.attribute_value("name", Start_name());
-				if (_runtime_info.abandoned_by_user(name))
-					return;
+			g.node("start", [&] {
 
-				g.node("start", [&] {
+				/*
+				 * Copy attributes
+				 */
 
-					/*
-					 * Copy attributes
-					 */
+				g.attribute("name", name);
 
-					g.attribute("name", name);
+				/* override version with restarted version, after restart */
+				using Version = Child_state::Version;
+				Version version = _runtime_info.restarted_version(name);
+				if (version.value == 0)
+					version = Version { node.attribute_value("version", 0U) };
 
-					/* override version with restarted version, after restart */
-					using Version = Child_state::Version;
-					Version version = _runtime_info.restarted_version(name);
-					if (version.value == 0)
-						version = Version { node.attribute_value("version", 0U) };
+				if (version.value > 0)
+					g.attribute("version", version.value);
 
-					if (version.value > 0)
-						g.attribute("version", version.value);
+				auto copy_attribute = [&] (auto attr)
+				{
+					if (node.has_attribute(attr)) {
+						using Value = String<128>;
+						g.attribute(attr, node.attribute_value(attr, Value()));
+					}
+				};
 
-					auto copy_attribute = [&] (auto attr)
-					{
-						if (node.has_attribute(attr)) {
-							using Value = String<128>;
-							g.attribute(attr, node.attribute_value(attr, Value()));
-						}
-					};
+				copy_attribute("caps");
+				copy_attribute("ram");
+				copy_attribute("cpu");
+				copy_attribute("priority");
+				copy_attribute("pkg");
+				copy_attribute("managing_system");
 
-					copy_attribute("caps");
-					copy_attribute("ram");
-					copy_attribute("cpu");
-					copy_attribute("priority");
-					copy_attribute("pkg");
-					copy_attribute("managing_system");
-
-					/* copy start-node content */
-					if (!g.append_node_content(node, Generator::Max_depth { 20 }))
-						warning("start node too deeply nested: ", node);
-				});
+				/* copy start-node content */
+				if (!g.append_node_content(node, Generator::Max_depth { 20 }))
+					warning("start node too deeply nested: ", node);
 			});
-
-			/*
-			 * Add start nodes for interactively launched components.
-			 */
-			_runtime_info.gen_launched_deploy_start_nodes(g);
 		});
+
+		/*
+		 * Add start nodes for interactively launched components.
+		 */
+		_runtime_info.gen_launched_deploy_start_nodes(g);
 	}
 
 	bool _manual_install_scheduled = false;
@@ -193,7 +164,7 @@ struct Sculpt::Deploy
 	{
 		_manual_install_scheduled = config.type() != "empty"
 		                        && !config.attribute_value("managed", false);
-		handle_deploy();
+		_action.trigger_redeploy();
 	}
 
 	Depot_deploy::Children _children { _alloc };
@@ -204,13 +175,7 @@ struct Sculpt::Deploy
 		    || _download_queue.any_active_download();
 	}
 
-	void _handle_managed_deploy(Node const &);
-
-	void handle_deploy()
-	{
-		_managed_deploy_rom.with_node([&] (Node const &managed_deploy) {
-			_handle_managed_deploy(managed_deploy); });
-	}
+	void _process_deploy(Node const &);
 
 	/**
 	 * Call 'fn' for each unsatisfied dependency of the child's 'start' node
@@ -256,7 +221,8 @@ struct Sculpt::Deploy
 
 	void view_diag(Scope<> &) const;
 
-	void gen_runtime_start_nodes(Generator &, Prio_levels, Affinity::Space) const;
+	void gen_runtime_start_nodes(Generator &, Node const &deploy,
+	                             Prio_levels, Affinity::Space) const;
 
 	void restart()
 	{
@@ -272,7 +238,7 @@ struct Sculpt::Deploy
 	void reattempt_after_installation()
 	{
 		_children.reset_incomplete();
-		handle_deploy();
+		_action.trigger_redeploy();
 	}
 
 	void gen_depot_query(Generator &g) const

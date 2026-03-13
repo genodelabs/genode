@@ -678,7 +678,7 @@ struct Sculpt::Main : Input_event_handler,
 		_runtime_state.apply_to_construction([&] (Component &component) {
 			component.try_apply_blueprint(blueprint); });
 
-		_deploy.handle_deploy();
+		trigger_redeploy();
 		_popup_dialog.refresh();
 	}
 
@@ -725,25 +725,34 @@ struct Sculpt::Main : Input_event_handler,
 		});
 
 		_popup_dialog.refresh();
-		_deploy.handle_deploy();
+		trigger_redeploy();
 	}
 
 	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
 	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
+
+	Managed_config<Main> _deploy_config {
+		_env, _heap, "deploy", "deploy", *this, &Main::_handle_deploy_config };
 
 	/**
 	 * Deploy::Action interface
 	 */
 	void refresh_deploy_dialog() override { _generate_dialog(); }
 
-	Rom_handler<Main> _manual_deploy_rom {
-		_env, "config -> deploy", *this, &Main::_handle_manual_deploy };
+	/**
+	 * Deploy::Action interface
+	 */
+	void trigger_redeploy() override { _deploy_config.trigger_update(); }
 
-	void _handle_manual_deploy(Node const &manual_deploy)
+	void _handle_deploy_config(Node const &deploy)
 	{
+		/* force managed mode */
+		_deploy_config._mode = Managed_config<Main>::MANAGED;
+
+		_deploy_config.generate([&] (Generator &g) {
+			_deploy.handle_deploy_config(g, deploy); });
+
 		_runtime_state.reset_abandoned_and_launched_children();
-		_deploy.use_as_deploy_template(manual_deploy);
-		_deploy.update_managed_deploy_config();
 	}
 
 
@@ -1178,8 +1187,8 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_state.abandon(name);
 
-		/* update config/managed/deploy with the component 'name' removed */
-		_deploy.update_managed_deploy_config();
+		/* update config/deploy with the component 'name' removed */
+		trigger_redeploy();
 	}
 
 	/*
@@ -1201,8 +1210,8 @@ struct Sculpt::Main : Input_event_handler,
 
 			_runtime_state.restart(name);
 
-			/* update config/managed/deploy with the component 'name' removed */
-			_deploy.update_managed_deploy_config();
+			/* update config/deploy with new version of the component 'name' */
+			trigger_redeploy();
 		}
 	}
 
@@ -1345,8 +1354,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_state.launch(launcher, launcher);
 
-		/* trigger change of the deployment */
-		_deploy.update_managed_deploy_config();
+		trigger_redeploy();
 		_download_queue.remove_inactive_downloads();
 	}
 
@@ -1357,8 +1365,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_state.abandon(launcher);
 
-		/* update config/managed/deploy with the component 'name' removed */
-		_deploy.update_managed_deploy_config();
+		trigger_redeploy();
 		_download_queue.remove_inactive_downloads();
 	}
 
@@ -1424,9 +1431,7 @@ struct Sculpt::Main : Input_event_handler,
 					dir.for_each_sub_node("file", [&] (Node const &file) {
 						if (file.attribute_value("name", Presets::Info::Name()) == name) {
 							file.with_optional_sub_node("config", [&] (Node const &config) {
-								_runtime_state.reset_abandoned_and_launched_children();
-								_deploy.use_as_deploy_template(config);
-								_deploy.update_managed_deploy_config(); }); } }); } }); });
+								_handle_deploy_config(config); }); } }); } }); });
 	}
 
 	struct Settings_top_level_dialog : Top_level_dialog
@@ -1686,8 +1691,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		_close_popup_dialog();
 
-		/* trigger change of the deployment */
-		_deploy.update_managed_deploy_config();
+		trigger_redeploy();
 	}
 
 	/**
@@ -1962,9 +1966,6 @@ struct Sculpt::Main : Input_event_handler,
 
 		_handle_storage_devices();
 
-		/*
-		 * Generate initial config/managed/deploy configuration
-		 */
 		generate_runtime_config();
 		_generate_dialog();
 	}
@@ -2731,7 +2732,8 @@ void Sculpt::Main::_generate_runtime_config(Generator &g) const
 		g.node("start", [&] {
 			gen_launcher_query_start_content(g); });
 
-		_deploy.gen_runtime_start_nodes(g, _prio_levels, _affinity_space);
+		_deploy_config.with_manual_config([&] (Node const &deploy) {
+			_deploy.gen_runtime_start_nodes(g, deploy, _prio_levels, _affinity_space); });
 	}
 }
 
