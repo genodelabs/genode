@@ -162,7 +162,7 @@ config
     |   + service File_system | + parent | identity: config
     |   + any-service         | + parent
     |
-    + start manager | caps: 400 | ram: 3M | priority: -1
+    + start manager | caps: 400 | ram: 4M | priority: -1
     | + binary sculpt_manager
     | + provides | + service Gui
     | + route

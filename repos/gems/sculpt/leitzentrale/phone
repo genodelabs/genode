@@ -89,7 +89,7 @@ config
     |   + service File_system | + parent | identity: config
     |   + any-service         | + parent
     |
-    + start manager | caps: 400 | ram: 3M
+    + start manager | caps: 400 | ram: 4M
     | + binary phone_manager
     | + provides | + service Gui
     | + route
