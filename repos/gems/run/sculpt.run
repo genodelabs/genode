@@ -306,8 +306,7 @@ config | prio_levels: 2
     + service Report
     + service ROM
   + config | verbose: no
-    + policy | label: leitzentrale_config -> leitzentrale        | report: global_keys_handler -> leitzentrale
-    + policy | label: leitzentrale -> manager -> leitzentrale    | report: global_keys_handler -> leitzentrale
+    + policy | label: leitzentrale -> leitzentrale_enabled       | report: global_keys_handler -> leitzentrale
     + policy | label: pointer -> hover                           | report: nitpicker -> hover
     + policy | label: pointer -> xray                            | report: global_keys_handler -> leitzentrale
     + policy | label: pointer -> shape                           | report: shape
@@ -521,14 +520,6 @@ config | prio_levels: 2
     + service ROM | label: config | + child config_fs_rom | label: global_keys
     + any-service                 | + parent
 
-+ start leitzentrale_config | priority: -1
-  + binary rom_filter
-  + provides | + service ROM
-  + route
-    + service ROM | label: leitzentrale | + child report_rom
-    + service ROM | label: config       | + child config_fs_rom | label: leitzentrale
-    + any-service                       | + parent
-
 + start clipboard | ram: 2M | priority: -1
   + provides
     + service ROM
@@ -552,14 +543,14 @@ config | prio_levels: 2
     + service Report      | . view hover reports
   + route
     } [log_route] {
-    + service ROM | label: config                      | + child leitzentrale_config
+    + service ROM | label: config                      | + child config_fs_rom | label: leitzentrale
     + service ROM | label_prefix: report ->            | + child report_fs_rom
     + service ROM | label_prefix: manager -> report -> | + child report_fs_rom
     + service ROM | label_prefix: manager -> config -> | + child config_fs_rom
     + service ROM | label_prefix: config ->            | + child config_fs_rom
     + service ROM | label: manager -> nitpicker_focus  | + child report_rom
     + service ROM | label: manager -> nitpicker_hover  | + child report_rom
-    + service ROM | label: manager -> leitzentrale     | + child report_rom
+    + service ROM | label: leitzentrale_enabled        | + child report_rom
     + service Report                                   | + child fs_report
     + service Gui                                      | + child nitpicker
     + service Timer                                    | + child timer
