@@ -1,9 +1,9 @@
 LICENSE   := BSD
-VERSION   := R08_10_18
+VERSION   := 20251212
 DOWNLOADS := acpica.archive
 
 URL(acpica) := https://github.com/acpica/acpica/archive/refs/tags/$(VERSION).tar.gz
-SHA(acpica) := bd5e33c4c58073e991cb1123f00e37c0cee14f1061e285c4c5adca9251a9bf2d
+SHA(acpica) := 6f77bd550655183c63f0a307fb0f29ef6140b1f522d61783a16b2af8d9149a0d
 DIR(acpica) := src/lib/acpica
 
 PATCHES := src/lib/acpica/acpica.patch

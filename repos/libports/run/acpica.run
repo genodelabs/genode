@@ -62,7 +62,7 @@ config
     + policy | label: platform -> devices  | report: pci_decode -> devices
     + policy | label: usb_hid -> report    | report: usb -> devices
 
-+ start acpi | caps: 350 | ram: 4M
++ start acpi | caps: 350 | ram: 6M
   + route
     + service Report | + child drivers_reports
     + any-service

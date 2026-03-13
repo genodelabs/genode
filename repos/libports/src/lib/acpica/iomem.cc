@@ -128,7 +128,7 @@ class Acpica::Io_mem
 		unsigned                   _ref    = 0;
 
 		static Genode::Rm_connection *rm_conn;
-		static Acpica::Io_mem _ios[32];
+		static Acpica::Io_mem _ios[128];
 
 	public:
 
@@ -210,12 +210,8 @@ class Acpica::Io_mem
 
 		bool ref_dec() { return --_ref; }
 
-		template <typename FUNC>
-		static void apply_to_all(FUNC const &func = [] () { } )
-		{
-			for (unsigned i = 0; i < sizeof(_ios) / sizeof(_ios[0]); i++)
-				func(_ios[i]);
-		}
+		static void apply_to_all(auto const &func = [] () { } ) {
+			for (auto &io_slot : _ios) func(io_slot); }
 
 		void invalidate()
 		{
@@ -255,12 +251,10 @@ class Acpica::Io_mem
 			_io_mem = nullptr;
 		}
 
-		template <typename FUNC>
-		static Genode::addr_t apply_u(FUNC const &func = [] () { } )
+		static Genode::addr_t apply_u(auto const &func = [] () { } )
 		{
-			for (unsigned i = 0; i < sizeof(_ios) / sizeof(_ios[0]); i++)
-			{
-				Genode::addr_t r = func(_ios[i]);
+			for (auto &io_slot : _ios) {
+				Genode::addr_t r = func(io_slot);
 				if (r) return r;
 			}
 			return 0UL;
@@ -268,10 +262,9 @@ class Acpica::Io_mem
 
 		static Acpica::Io_mem * unused_slot()
 		{
-			for (unsigned i = 0; i < sizeof(_ios) / sizeof(_ios[0]); i++)
-			{
-				if (_ios[i].unused())
-					return &_ios[i];
+			for (auto &io_slot : _ios) {
+				if (io_slot.unused())
+					return &io_slot;
 			}
 			return nullptr;
 		}
@@ -304,8 +297,10 @@ class Acpica::Io_mem
 		static Genode::addr_t insert(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
 		{
 			Acpica::Io_mem * io_mem = allocate(p, s, 1);
-			if (!io_mem)
+			if (!io_mem) {
+				Genode::warning("no I/O memory slot available");
 				return 0UL;
+			}
 
 			io_mem->_virt = Acpica::env().rm().attach(io_mem->_io_mem->dataspace(), {
 				.size       = io_mem->_size,  .offset    = { },
@@ -415,8 +410,8 @@ class Acpica::Io_mem
 		}
 };
 
-Acpica::Io_mem Acpica::Io_mem::_ios[32];
-Genode::Rm_connection * Acpica::Io_mem::rm_conn { nullptr };
+Acpica::Io_mem          Acpica::Io_mem::_ios[128] { };
+Genode::Rm_connection * Acpica::Io_mem::rm_conn   { };
 
 static ACPI_TABLE_RSDP faked_rsdp;
 enum { FAKED_PHYS_RSDP_ADDR = 1 };
@@ -440,7 +435,7 @@ ACPI_PHYSICAL_ADDRESS AcpiOsGetRootPointer (void)
 		faked_rsdp.XsdtPhysicalAddress = acpi_node.attribute_value("xsdt", 0UL);
 
 		/* update checksum */
-		faked_rsdp.Checksum = (UINT8) -AcpiTbChecksum((UINT8 *)&faked_rsdp,
+		faked_rsdp.Checksum = (UINT8) -AcpiUtChecksum((UINT8 *)&faked_rsdp,
 		                                              ACPI_RSDP_CHECKSUM_LENGTH);
 	});
 
@@ -480,7 +475,7 @@ void * AcpiOsMapMemory (ACPI_PHYSICAL_ADDRESS phys, ACPI_SIZE size)
 	if (virt)
 		return reinterpret_cast<void *>(virt);
 
-	virt= Acpica::Io_mem::insert(phys, size);
+	virt = Acpica::Io_mem::insert(phys, size);
 	if (virt)
 		return reinterpret_cast<void *>(virt + (phys & 0xfffU));
 
