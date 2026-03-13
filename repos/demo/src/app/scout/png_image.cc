@@ -13,7 +13,6 @@
 
 #include <png.h>
 #include <scout/misc_math.h>
-#include <mini_c/init.h>
 
 #include "elements.h"
 
@@ -70,7 +69,6 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t len)
 void Png_image::init(Genode::Allocator &alloc)
 {
 	_alloc_ptr = &alloc;
-	mini_c_init(alloc);
 }
 
 
@@ -91,7 +89,7 @@ void Png_image::fill_cache(Canvas_base &canvas)
 
 	png_infop info_ptr = png_create_info_struct(png_ptr);
 	if (!info_ptr) {
-		png_destroy_read_struct(&png_ptr, png_infopp_NULL, png_infopp_NULL);
+		png_destroy_read_struct(&png_ptr, nullptr, nullptr);
 		return;
 	}
 
@@ -101,7 +99,7 @@ void Png_image::fill_cache(Canvas_base &canvas)
 	int bit_depth, color_type, interlace_type;
 	png_uint_32 w, h;
 	png_get_IHDR(png_ptr, info_ptr, &w, &h, &bit_depth, &color_type,
-	             &interlace_type, int_p_NULL, int_p_NULL);
+	             &interlace_type, nullptr, nullptr);
 
 	_min_size = Scout::Area(w, h);
 	log("png is ", _min_size, " depth=", bit_depth);
@@ -110,7 +108,7 @@ void Png_image::fill_cache(Canvas_base &canvas)
 		png_set_palette_to_rgb(png_ptr);
 
 	if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
-		png_set_gray_1_2_4_to_8(png_ptr);
+		png_set_expand_gray_1_2_4_to_8(png_ptr);
 
 	if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
 		png_set_gray_to_rgb(png_ptr);

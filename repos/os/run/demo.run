@@ -15,7 +15,11 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/nit_focus \
                   [depot_user]/src/demo \
-                  [depot_user]/src/init
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libpng \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/zlib
 
 build { app/status_bar test/nitpicker }
 
@@ -157,6 +161,9 @@ config
       + any-child
 
 + start scout | caps: 10000 | ram: 80M
+  + config
+    + libc | stdout: /dev/log | stderr: /dev/log
+    + vfs | + dir dev | + log
 -
 }
 

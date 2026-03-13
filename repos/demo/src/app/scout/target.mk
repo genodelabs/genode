@@ -1,5 +1,5 @@
 TARGET   = scout
-LIBS     = libpng_static libz_static mini_c launchpad scout_widgets
+LIBS     = libpng libc launchpad scout_widgets
 SRC_CC   = main.cc            doc.cc       \
            browser_window.cc  png_image.cc \
            navbar.cc          about.cc     \
@@ -31,3 +31,5 @@ CONTENT_IMAGES = launchpad.png liquid_fb_small.png x-ray_small.png \
 SRC_BIN += $(addprefix $(REP_DIR)/doc/img/, $(CONTENT_IMAGES))
 
 vpath % $(REP_DIR)/doc/img
+
+CC_CXX_WARN_STRICT =

@@ -6,3 +6,5 @@ timer_session
 input_session
 framebuffer_session
 gui_session
+libc
+libpng

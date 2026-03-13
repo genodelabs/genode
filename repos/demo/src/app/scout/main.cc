@@ -14,6 +14,8 @@
 #include <base/component.h>
 #include <base/heap.h>
 
+#include <libc/component.h>
+
 #include <scout/platform.h>
 #include <scout/tick.h>
 #include <scout/user_state.h>
@@ -168,10 +170,7 @@ struct Scout::Main : Scout::Event_handler
 };
 
 
-void Component::construct(Genode::Env &env)
+void Libc::Component::construct(Libc::Env &env)
 {
-	/* XXX execute constructors of global statics */
-	env.exec_static_constructors();
-
 	static Scout::Main main(env);
 }
