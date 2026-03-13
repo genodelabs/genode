@@ -414,7 +414,7 @@ config | prio_levels: 2
     + service ROM | label: config            | + child config_fs_rom | label: drivers
     + service ROM | label_last: gpu.config   | + child config_fs_rom | label: gpu
     + service ROM | label_last: system       | + child config_fs_rom | label: system
-    + service ROM | label_last: modem.config | + child config_fs_rom | label: managed/modem
+    + service ROM | label_last: modem.config | + child config_fs_rom | label: modem
     + service ROM | label_last: audio.config | + child config_fs_rom | label: audio
     + service ROM | label_last: sleep_states | + child report_fs_rom | label: runtime/acpi_support/sleep_states
     + service Timer                          | + child timer
