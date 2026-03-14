@@ -619,7 +619,7 @@ config | prio_levels: 2
 #
 
 # directory structure
-foreach subdir { launcher depot keyboard } {
+foreach subdir { launcher option depot keyboard } {
 	file mkdir [file join [initial_config_dir] $subdir] }
 
 if {[llength [ingredients_of_type presets]] > 0} {
@@ -666,7 +666,10 @@ foreach config $required_configs {
 }
 
 
-# selection of depot users (pubkey and download files), launchers, and presets
+# selection of depot users (pubkey and download files), options, and presets
+foreach ingredient [ingredients_of_type option] {
+	check_syntax [ingredient_path option $ingredient] }
+
 foreach ingredient [ingredients_of_type launcher] {
 	check_syntax [ingredient_path launcher $ingredient] }
 
@@ -677,6 +680,11 @@ foreach ingredient [ingredients_of_type depot] {
 	set from [ingredient_path depot $ingredient]
 	set to   [file join [initial_config_dir] depot $ingredient]
 	copy_file $from $to }
+
+foreach ingredient [ingredients_of_type option] {
+	set from [ingredient_path option $ingredient]
+	set to   [file join [initial_config_dir] option $ingredient]
+	copy_config $from $to }
 
 foreach ingredient [ingredients_of_type launcher] {
 	set from [ingredient_path launcher $ingredient]
@@ -767,11 +775,17 @@ proc pkg_attribute_values { file node_path } {
 
 
 ##
-# Return list of pkg archives reference by the launchers and deploy config
+# Return list of pkg archives reference by the launchers, options, and deploy config
 #
 proc referenced_pkg_values { } {
 
 	set values {}
+
+	# scan options
+	foreach option [ingredients_of_type option] {
+		set path [file join [initial_config_dir] option $option]
+		lappend values {*}[pkg_attribute_values $path "option | + child"]
+	}
 
 	# scan launchers
 	foreach launcher [ingredients_of_type launcher] {
@@ -847,7 +861,7 @@ if {[depot_archive] == "tar" || [depot_archive] == "list"} {
 
 
 #
-# Augment deploy config or launcher file with current package versions
+# Augment deploy config, launcher, option file with current package versions
 #
 
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
@@ -866,6 +880,27 @@ proc versioned_pkg { pkg } {
 		puts stderr "       expected '<user>/pkg/<name>' or"
 		puts stderr "                '<name>' or"
 		puts stderr "                '<user>/pkg/<name>/<version>'"
+		exit
+	}
+}
+
+
+proc augment_option_child_node_pkg_versions { path } {
+
+	set cmd [genode_dir]/tool/hid
+	if {[looks_like_xml $path]} { lappend cmd --import-xml --output-xml }
+
+	if {[catch {
+		set names [split [exec {*}$cmd get "option | + child | : name" $path] "\n"]
+
+		foreach name $names {
+			set pkg [exec {*}$cmd get "option | + child $name | : pkg" $path]
+			if {$pkg != ""} { # skip children deployed from ROM
+				exec {*}$cmd -i set "option | + child $name | : pkg: [versioned_pkg $pkg]" $path
+			}
+		}
+	}]} {
+		puts stderr "failed to parse $path for augmenting pkg versions"
 		exit
 	}
 }
@@ -896,7 +931,7 @@ proc augment_start_node_pkg_versions { path } {
 
 		foreach name $names {
 			set pkg [exec {*}$cmd get "config | + start $name | : pkg" $path]
-			if {$pkg != ""} { # skip launcher start node
+			if {$pkg != ""} { # skip launchers and children deployed from ROM
 				exec {*}$cmd -i set "config | + start $name | : pkg: [versioned_pkg $pkg]" $path
 			}
 		}
@@ -906,6 +941,9 @@ proc augment_start_node_pkg_versions { path } {
 	}
 }
 
+# options
+foreach option [ingredients_of_type option] {
+	augment_option_child_node_pkg_versions [file join [initial_config_dir] option $option] }
 
 # launcher snippets
 foreach launcher [ingredients_of_type launcher] {
