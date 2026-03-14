@@ -703,6 +703,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_image_index(Node const &) { _system_dialog.refresh(); }
 
+	Options   _options   { _heap };
 	Launchers _launchers { _heap };
 	Presets   _presets   { _heap };
 
@@ -716,11 +717,11 @@ struct Sculpt::Main : Input_event_handler,
 
 			Path const dir_path = dir.attribute_value("path", Path());
 
-			if (dir_path == "/launcher")
-				_launchers.update_from_node(dir); /* iterate over <file> nodes */
+			/* iterate over <file> nodes */
 
-			if (dir_path == "/presets")
-				_presets.update_from_node(dir);   /* iterate over <file> nodes */
+			if (dir_path == "/option")   _options  .update_from_node(dir);
+			if (dir_path == "/launcher") _launchers.update_from_node(dir);
+			if (dir_path == "/presets")  _presets  .update_from_node(dir);
 		});
 
 		_popup_dialog.refresh();
@@ -1349,6 +1350,24 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Popup_options_widget::Action interface
 	 */
+	void enable_option(Options::Name const &name) override
+	{
+		_deploy.enable_option(name);
+		trigger_redeploy();
+	}
+
+	/**
+	 * Popup_options_widget::Action interface
+	 */
+	void disable_option(Options::Name const &name) override
+	{
+		_deploy.disable_option(name);
+		trigger_redeploy();
+	}
+
+	/**
+	 * Popup_options_widget::Action interface
+	 */
 	void enable_optional_component(Path const &launcher) override
 	{
 		_runtime_state.launch(launcher, launcher);
@@ -1714,11 +1733,11 @@ struct Sculpt::Main : Input_event_handler,
 
 	Dialog_view<Popup_dialog> _popup_dialog { _dialog_runtime, *this,
 	                                          _build_info, _sculpt_version,
-	                                          _launchers, _network._nic_state,
+	                                          _options, _launchers, _network._nic_state,
 	                                          _index_update_queue, _index_rom,
-	                                          _download_queue, _runtime_state,
-	                                          _cached_init_config, _dir_query,
-	                                          _scan_rom, *this };
+	                                          _download_queue, _deploy.enabled_options,
+	                                          _runtime_state, _cached_init_config,
+	                                          _dir_query, _scan_rom, *this };
 
 	Dialog_view<File_browser_dialog> _file_browser_dialog { _dialog_runtime,
 	                                                        _cached_init_config,

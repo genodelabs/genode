@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for the fs-query tool for obtaining the launchers
+ * \brief  fs-query tool for tracking config-fs sub directories
  * \author Norman Feske
  * \date   2018-08-21
  */
@@ -25,6 +25,11 @@ void Sculpt::gen_launcher_query_start_content(Generator &g)
 		g.attribute("query", "rom");
 		g.node("vfs", [&] {
 			g.node("fs", [&] {}); });
+
+		g.node("query", [&] {
+			g.attribute("path", "/option");
+			g.attribute("content", "yes");
+		});
 
 		g.node("query", [&] {
 			g.attribute("path", "/launcher");

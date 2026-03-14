@@ -93,9 +93,11 @@ void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 		return false;
 	};
 
+	bool const option_toggled = enabled_options.update_from_deploy(managed_deploy).progress;
+
 	bool const config_affected_child = apply_config();
 
-	auto apply_launchers = [&]
+	auto apply_options_and_launchers = [&]
 	{
 		bool any_child_affected = false;
 
@@ -105,27 +107,40 @@ void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 				using Path = String<20>;
 				Path const path = dir.attribute_value("path", Path());
 
-				if (path != "/launcher")
-					return;
+				if (path == "/launcher") {
 
-				dir.for_each_sub_node("file", [&] (Node const &file) {
+					dir.for_each_sub_node("file", [&] (Node const &file) {
 
-					if (file.attribute_value("xml", false) == false)
-						return;
+						if (file.attribute_value("xml", false) == false)
+							return;
 
-					using Name = Depot_deploy::Child::Launcher_name;
-					Name const name = file.attribute_value("name", Name());
+						using Name = Depot_deploy::Child::Launcher_name;
+						Name const name = file.attribute_value("name", Name());
 
-					file.for_each_sub_node("launcher", [&] (Node const &launcher) {
-						if (_children.apply_launcher(name, launcher).progressed)
-							any_child_affected = true; });
-				});
+						file.for_each_sub_node("launcher", [&] (Node const &launcher) {
+							if (_children.apply_launcher(name, launcher).progressed)
+								any_child_affected = true; });
+					});
+				}
+
+				if (path == "/option") {
+
+					dir.for_each_sub_node("file", [&] (Node const &file) {
+
+						using Name = Options::Name;
+						Name const name = file.attribute_value("name", Name());
+
+						file.for_each_sub_node("option", [&] (Node const &option) {
+							if (_children.apply_option(name, option).progressed)
+								any_child_affected = true; });
+					});
+				}
 			});
 		});
 		return any_child_affected;
 	};
 
-	bool const launcher_affected_child = apply_launchers();
+	bool const option_or_launcher_affected_child = apply_options_and_launchers();
 
 	auto apply_blueprint = [&]
 	{
@@ -148,8 +163,9 @@ void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 	bool const blueprint_affected_child = apply_blueprint();
 
 	bool const progress = arch_changed
+	                   || option_toggled
 	                   || config_affected_child
-	                   || launcher_affected_child
+	                   || option_or_launcher_affected_child
 	                   || blueprint_affected_child;
 	if (progress) {
 

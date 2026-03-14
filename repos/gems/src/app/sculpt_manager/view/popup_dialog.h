@@ -76,11 +76,13 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 	Popup_dialog(Action &action,
 	             Build_info         const &build_info,
 	             Sculpt_version     const &sculpt_version,
+	             Options            const &options,
 	             Launchers          const &launchers,
 	             Nic_state          const &nic_state,
 	             Index_update_queue const &index_update_queue,
 	             Index              const &index,
 	             Download_queue     const &download_queue,
+	             Enabled_options    const &enabled_options,
 	             Runtime_info       const &runtime_info,
 	             Runtime_config     const &runtime_config,
 	             Dir_query          const &dir_query,
@@ -91,7 +93,7 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 		_add(Id { "add" }, build_info, sculpt_version, nic_state,
 		     index_update_queue, index, download_queue, runtime_config,
 		     dir_query, construction_info, depot_users),
-		_options(Id { "options" }, runtime_info, launchers)
+		_options(Id { "options" }, runtime_info, enabled_options, options, launchers)
 	{ }
 
 	bool watches_depot() const { return _tabs.add_selected(); }

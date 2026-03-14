@@ -23,13 +23,18 @@ namespace Sculpt { struct Software_options_widget; }
 
 struct Sculpt::Software_options_widget : Widget<Vbox>
 {
-	Runtime_info const &_runtime_info;
-	Launchers    const &_launchers;
+	Runtime_info    const &_runtime_info;
+	Enabled_options const &_enabled_options;
+	Options         const &_options;
+	Launchers       const &_launchers;
 
-	Software_options_widget(Runtime_info const &runtime_info,
-	                        Launchers    const &launchers)
+	Software_options_widget(Runtime_info    const &runtime_info,
+	                        Enabled_options const &enabled_options,
+	                        Options         const &options,
+	                        Launchers       const &launchers)
 	:
-		_runtime_info(runtime_info), _launchers(launchers)
+		_runtime_info(runtime_info), _enabled_options(enabled_options),
+		_options(options), _launchers(launchers)
 	{ }
 
 	struct Option : Widget<Frame>
@@ -54,6 +59,12 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 	void view(Scope<Vbox> &s) const
 	{
 		unsigned count = 0;
+
+		_options.for_each([&] (Options::Name const &name) {
+			Hosted_option option { { count++ } };
+			s.widget(option, name, _enabled_options.exists(name));
+		});
+
 		_launchers.for_each([&] (Launchers::Name const &name) {
 			Hosted_option option { { count++ } };
 			s.widget(option, name, _runtime_info.present_in_runtime(name));
@@ -62,6 +73,9 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 
 	struct Action : Interface
 	{
+		virtual void enable_option (Options::Name const &) = 0;
+		virtual void disable_option(Options::Name const &) = 0;
+
 		virtual void enable_optional_component (Path const &launcher) = 0;
 		virtual void disable_optional_component(Path const &launcher) = 0;
 	};
@@ -71,6 +85,19 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 		Id const clicked_id = at.matching_id<Vbox, Option>();
 
 		unsigned count = 0;
+
+		_options.for_each([&] (Options::Name const &name) {
+			Id const id { { count++ } };
+			if (clicked_id != id)
+				return;
+
+			Hosted_option const option { id };
+			option.propagate(at, [&] (bool on) {
+				if (on) action.enable_option(name);
+				else    action.disable_option(name);
+			});
+		});
+
 		_launchers.for_each([&] (Launchers::Name const &name) {
 			Id const id { { count++ } };
 			if (clicked_id != id)

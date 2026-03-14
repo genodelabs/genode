@@ -595,6 +595,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_image_index(Node const &) { _generate_dialog(); }
 
+	Options   _options   { _heap };
 	Launchers _launchers { _heap };
 	Presets   _presets   { _heap };
 
@@ -608,11 +609,11 @@ struct Sculpt::Main : Input_event_handler,
 
 			Path const dir_path = dir.attribute_value("path", Path());
 
-			if (dir_path == "/launcher")
-				_launchers.update_from_node(dir); /* iterate over <file> nodes */
+			/* iterate over <file> nodes */
 
-			if (dir_path == "/presets")
-				_presets.update_from_node(dir);   /* iterate over <file> nodes */
+			if (dir_path == "/option")   _options  .update_from_node(dir);
+			if (dir_path == "/launcher") _launchers.update_from_node(dir);
+			if (dir_path == "/presets")  _presets  .update_from_node(dir);
 		});
 
 		_generate_dialog();
@@ -794,7 +795,8 @@ struct Sculpt::Main : Input_event_handler,
 		_software_presets_widget { Id { "software_presets" } };
 
 	Conditional_widget<Software_options_widget>
-		_software_options_widget { Id { "software_options" }, _runtime_state, _launchers };
+		_software_options_widget { Id { "software_options" }, _runtime_state,
+		                           _deploy.enabled_options, _options, _launchers };
 
 	Conditional_widget<Software_add_widget>
 		_software_add_widget { Id { "software_add" }, _build_info, _sculpt_version,
@@ -1496,6 +1498,24 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Dir_query _dir_query { _env, _heap, *this };
+
+	/**
+	 * Popup_options_widget::Action interface
+	 */
+	void enable_option(Options::Name const &name) override
+	{
+		_deploy.enable_option(name);
+		trigger_redeploy();
+	}
+
+	/**
+	 * Popup_options_widget::Action interface
+	 */
+	void disable_option(Options::Name const &name) override
+	{
+		_deploy.disable_option(name);
+		trigger_redeploy();
+	}
 
 	/**
 	 * Software_options_widget::Action interface
