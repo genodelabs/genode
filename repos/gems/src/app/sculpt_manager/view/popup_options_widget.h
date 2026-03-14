@@ -45,9 +45,9 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 	void view(Scope<Vbox> &s) const
 	{
 		unsigned count = 0;
-		_launchers.for_each([&] (Launchers::Info const &info) {
+		_launchers.for_each([&] (Launchers::Name const &name) {
 			Hosted_option option { { count++ } };
-			s.widget(option, info.path, _runtime_info.present_in_runtime(info.path));
+			s.widget(option, name, _runtime_info.present_in_runtime(name));
 		});
 	}
 
@@ -62,17 +62,17 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 		Id const clicked_id = at.matching_id<Vbox, Option>();
 
 		unsigned count = 0;
-		_launchers.for_each([&] (Launchers::Info const &info) {
+		_launchers.for_each([&] (Launchers::Name const &name) {
 			Id const id { { count++ } };
 			if (clicked_id != id)
 				return;
 
 			Hosted_option const option { id };
 			option.propagate(at, [&] {
-				if (_runtime_info.present_in_runtime(info.path))
-					action.disable_optional_component(info.path);
+				if (_runtime_info.present_in_runtime(name))
+					action.disable_optional_component(name);
 				else
-					action.enable_optional_component(info.path);
+					action.enable_optional_component(name);
 			});
 		});
 	}

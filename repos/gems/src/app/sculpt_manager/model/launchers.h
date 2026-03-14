@@ -14,80 +14,12 @@
 #ifndef _MODEL__LAUNCHERS_H_
 #define _MODEL__LAUNCHERS_H_
 
-/* Genode includes */
-#include <util/list_model.h>
-#include <util/dictionary.h>
-
 /* local includes */
-#include <types.h>
-#include <runtime.h>
+#include <model/file_listing.h>
 
-namespace Sculpt { class Launchers; }
+namespace Sculpt {
 
-
-class Sculpt::Launchers : public Noncopyable
-{
-	public:
-
-		struct Info : Noncopyable
-		{
-			Path const path;
-			Info(Path const &path) : path(path) { }
-		};
-
-	private:
-
-		Allocator &_alloc;
-
-		struct Launcher;
-
-		using Dict = Dictionary<Launcher, Path>;
-
-		struct Launcher : Dict::Element, List_model<Launcher>::Element
-		{
-			bool matches(Node const &node) const
-			{
-				return node.attribute_value("name", Path()) == name;
-			}
-
-			static bool type_matches(Node const &node)
-			{
-				return node.has_type("file");
-			}
-
-			Launcher(Dict &dict, Path const &path) : Dict::Element(dict, path) { }
-		};
-
-		Dict _sorted { };
-
-		List_model<Launcher> _launchers { };
-
-	public:
-
-		Launchers(Allocator &alloc) : _alloc(alloc) { }
-
-		void update_from_node(Node const &launchers)
-		{
-			_launchers.update_from_node(launchers,
-
-				/* create */
-				[&] (Node const &node) -> Launcher & {
-					return *new (_alloc)
-						Launcher(_sorted,
-						         node.attribute_value("name", Path())); },
-
-				/* destroy */
-				[&] (Launcher &e) { destroy(_alloc, &e); },
-
-				/* update */
-				[&] (Launcher &, Node const &) { }
-			);
-		}
-
-		void for_each(auto const &fn) const
-		{
-			_sorted.for_each([&] (Dict::Element const &e) { fn(Info(e.name)); });
-		}
-};
+	struct Launchers : File_listing { using File_listing::File_listing; };
+}
 
 #endif /* _MODEL__LAUNCHERS_H_ */
