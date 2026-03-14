@@ -77,9 +77,9 @@ struct Sculpt::Device_controls_widget : Widget<Vbox>
 	{
 		using Mic_button = Hosted<Frame, Right_floating_hbox, Select_button<Mic_state> >;
 
-		Mic_button _off   { Id { " Off " },   Mic_state::OFF   },
-		           _phone { Id { " Phone " }, Mic_state::PHONE },
-		           _on    { Id { " On " },    Mic_state::ON    };
+		Mic_button _off   { Id { "off" },   Mic_state::OFF   },
+		           _phone { Id { "phone" }, Mic_state::PHONE },
+		           _on    { Id { "on" },    Mic_state::ON    };
 
 		void view(Scope<Frame> &s, Mic_state state) const
 		{
@@ -87,9 +87,16 @@ struct Sculpt::Device_controls_widget : Widget<Vbox>
 
 			s.sub_scope<Left_floating_text>(s.id.value);
 			s.sub_scope<Right_floating_hbox>([&] (Scope<Frame, Right_floating_hbox> &s) {
-				s.widget(_off,   state);
-				s.widget(_phone, state);
-				s.widget(_on,    state);
+
+				auto attr_fn = [&] (Scope<Button> &s)
+				{
+					s.sub_scope<Label>(s.id.value == "on"  ? " On "  :
+					                   s.id.value == "off" ? " Off " : " Phone ");
+				};
+
+				s.widget(_off,   state, attr_fn);
+				s.widget(_phone, state, attr_fn);
+				s.widget(_on,    state, attr_fn);
 			});
 		}
 

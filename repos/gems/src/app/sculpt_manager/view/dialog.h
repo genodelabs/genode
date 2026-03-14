@@ -426,8 +426,8 @@ struct Dialog::Right_floating_off_on : Widget<Right_floating_hbox>
 	struct Attr { bool on, transient; };
 
 	Hosted<Right_floating_hbox, Select_button<bool>> const
-		_off { Id { "  Off  " }, false },
-		_on  { Id { "  On  "  }, true  };
+		_off { Id { "off" }, false },
+		_on  { Id { "on"  }, true  };
 
 	void view(Scope<Right_floating_hbox> &s, Attr attr) const
 	{
@@ -436,7 +436,7 @@ struct Dialog::Right_floating_off_on : Widget<Right_floating_hbox>
 			if (attr.transient)
 				s.attribute("style", "unimportant");
 
-			s.sub_scope<Label>(s.id.value);
+			s.sub_scope<Label>(s.id.value == "on" ? "  On  " : "  Off  ");
 		};
 
 		s.widget(_off, attr.on, transient_attr_fn);
