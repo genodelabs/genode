@@ -1,0 +1,18 @@
+option
++ child audio | ram: 3M | caps: 145 | pkg: bsd_audio | priority: -1
+
+  + config | report_mixer: yes | record_play: yes
+    + mixer | field: outputs.master | value: 255 | . value range [0,255]
+    + mixer | field: record.enable  | value: on
+      .
+      . look into mixer report for source selection
+      .
+    + mixer | field: record.adc-0:1_source | value: sel2
+    + mixer | field: record.adc-0:1        | value: 160
+
+  + connect
+    + platform | + parent | label: audio
+    + record   | + child mixer
+    + play     | + child mixer
+    + report   | + parent
+-

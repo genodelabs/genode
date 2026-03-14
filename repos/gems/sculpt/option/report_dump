@@ -1,0 +1,7 @@
+option
++ child report_dump | pkg: report_dump
+  + connect
+    + fs report | + parent | identity: report
+    + fs target | + child default_fs_rw
+    + rtc       | + child system_clock-dummy
+-

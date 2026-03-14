@@ -1,0 +1,19 @@
+option
++ child trace_logger | pkg: trace_logger
+  + connect
+  | + trace
+  |   .
+  |   . replace 'global' by 'runtime' to narrow the view
+  |   .
+  |   + parent | label: global
+  |
+  + config
+    |      verbose:            yes
+    |      session_ram:        90M
+    |      session_arg_buffer: 1M
+    |      period_sec:         10
+    |      default_policy:     null
+    |      default_buffer:     4K
+    |
+    + default-policy
+-

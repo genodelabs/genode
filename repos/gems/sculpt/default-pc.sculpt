@@ -6,9 +6,9 @@ gpu:     intel
 # supplemental depot content added to the system image
 import: pkg/sculpt_drivers-pc
 
-# selection of launcher-menu entries
-launcher: download_debug_info black_hole trace_logger
-launcher: audio mixer system_clock acpi_support recall_fs touchpad
+# selection of option-menu entries
+option: download_debug_info black_hole trace_logger
+option: audio mixer system_clock acpi_support recall_fs touchpad
 
 # selection of accepted depot-package providers
 depot: genodelabs alex-ab chelmuth cnuke cproc jschlatow nfeske skalk ssumpf

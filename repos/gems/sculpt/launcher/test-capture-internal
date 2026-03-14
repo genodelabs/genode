@@ -1,7 +1,0 @@
-launcher | pkg: test-capture
-+ config | period_ms: 20 | width: 640 | height: 480
-  + view | xpos: 60 | ypos: 60
-+ route
-  + service Capture | + child internal
-  + any-service     | + parent
--

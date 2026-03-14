@@ -1,4 +1,0 @@
-launcher | pkg: ping
-+ route
-  + service Nic | + child pc_nic
--

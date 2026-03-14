@@ -1,0 +1,7 @@
+option
++ child test-capture-internal | pkg: test-capture
+  + config | period_ms: 20 | width: 640 | height: 480
+    + view | xpos: 60 | ypos: 60
+  + connect
+    + capture | + child internal
+-

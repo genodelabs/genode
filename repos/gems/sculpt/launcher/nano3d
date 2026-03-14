@@ -1,5 +1,0 @@
-launcher | pkg: nano3d | priority: -2
-+ route
-  + service Gui | + child wm
-+ config | shape: cube
--

@@ -1,0 +1,6 @@
+option
++ child top | pkg: top
+  + config | period_ms: 5000 | sort_time: ec
+  + connect
+    + trace | + parent
+-

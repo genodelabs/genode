@@ -9,10 +9,10 @@ config | arch: | info: disposable web browser
 
 + option managed
 
-+ start black_hole
-+ start mixer
-+ start system_clock
-+ start recall_fs
++ option black_hole
++ option mixer
++ option system_clock
++ option recall_fs
 
 + start mesa_gpu-cpu | priority: -2 | pkg: mesa_gpu-cpu
   + route
@@ -43,7 +43,7 @@ config | arch: | info: disposable web browser
     + service Report | label_last: clipboard | + parent
     + service ROM    | label_last: clipboard | + parent
 
-+ start falkon_backdrop | priority: -3 | pkg: sticks_blue_backdrop
++ start falkon_backdrop | pkg: sticks_blue_backdrop
   + route | + service Gui | + parent | label: backdrop
   + config
     + libc
@@ -55,8 +55,7 @@ config | arch: | info: disposable web browser
     + image | png: genode_logo.png | alpha:  50 | anchor: bottom_right
                                      xpos:  -20 | ypos:  -20
 
-+ start falkon_qt6-jemalloc | priority: -3
-        pkg: cproc/pkg/falkon_qt6-jemalloc/2025-10-27
++ start falkon_qt6-jemalloc | pkg: cproc/pkg/falkon_qt6-jemalloc/2025-10-27
   + route
     + service RM                                       | + parent
     + service Nic                                      | + child nic_router

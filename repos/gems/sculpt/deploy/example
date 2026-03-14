@@ -45,7 +45,7 @@ config | arch:
   + route
     + service ROM | label: config | + parent | label: config -> fonts
 
-+ start sticks_blue_backdrop
-+ start nano3d
-+ start system_shell
++ option sticks_blue_backdrop
++ option nano3d
++ option system_shell
 -

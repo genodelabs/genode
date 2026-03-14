@@ -4,8 +4,8 @@ deploy:  example
 ram_fs:  depot
 manager: use_ram_fs
 
-# selection of launcher-menu entries
-launcher: sticks_blue_backdrop nano3d system_shell
+# deploy options
+option: nano3d sticks_blue_backdrop system_shell
 
 # supplemental depot content added to the system image
 import: pkg/drivers_interactive-linux

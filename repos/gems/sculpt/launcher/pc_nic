@@ -1,4 +1,0 @@
-launcher | pkg: pc_nic
-+ route
-  + service Platform | + parent | label: nic
--

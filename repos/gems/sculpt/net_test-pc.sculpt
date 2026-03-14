@@ -2,8 +2,8 @@
 drivers: pc
 ram_fs: depot
 
-# selection of launcher-menu entries
-launcher: ping pc_nic
+# selection of option-menu entries
+option: ping pc_nic
 
 # supplemental depot content added to the system image
 import: pkg/sculpt_drivers-pc pkg/pc_nic pkg/ping

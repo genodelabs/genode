@@ -1,0 +1,3 @@
+option
++ child system_clock | pkg: system_clock-dummy
+-

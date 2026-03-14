@@ -1,0 +1,5 @@
+option
++ child direct_nano3d | pkg: nano3d
+  + connect | + gui | + parent
+  + config | shape: cube
+-

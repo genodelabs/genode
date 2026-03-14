@@ -1,0 +1,6 @@
+option
++ child nano3d | pkg: nano3d | priority: -2
+  + connect
+    + gui | + child wm
+  + config | shape: cube
+-

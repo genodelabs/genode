@@ -10,4 +10,4 @@ build:        app/dummy_modem
 import:       pkg/drivers_interactive-linux pkg/touch_keyboard
 deploy:       example
 ram_fs:       depot
-launcher:     sticks_blue_backdrop direct_nano3d direct_system_shell
+option:       sticks_blue_backdrop direct_nano3d direct_system_shell

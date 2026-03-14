@@ -1,5 +1,0 @@
-launcher | pkg: nano3d
-+ route
-  + service Gui | + parent
-+ config | shape: cube
--

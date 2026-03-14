@@ -1,0 +1,5 @@
+option
++ child nic | pkg: pc_nic
+  + connect
+    + platform | + parent | label: nic
+-

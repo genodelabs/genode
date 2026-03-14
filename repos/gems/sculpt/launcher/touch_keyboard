@@ -1,6 +1,0 @@
-launcher | pkg: touch_keyboard
-+ route
-  + service Gui                                  | + parent | label: touch_keyboard
-  + service Event                                | + parent | label: global
-  + service File_system | label_prefix: fonts -> | + child fonts_fs
--

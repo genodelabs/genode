@@ -1,0 +1,6 @@
+option
++ child system_clock | pkg: system_clock-pc | priority: -2
+  + connect
+    + irq     | + parent
+    + io_port | + parent
+-

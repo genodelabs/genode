@@ -1,6 +1,0 @@
-launcher | pkg: report_dump
-+ route
-  + service File_system | label_prefix: report -> | + parent | identity: report
-  + service File_system | label_prefix: target -> | + child default_fs_rw
-  + service Rtc                                   | + child system_clock-dummy
--

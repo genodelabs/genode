@@ -1,0 +1,10 @@
+option
++ child download_debug_info | pkg: dbg_download
+  + connect
+    + fs system_config | + parent              | identity: config
+    + fs depot         | + child default_fs_rw | prepend_resource: /depot
+    + fs public        | + child default_fs_rw | prepend_resource: /public
+    + rom build_info   | + parent | label: build_info
+    + nic              | + child nic_router
+    + rm               | + parent
+-

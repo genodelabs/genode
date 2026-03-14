@@ -1,6 +1,0 @@
-launcher | pkg: screenshot_trigger
-+ route
-  + service Gui   | + parent | label: overlay
-  + service Event | + parent | label: global
-+ config | size: 80
--

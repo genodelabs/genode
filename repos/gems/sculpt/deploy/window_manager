@@ -9,8 +9,8 @@ config | arch: | info: simple desktop environment
 
 + option managed
 
-+ start recall_fs
-+ start black_hole
++ option recall_fs
++ option black_hole
 
 + start system_shell | priority: -3 | pkg: system_shell
   + route

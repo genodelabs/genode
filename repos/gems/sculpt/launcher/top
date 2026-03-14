@@ -1,5 +1,0 @@
-launcher | pkg: top
-+ route
-  + service TRACE | + parent
-+ config | period_ms: 5000 | sort_time: ec
--

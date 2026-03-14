@@ -1,0 +1,21 @@
+option
++ child backdrop | pkg: sticks_blue_backdrop | priority: -3
+  + config
+  | .
+  | . The graphics operations 'fill' and 'image' are applied in order.
+  | .
+  | + libc
+  | + vfs
+  |   + rom genode_logo.png
+  |   + rom grid.png
+  |   + rom sticks_blue.png
+  |
+  | + fill  | color: #223344
+  | + image | png: sticks_blue.png | alpha: 200 | anchor: bottom_left | scale: zoom
+  | + image | png: grid.png        | alpha: 200 | tiled: yes
+  | + image | png: genode_logo.png | alpha: 150 | anchor: bottom_right
+  |                                             | xpos: -20 | ypos: -20
+  + connect
+    + gui | + parent | label: backdrop
+-
+

@@ -1,0 +1,10 @@
+option
++ child acpi_support | pkg: acpica | priority: -2
+  + connect
+    + io_mem            | + parent
+    + io_port           | + parent
+    + platform          | + parent | label: acpica
+    + rom platform_info | + parent | label: platform_info
+    + rom system        | + parent | label: config -> system
+    + report            | + parent
+-

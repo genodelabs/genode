@@ -1,0 +1,7 @@
+option
++ child screenshot_trigger | pkg: screenshot_trigger
+  + config | size: 80
+  + connect
+    + gui   | + parent | label: overlay
+    + event | + parent | label: global
+-
