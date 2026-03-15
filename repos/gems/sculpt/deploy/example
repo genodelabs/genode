@@ -1,5 +1,7 @@
 config | arch:
 
++ option managed
+
 + common_routes
   + service ROM | label_last: ld.lib.so | + parent
   + service ROM | label_last: init      | + parent

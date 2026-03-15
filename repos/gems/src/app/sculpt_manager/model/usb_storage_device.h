@@ -116,7 +116,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		_env(env)
 	{ }
 
-	inline void gen_usb_block_start_content(Generator &g) const;
+	inline void gen_usb_block_child_content(Generator &g) const;
 
 	void gen_usb_policy(Generator &g) const
 	{
@@ -142,34 +142,21 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 };
 
 
-void Sculpt::Usb_storage_device::gen_usb_block_start_content(Generator &g) const
+void Sculpt::Usb_storage_device::gen_usb_block_child_content(Generator &g) const
 {
-	gen_common_start_content(g, driver, Cap_quota{100}, Ram_quota{6*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", "usb_block");
+	gen_child_attr(g, Child_name { driver }, Binary_name { "usb_block" },
+	               Cap_quota{100}, Ram_quota{6*1024*1024}, Priority::STORAGE);
 
 	g.node("config", [&] {
 		g.attribute("report",    "yes");
 		g.attribute("writeable", "yes");
 	});
 
-	gen_provides<Block::Session>(g);
+	g.node("provides", [&] { g.node("block"); });
 
-	g.tabular_node("route", [&] {
-		gen_service_node<Usb::Session>(g, [&] {
-			g.node("child", [&] {
-				g.attribute("name", "usb"); }); });
-
-		gen_parent_rom_route(g, "usb_block");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_route<Cpu_session>    (g);
-		gen_parent_route<Pd_session>     (g);
-		gen_parent_route<Log_session>    (g);
-		gen_parent_route<Timer::Session> (g);
-
-		gen_service_node<Report::Session>(g, [&] {
-			g.node("parent", [&] { }); });
+	g.tabular_node("connect", [&] {
+		g.node("usb", [&] { gen_named_node(g, "child", "usb"); });
+		connect_report(g);
 	});
 }
 

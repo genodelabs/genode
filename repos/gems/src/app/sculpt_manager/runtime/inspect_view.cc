@@ -214,15 +214,13 @@ void Sculpt::gen_inspect_view(Generator             &g,
                               Ram_fs_state    const &ram_fs_state,
                               Inspect_view_version   version)
 {
-	g.node("start", [&] {
+	g.node("child", [&] {
+
+		gen_child_attr(g, Child_name { "inspect" }, Binary_name { "init" },
+		               Cap_quota{1000}, Ram_quota{76*1024*1024},
+		               Priority::LEITZENTRALE);
 
 		g.attribute("version", version.value);
-
-		gen_common_start_content(g, "inspect",
-		                         Cap_quota{1000}, Ram_quota{76*1024*1024},
-		                         Priority::LEITZENTRALE);
-
-		gen_named_node(g, "binary", "init", [&] { });
 
 		g.node("config", [&] {
 
@@ -244,74 +242,60 @@ void Sculpt::gen_inspect_view(Generator             &g,
 			g.node("start", [&] { gen_bash_start(g); });
 		});
 
-		g.tabular_node("route", [&] {
+		g.tabular_node("connect", [&] {
 
-			gen_service_node<::File_system::Session>(g, [&] {
-				g.attribute("label_prefix", "config ->");
-				g.node("parent", [&] { g.attribute("identity", "config"); });
-			});
+			gen_named_node(g, "fs", "config", [&] {
+				g.node("parent", [&] { g.attribute("identity", "config"); }); });
 
-			gen_service_node<::File_system::Session>(g, [&] {
-				g.attribute("label_prefix", "report ->");
-				g.node("parent", [&] { g.attribute("identity", "report"); });
-			});
+			gen_named_node(g, "fs", "report", [&] {
+				g.node("parent", [&] { g.attribute("identity", "report"); }); });
 
-			gen_parent_rom_route(g, "ld.lib.so");
-			gen_parent_rom_route(g, "init");
-			gen_parent_rom_route(g, "terminal");
-			gen_parent_rom_route(g, "vfs");
-			gen_parent_rom_route(g, "cached_fs_rom");
-			gen_parent_rom_route(g, "vfs.lib.so");
-			gen_parent_rom_route(g, "vfs_pipe.lib.so");
-			gen_parent_rom_route(g, "vfs_ttf.lib.so");
-			gen_parent_rom_route(g, "libc.lib.so");
-			gen_parent_rom_route(g, "libm.lib.so");
-			gen_parent_rom_route(g, "bash-minimal.tar");
-			gen_parent_rom_route(g, "coreutils-minimal.tar");
-			gen_parent_rom_route(g, "vim-minimal.tar");
-			gen_parent_rom_route(g, "vim_syntax.tar");
-			gen_parent_rom_route(g, "tclsh.tar");
-			gen_parent_rom_route(g, "hid.tar");
-			gen_parent_rom_route(g, "ncurses.lib.so");
-			gen_parent_rom_route(g, "posix.lib.so");
-			gen_parent_rom_route(g, "vimrc", "config -> vimrc");
-			gen_parent_rom_route(g, "VERSION");
-			gen_parent_rom_route(g, "Vera.ttf");
-			gen_parent_rom_route(g, "VeraMono.ttf");
-			gen_parent_route<Cpu_session>    (g);
-			gen_parent_route<Pd_session>     (g);
-			gen_parent_route<Rm_session>     (g);
-			gen_parent_route<Log_session>    (g);
-			gen_parent_route<Timer::Session> (g);
+			connect_parent_rom(g, "ld.lib.so");
+			connect_parent_rom(g, "init");
+			connect_parent_rom(g, "terminal");
+			connect_parent_rom(g, "vfs");
+			connect_parent_rom(g, "cached_fs_rom");
+			connect_parent_rom(g, "vfs.lib.so");
+			connect_parent_rom(g, "vfs_pipe.lib.so");
+			connect_parent_rom(g, "vfs_ttf.lib.so");
+			connect_parent_rom(g, "libc.lib.so");
+			connect_parent_rom(g, "libm.lib.so");
+			connect_parent_rom(g, "bash-minimal.tar");
+			connect_parent_rom(g, "coreutils-minimal.tar");
+			connect_parent_rom(g, "vim-minimal.tar");
+			connect_parent_rom(g, "vim_syntax.tar");
+			connect_parent_rom(g, "tclsh.tar");
+			connect_parent_rom(g, "hid.tar");
+			connect_parent_rom(g, "ncurses.lib.so");
+			connect_parent_rom(g, "posix.lib.so");
+			connect_parent_rom(g, "vimrc", "config -> vimrc");
+			connect_parent_rom(g, "VERSION");
+			connect_parent_rom(g, "Vera.ttf");
+			connect_parent_rom(g, "VeraMono.ttf");
 
 			for_each_inspected_storage_target(devices, [&] (Storage_target const &target) {
-				gen_service_node<::File_system::Session>(g, [&] {
-					g.attribute("label_prefix", Session_label("vfs -> ", target.label(), " ->"));
+				gen_named_node(g, "fs", Session_label("vfs -> ", target.label()), [&] {
 					gen_named_node(g, "child", target.fs()); }); });
 
 			if (ram_fs_state.inspected)
-				gen_service_node<::File_system::Session>(g, [&] {
-					g.attribute("label_prefix", "vfs -> ram ->");
+				gen_named_node(g, "fs", "vfs -> ram", [&] {
 					gen_named_node(g, "child", "ram_fs"); });
 
-			gen_service_node<Gui::Session>(g, [&] {
+			g.node("gui", [&] {
 				g.node("parent", [&] {
-					g.attribute("label", String<64>("leitzentrale -> inspect")); }); });
+					g.attribute("label", "leitzentrale -> inspect"); }); });
 
-			gen_service_node<Rom_session>(g, [&] {
-				g.attribute("label", "terminal.config");
-				g.node("parent", [&] {
-					g.attribute("label", String<64>("config -> fonts")); }); });
+			connect_config_rom(g, "terminal.config", "fonts");
 
-			gen_service_node<Rom_session>(g, [&] {
+			g.node("rom", [&] {
 				g.attribute("label", "terminal -> clipboard");
 				g.node("parent", [&] {
-					g.attribute("label", String<64>("inspect -> clipboard")); }); });
+					g.attribute("label", "inspect -> clipboard"); }); });
 
-			gen_service_node<Report::Session>(g, [&] {
+			g.node("report", [&] {
 				g.attribute("label", "terminal -> clipboard");
 				g.node("parent", [&] {
-					g.attribute("label", String<64>("inspect -> clipboard")); }); });
+					g.attribute("label", "inspect -> clipboard"); }); });
 		});
 	});
 }

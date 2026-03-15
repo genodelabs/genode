@@ -18,30 +18,19 @@
 #include <runtime.h>
 
 
-void Sculpt::gen_nic_router_start_content(Generator &g)
+void Sculpt::gen_nic_router_child_content(Generator &g)
 {
-	gen_common_start_content(g, "nic_router",
-	                         Cap_quota{300}, Ram_quota{10*1024*1024},
-	                         Priority::NETWORK);
+	gen_child_attr(g, Child_name { "nic_router" }, Binary_name { "nic_router" },
+	               Cap_quota{300}, Ram_quota{10*1024*1024},
+	               Priority::NETWORK);
 
 	g.node("provides", [&] {
-		g.node("service", [&] {
-			g.attribute("name", Nic::Session::service_name());
-		});
-		g.node("service", [&] {
-			g.attribute("name", Uplink::Session::service_name());
-		});
+		g.node("nic");
+		g.node("uplink");
 	});
 
-	g.tabular_node("route", [&] {
-		gen_parent_rom_route(g, "nic_router");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_rom_route(g, "config", "config -> nic_router");
-		gen_parent_route<Cpu_session>     (g);
-		gen_parent_route<Pd_session>      (g);
-		gen_parent_route<Rm_session>      (g);
-		gen_parent_route<Log_session>     (g);
-		gen_parent_route<Timer::Session>  (g);
-		gen_parent_route<Report::Session> (g);
+	g.tabular_node("connect", [&] {
+		connect_config_rom(g, "config", "nic_router");
+		connect_report(g);
 	});
 }

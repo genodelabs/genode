@@ -599,11 +599,11 @@ struct Sculpt::Main : Input_event_handler,
 	Launchers _launchers { _heap };
 	Presets   _presets   { _heap };
 
-	Rom_handler<Main> _launcher_listing_rom {
-		_env, "report -> /runtime/launcher_query/listing", *this,
-		&Main::_handle_launcher_and_preset_listing };
+	Rom_handler<Main> _config_listing_rom {
+		_env, "report -> /runtime/config_query/listing", *this,
+		&Main::_handle_config_listing };
 
-	void _handle_launcher_and_preset_listing(Node const &listing)
+	void _handle_config_listing(Node const &listing)
 	{
 		listing.for_each_sub_node("dir", [&] (Node const &dir) {
 
@@ -617,14 +617,24 @@ struct Sculpt::Main : Input_event_handler,
 		});
 
 		_generate_dialog();
-		trigger_redeploy();
 	}
+
+	/*
+	 * Watch launchers and options for deploy
+	 */
+	Rom_handler<Main> _launcher_listing_rom {
+		_env, "report -> /runtime/launcher_query/listing", *this,
+		&Main::_handle_launcher_and_option_listing };
+
+	void _handle_launcher_and_option_listing(Node const &) { trigger_redeploy(); }
 
 	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
 	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
 
 	Managed_config<Main> _deploy_config {
 		_env, _heap, "deploy", "deploy", *this, &Main::_handle_deploy_config };
+
+	Expanding_reporter _managed_option { _env, "option", "managed_option" };
 
 	/**
 	 * Deploy::Action interface
@@ -1061,12 +1071,16 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	void _generate_runtime_config(Generator &) const;
+	void _generate_managed_option(Generator &) const;
 
 	/**
 	 * Runtime_config_generator interface
 	 */
 	void generate_runtime_config() override
 	{
+		_managed_option.generate([&] (Generator &g) {
+			_generate_managed_option(g); });
+
 		if (_runtime_config.managed)
 			_runtime_config.generate([&] (Generator &g) {
 				_generate_runtime_config(g); });
@@ -1094,7 +1108,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		Touch_keyboard(Touch_keyboard_attr attr) : attr(attr) { };
 
-		void gen_start_node(Generator &g) const
+		void gen_child_node(Generator &g) const
 		{
 			if (started)
 				gen_touch_keyboard(g, attr);
@@ -2302,9 +2316,9 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 		/* respond to failure of part_block */
 		if (device.discovery_in_progress()) {
-			Child_exit_state exit_state(state, device.part_block_start_name());
+			Child_exit_state exit_state(state, device.part_block_child_name());
 			if (!exit_state.responsive) {
-				error(device.part_block_start_name(), " got stuck");
+				error(device.part_block_child_name(), " got stuck");
 				device.state = Storage_device::RELEASED;
 				reconfigure_runtime = true;
 			}
@@ -2312,7 +2326,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 		/* respond to completion of GPT relabeling */
 		if (device.relabel_in_progress()) {
-			Child_exit_state exit_state(state, device.relabel_start_name());
+			Child_exit_state exit_state(state, device.relabel_child_name());
 			if (exit_state.exited) {
 				device.rediscover();
 				reconfigure_runtime = true;
@@ -2322,7 +2336,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 		/* respond to completion of GPT expand */
 		if (device.gpt_expand_in_progress()) {
-			Child_exit_state exit_state(state, device.expand_start_name());
+			Child_exit_state exit_state(state, device.expand_child_name());
 			if (exit_state.exited) {
 
 				/* kick off resize2fs */
@@ -2421,6 +2435,62 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 }
 
 
+void Sculpt::Main::_generate_managed_option(Generator &g) const
+{
+	_drivers.gen_child_nodes(g);
+	_storage.gen_child_nodes(g);
+	_dialog_runtime.gen_child_nodes(g);
+	_storage.gen_child_nodes(g);
+	_dir_query.gen_child_nodes(g);
+	_network.gen_child_nodes(g);
+
+	g.node("child", [&] {
+		gen_config_query_child_content(g); });
+
+	/*
+	 * Load configuration and update depot config on the sculpt partition
+	 */
+	if (_storage._selected_target.valid() && _prepare_in_progress())
+		g.node("child", [&] {
+			gen_prepare_child_content(g, _prepare_version); });
+
+	/*
+	 * Spawn chroot instances for accessing '/depot' and '/public'. The
+	 * chroot instances implicitly refer to the 'default_fs_rw'.
+	 */
+	if (_storage._selected_target.valid()) {
+
+		auto chroot = [&] (Child_name const &name, Path const &path, Writeable w) {
+			g.node("child", [&] {
+				gen_chroot_child_content(g, name, path, w); }); };
+
+		if (_update_running()) {
+			chroot("depot_rw",  "/depot",  WRITEABLE);
+			chroot("public_rw", "/public", WRITEABLE);
+		}
+
+		chroot("depot", "/depot",  READ_ONLY);
+
+		_deploy.gen_child_nodes(g);
+	}
+
+	/* execute file operations */
+	if (_storage._selected_target.valid())
+		if (_file_operation_queue.any_operation_in_progress())
+			g.node("child", [&] {
+				gen_fs_tool_child_content(g, _fs_tool_version,
+				                          _file_operation_queue); });
+
+	if (_update_running())
+		g.node("child", [&] {
+			gen_update_child_content(g); });
+
+	if (_system.storage_stage) /* touch keyboard not needed at earliest boot stage */
+		_touch_keyboard.gen_child_node(g);
+
+}
+
+
 void Sculpt::Main::_generate_runtime_config(Generator &g) const
 {
 	g.attribute("verbose", "yes");
@@ -2469,60 +2539,11 @@ void Sculpt::Main::_generate_runtime_config(Generator &g) const
 		g.attribute("height", _affinity_space.height());
 	});
 
-	_drivers.gen_start_nodes(g);
+	g.node("start", [&] {
+		gen_launcher_query_start_content(g); });
 
-	_dialog_runtime.gen_start_nodes(g);
-	_storage.gen_runtime_start_nodes(g);
-	_dir_query.gen_start_nodes(g);
-
-	if (_system.storage_stage) /* touch keyboard not needed at earliest boot stage */
-		_touch_keyboard.gen_start_node(g);
-
-	/*
-	 * Load configuration and update depot config on the sculpt partition
-	 */
-	if (_storage._selected_target.valid() && _prepare_in_progress())
-		g.node("start", [&] {
-			gen_prepare_start_content(g, _prepare_version); });
-
-	/*
-	 * Spawn chroot instances for accessing '/depot' and '/public'. The
-	 * chroot instances implicitly refer to the 'default_fs_rw'.
-	 */
-	if (_storage._selected_target.valid()) {
-
-		auto chroot = [&] (Start_name const &name, Path const &path, Writeable w) {
-			g.node("start", [&] {
-				gen_chroot_start_content(g, name, path, w); }); };
-
-		if (_update_running()) {
-			chroot("depot_rw",  "/depot",  WRITEABLE);
-			chroot("public_rw", "/public", WRITEABLE);
-		}
-
-		chroot("depot", "/depot",  READ_ONLY);
-	}
-
-	/* execute file operations */
-	if (_storage._selected_target.valid())
-		if (_file_operation_queue.any_operation_in_progress())
-			g.node("start", [&] {
-				gen_fs_tool_start_content(g, _fs_tool_version,
-				                          _file_operation_queue); });
-
-	_network.gen_runtime_start_nodes(g);
-
-	if (_update_running())
-		g.node("start", [&] {
-			gen_update_start_content(g); });
-
-	if (_storage._selected_target.valid() && !_prepare_in_progress()) {
-		g.node("start", [&] {
-			gen_launcher_query_start_content(g); });
-
-		_deploy_config.with_node([&] (Node const &deploy) {
-			_deploy.gen_runtime_start_nodes(g, deploy, _prio_levels, _affinity_space); });
-	}
+	_deploy_config.with_node([&] (Node const &deploy) {
+		_deploy.gen_runtime_start_nodes(g, deploy, _prio_levels, _affinity_space); });
 }
 
 

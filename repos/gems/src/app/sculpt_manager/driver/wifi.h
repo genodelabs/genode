@@ -21,13 +21,13 @@ struct Sculpt::Wifi_driver : private Noncopyable
 {
 	Constructible<Child_state> _wifi { };
 
-	void gen_start_node(Generator &g) const
+	void gen_child_node(Generator &g) const
 	{
 		if (!_wifi.constructed())
 			return;
 
-		g.node("start", [&] {
-			_wifi->gen_start_node_content(g);
+		g.node("child", [&] {
+			_wifi->gen_child_node_content(g);
 
 			g.node("config", [&] {
 				g.attribute("dtb", "wifi.dtb");
@@ -57,34 +57,29 @@ struct Sculpt::Wifi_driver : private Noncopyable
 				});
 			});
 
-			g.tabular_node("route", [&] {
-				gen_service_node<Platform::Session>(g, [&] {
+			g.tabular_node("connect", [&] {
+				g.node("platform", [&] {
 					g.node("parent", [&] {
 						g.attribute("label", "wifi"); }); });
-				g.node("service", [&] {
-					g.attribute("name", "Uplink");
+				g.node("uplink", [&] {
 					g.node("child", [&] {
 						g.attribute("name", "nic_router");
 						g.attribute("label", "wifi -> "); }); });
-				gen_common_routes(g);
-				gen_parent_rom_route(g, "wifi");
-				gen_parent_rom_route(g, "wifi.dtb");
-				gen_parent_rom_route(g, "libcrypto.lib.so");
-				gen_parent_rom_route(g, "vfs.lib.so");
-				gen_parent_rom_route(g, "libc.lib.so");
-				gen_parent_rom_route(g, "libm.lib.so");
-				gen_parent_rom_route(g, "vfs_jitterentropy.lib.so");
-				gen_parent_rom_route(g, "libssl.lib.so");
-				gen_parent_rom_route(g, "wifi.lib.so");
-				gen_parent_rom_route(g, "wifi_firmware.tar");
-				gen_parent_rom_route(g, "wpa_driver_nl80211.lib.so");
-				gen_parent_rom_route(g, "wpa_supplicant.lib.so");
-				gen_parent_route<Rm_session>   (g);
-				gen_parent_route<Rtc::Session> (g);
-				gen_service_node<Rom_session>(g, [&] {
-					g.attribute("label", "wifi_config");
-					g.node("parent", [&] {
-						g.attribute("label", "config -> wifi"); }); });
+				connect_report(g);
+				connect_parent_rom(g, "wifi.dtb");
+				connect_parent_rom(g, "libcrypto.lib.so");
+				connect_parent_rom(g, "vfs.lib.so");
+				connect_parent_rom(g, "libc.lib.so");
+				connect_parent_rom(g, "libm.lib.so");
+				connect_parent_rom(g, "vfs_jitterentropy.lib.so");
+				connect_parent_rom(g, "libssl.lib.so");
+				connect_parent_rom(g, "wifi.lib.so");
+				connect_parent_rom(g, "wifi_firmware.tar");
+				connect_parent_rom(g, "wpa_driver_nl80211.lib.so");
+				connect_parent_rom(g, "wpa_supplicant.lib.so");
+				g.node("rm",  [&] { g.node("parent"); });
+				g.node("rtc", [&] { g.node("parent"); });
+				connect_config_rom(g, "wifi_config", "wifi");
 			});
 		});
 	};

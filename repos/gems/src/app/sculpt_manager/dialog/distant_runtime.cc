@@ -136,27 +136,14 @@ void Distant_runtime::_try_handle_click_and_clack()
 }
 
 
-void Distant_runtime::gen_start_nodes(Generator &g) const
+void Distant_runtime::gen_child_nodes(Generator &g) const
 {
-	g.node("start", [&] {
+	g.node("child", [&] {
 
-		g.attribute("name",    _start_name);
+		gen_child_attr(g, _child_name, Binary_name { "menu_view" },
+		               _caps, _ram, Priority::LEITZENTRALE);
+
 		g.attribute("version", _version);
-		g.attribute("priority", (int)Priority::LEITZENTRALE);
-		g.attribute("caps",    _caps.value);
-
-		auto resource = [&] (auto const &type, auto const &amount)
-		{
-			g.node("resource", [&] {
-				g.attribute("name", type);
-				g.attribute("quantum", String<64>(amount)); });
-		};
-
-		resource("RAM", Number_of_bytes(_ram.value));
-		resource("CPU", 20);
-
-		g.node("binary", [&] {
-			g.attribute("name", "menu_view"); });
 
 		g.node("heartbeat", [&] { });
 
@@ -183,36 +170,28 @@ void Distant_runtime::gen_start_nodes(Generator &g) const
 				});
 			});
 
-			_views.for_each([&] (View const &view) {
-				view._gen_menu_view_dialog(g); });
+			g.tabular([&] {
+				_views.for_each([&] (View const &view) {
+					view._gen_menu_view_dialog(g); });
+			});
 		});
 
-		g.tabular_node("route", [&] {
-			gen_parent_rom_route(g, "menu_view");
-			gen_parent_rom_route(g, "ld.lib.so");
-			gen_parent_rom_route(g, "vfs.lib.so");
-			gen_parent_rom_route(g, "libc.lib.so");
-			gen_parent_rom_route(g, "libm.lib.so");
-			gen_parent_rom_route(g, "libpng.lib.so");
-			gen_parent_rom_route(g, "zlib.lib.so");
-			gen_parent_rom_route(g, "menu_view_styles.tar");
-			gen_parent_route<Cpu_session>    (g);
-			gen_parent_route<Pd_session>     (g);
-			gen_parent_route<Log_session>    (g);
-			gen_parent_route<Timer::Session> (g);
+		g.tabular_node("connect", [&] {
+			connect_parent_rom(g, "vfs.lib.so");
+			connect_parent_rom(g, "libc.lib.so");
+			connect_parent_rom(g, "libm.lib.so");
+			connect_parent_rom(g, "libpng.lib.so");
+			connect_parent_rom(g, "zlib.lib.so");
+			connect_parent_rom(g, "menu_view_styles.tar");
 
 			_views.for_each([&] (View const &view) {
-				view._gen_menu_view_routes(g); });
+				view._gen_view_connections(g); });
 
-			gen_service_node<Report::Session>(g, [&] {
-				g.attribute("label", "hover");
+			gen_named_node(g, "report", "hover", [&] {
 				g.node("parent", [&] {
-					g.attribute("label", "leitzentrale -> runtime_view -> hover");
-				});
-			});
+					g.attribute("label", "leitzentrale -> runtime_view -> hover"); }); });
 
-			gen_service_node<::File_system::Session>(g, [&] {
-				g.attribute("label_prefix", "fonts ->");
+			gen_named_node(g, "fs", "fonts", [&] {
 				g.node("parent", [&] {
 					g.attribute("identity", "leitzentrale -> fonts"); }); });
 		});
@@ -225,26 +204,24 @@ void Distant_runtime::View::_gen_menu_view_dialog(Generator &g) const
 	g.node("dialog", [&] {
 		g.attribute("name", name);
 
+		g.attribute("background", String<20>(_background));
+
 		if (min_width)  g.attribute("width",  min_width);
 		if (min_height) g.attribute("height", min_height);
 		if (_opaque)    g.attribute("opaque", "yes");
-
-		g.attribute("background", String<20>(_background));
 	});
 }
 
 
-void Distant_runtime::View::_gen_menu_view_routes(Generator &g) const
+void Distant_runtime::View::_gen_view_connections(Generator &g) const
 {
 	Session_label::String const label { "leitzentrale -> ", name, "_dialog" };
 
-	gen_service_node<Rom_session>(g, [&] {
-		g.attribute("label", name);
+	gen_named_node(g, "rom", name, [&] {
 		g.node("parent", [&] {
 			g.attribute("label", label); }); });
 
-	gen_service_node<Gui::Session>(g, [&] {
-		g.attribute("label", name);
+	gen_named_node(g, "gui", name, [&] {
 		g.node("parent", [&] {
 			g.attribute("label", label); }); });
 }

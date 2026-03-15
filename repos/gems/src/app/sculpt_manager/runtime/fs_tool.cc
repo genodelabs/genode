@@ -14,15 +14,13 @@
 #include <model/file_operation_queue.h>
 #include <runtime.h>
 
-void Sculpt::gen_fs_tool_start_content(Generator &g, Fs_tool_version version,
+void Sculpt::gen_fs_tool_child_content(Generator &g, Fs_tool_version version,
                                        File_operation_queue const &operations)
 {
+	gen_child_attr(g, Child_name { "fs_tool" }, Binary_name { "fs_tool" },
+	               Cap_quota{200}, Ram_quota{5*1024*1024}, Priority::STORAGE);
+
 	g.attribute("version", version.value);
-
-	gen_common_start_content(g, "fs_tool", Cap_quota{200}, Ram_quota{5*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", "fs_tool");
 
 	g.node("config", [&] {
 
@@ -46,22 +44,14 @@ void Sculpt::gen_fs_tool_start_content(Generator &g, Fs_tool_version version,
 		operations.gen_fs_tool_config(g);
 	});
 
-	g.tabular_node("route", [&] {
+	g.tabular_node("connect", [&] {
 
-		gen_service_node<::File_system::Session>(g, [&] {
-			g.attribute("label_prefix", "target ->");
+		gen_named_node(g, "fs", "target", [&] {
 			gen_named_node(g, "child", "default_fs_rw"); });
 
-		gen_parent_rom_route(g, "fs_tool");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_rom_route(g, "vfs.lib.so");
-		gen_parent_route<Cpu_session> (g);
-		gen_parent_route<Pd_session>  (g);
-		gen_parent_route<Log_session> (g);
-		gen_parent_route<Rom_session> (g);
-
-		gen_service_node<::File_system::Session>(g, [&] {
-			g.attribute("label_prefix", "config ->");
+		gen_named_node(g, "fs", "config", [&] {
 			g.node("parent", [&] { g.attribute("identity", "config"); }); });
+
+		connect_parent_rom(g, "vfs.lib.so");
 	});
 }

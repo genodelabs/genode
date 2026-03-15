@@ -15,8 +15,8 @@
 
 namespace Sculpt {
 
-	void gen_e2fs_start_content(Generator &, Storage_target const &,
-	                            Rom_name const &, auto const &);
+	void gen_e2fs_child_content(Generator &, Storage_target const &,
+	                            Binary_name const &, auto const &);
 
 	void gen_arg(Generator &g, auto const &arg)
 	{
@@ -25,16 +25,13 @@ namespace Sculpt {
 }
 
 
-void Sculpt::gen_e2fs_start_content(Generator            &g,
+void Sculpt::gen_e2fs_child_content(Generator            &g,
                                     Storage_target const &target,
-                                    Rom_name       const &tool,
+                                    Binary_name    const &tool,
                                     auto           const &gen_args_fn)
 {
-	gen_common_start_content(g, String<64>(target.label(), ".", tool),
-	                         Cap_quota{500}, Ram_quota{100*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", tool);
+	gen_child_attr(g, Child_name { target.label(), ".", tool }, tool,
+	               Cap_quota{500}, Ram_quota{100*1024*1024}, Priority::STORAGE);
 
 	g.node("config", [&] {
 		g.node("libc", [&] {
@@ -58,19 +55,17 @@ void Sculpt::gen_e2fs_start_content(Generator            &g,
 		gen_args_fn(g);
 	});
 
-	g.tabular_node("route", [&] {
-		target.gen_block_session_route(g);
-		gen_parent_route<Cpu_session>    (g);
-		gen_parent_route<Pd_session>     (g);
-		gen_parent_route<Log_session>    (g);
-		gen_parent_route<Rom_session>    (g);
-		gen_parent_route<Timer::Session> (g);
+	g.tabular_node("connect", [&] {
+		target.gen_block_session_connect(g);
+		connect_parent_rom(g, "vfs.lib.so");
+		connect_parent_rom(g, "libc.lib.so");
+		connect_parent_rom(g, "libm.lib.so");
+		connect_parent_rom(g, "posix.lib.so");
 	});
 }
 
 
-void Sculpt::gen_fsck_ext2_start_content(Generator &g,
-                                         Storage_target const &target)
+void Sculpt::gen_fsck_ext2_child_content(Generator &g, Storage_target const &target)
 {
 	auto gen_args = [&] (Generator &g) {
 		gen_arg(g, "fsck.ext2");
@@ -78,12 +73,11 @@ void Sculpt::gen_fsck_ext2_start_content(Generator &g,
 		gen_arg(g, "/dev/block");
 	};
 
-	gen_e2fs_start_content(g, target, "e2fsck", gen_args);
+	gen_e2fs_child_content(g, target, "e2fsck", gen_args);
 }
 
 
-void Sculpt::gen_mkfs_ext2_start_content(Generator &g,
-                                         Storage_target const &target)
+void Sculpt::gen_mkfs_ext2_child_content(Generator &g, Storage_target const &target)
 {
 	auto gen_args = [&] (Generator &g) {
 		gen_arg(g, "mkfs.ext2");
@@ -91,12 +85,11 @@ void Sculpt::gen_mkfs_ext2_start_content(Generator &g,
 		gen_arg(g, "/dev/block");
 	};
 
-	gen_e2fs_start_content(g, target, "mke2fs", gen_args);
+	gen_e2fs_child_content(g, target, "mke2fs", gen_args);
 }
 
 
-void Sculpt::gen_resize2fs_start_content(Generator &g,
-                                         Storage_target const &target)
+void Sculpt::gen_resize2fs_child_content(Generator &g, Storage_target const &target)
 {
 	auto gen_args = [&] (Generator &g) {
 		gen_arg(g, "resize2fs");
@@ -105,5 +98,5 @@ void Sculpt::gen_resize2fs_start_content(Generator &g,
 		gen_arg(g, "/dev/block");
 	};
 
-	gen_e2fs_start_content(g, target, "resize2fs", gen_args);
+	gen_e2fs_child_content(g, target, "resize2fs", gen_args);
 }

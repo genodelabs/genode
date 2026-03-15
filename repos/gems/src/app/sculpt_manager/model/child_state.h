@@ -125,6 +125,23 @@ struct Sculpt::Child_state : Noncopyable
 				});
 		}
 
+		void gen_child_node_content(Generator &g) const
+		{
+			gen_child_attr(g, attr.name, attr.binary, _cap_quota, _ram_quota,
+			               attr.priority);
+
+			if (_version.value)
+				g.attribute("version", _version.value);
+
+			if (_location_valid(attr))
+				g.node("affinity", [&] {
+					g.attribute("xpos",   attr.location.xpos());
+					g.attribute("ypos",   attr.location.ypos());
+					g.attribute("width",  attr.location.width());
+					g.attribute("height", attr.location.height());
+				});
+		}
+
 		/**
 		 * Adapt runtime state information to the child
 		 *

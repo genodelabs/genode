@@ -15,20 +15,18 @@
 
 namespace Sculpt {
 
-	void _gen_gpt_write_start_content(Generator &, Storage_device const &,
-	                                  Start_name const &, auto const &);
+	void _gen_gpt_write_child_content(Generator &, Storage_device const &,
+	                                  Child_name const &, auto const &);
 }
 
 
-void Sculpt::_gen_gpt_write_start_content(Generator            &g,
+void Sculpt::_gen_gpt_write_child_content(Generator            &g,
                                           Storage_device const &device,
-                                          Start_name     const &name,
+                                          Child_name     const &name,
                                           auto           const &gen_actions_fn)
 {
-	gen_common_start_content(g, name, Cap_quota{100}, Ram_quota{2*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", "gpt_write");
+	gen_child_attr(g, name, Binary_name { "gpt_write" },
+	               Cap_quota{100}, Ram_quota{2*1024*1024}, Priority::STORAGE);
 
 	g.node("config", [&] {
 		g.attribute("verbose",         "yes");
@@ -38,26 +36,19 @@ void Sculpt::_gen_gpt_write_start_content(Generator            &g,
 		g.node("actions", [&] { gen_actions_fn(g); });
 	});
 
-	g.tabular_node("route", [&] {
+	g.tabular_node("connect", [&] {
 
 		Storage_target const target { device.driver, device.port, Partition::Number { } };
-		target.gen_block_session_route(g);
-
-		gen_parent_rom_route(g, "gpt_write");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_route<Cpu_session>    (g);
-		gen_parent_route<Pd_session>     (g);
-		gen_parent_route<Log_session>    (g);
-		gen_parent_route<Rom_session>    (g);
+		target.gen_block_session_connect(g);
 	});
 }
 
 
-void Sculpt::gen_gpt_relabel_start_content(Generator            &g,
+void Sculpt::gen_gpt_relabel_child_content(Generator            &g,
                                            Storage_device const &device)
 {
-	Start_name const name = device.relabel_start_name();
-	_gen_gpt_write_start_content(g, device, name, [&] (Generator &g) {
+	Child_name const name = device.relabel_child_name();
+	_gen_gpt_write_child_content(g, device, name, [&] (Generator &g) {
 
 		device.for_each_partition([&] (Partition const &partition) {
 
@@ -68,11 +59,11 @@ void Sculpt::gen_gpt_relabel_start_content(Generator            &g,
 }
 
 
-void Sculpt::gen_gpt_expand_start_content(Generator            &g,
+void Sculpt::gen_gpt_expand_child_content(Generator            &g,
                                           Storage_device const &device)
 {
-	Start_name const name = device.expand_start_name();
-	_gen_gpt_write_start_content(g, device, name, [&] (Generator &g) {
+	Child_name const name = device.expand_child_name();
+	_gen_gpt_write_child_content(g, device, name, [&] (Generator &g) {
 		device.for_each_partition([&] (Partition const &partition) {
 
 			if (partition.number.valid() && partition.gpt_expand_in_progress)

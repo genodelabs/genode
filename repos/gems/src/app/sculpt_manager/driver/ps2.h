@@ -21,13 +21,13 @@ struct Sculpt::Ps2_driver : private Noncopyable
 {
 	Constructible<Child_state> _ps2 { };
 
-	void gen_start_node(Generator &g) const
+	void gen_child_node(Generator &g) const
 	{
 		if (!_ps2.constructed())
 			return;
 
-		g.node("start", [&] {
-			_ps2->gen_start_node_content(g);
+		g.node("child", [&] {
+			_ps2->gen_child_node_content(g);
 
 			g.node("config", [&] {
 				g.attribute("capslock_led", "rom");
@@ -35,16 +35,12 @@ struct Sculpt::Ps2_driver : private Noncopyable
 				g.attribute("system",       "yes");
 			});
 
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>(g);
-				gen_common_routes(g);
-				gen_parent_rom_route(g, "capslock", "capslock");
-				gen_parent_rom_route(g, "numlock",  "numlock");
-				gen_parent_rom_route(g, "system",   "config -> system");
-				gen_parent_route<Rom_session>   (g);
-				gen_service_node<Event::Session>(g, [&] {
-					g.node("parent", [&] {
-						g.attribute("label", "ps2"); }); });
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_parent_rom(g, "capslock");
+				connect_parent_rom(g, "numlock");
+				connect_config_rom(g, "system", "system");
+				connect_event(g, "ps2");
 			});
 		});
 	};

@@ -13,20 +13,15 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_ram_fs_start_content(Generator &g, Ram_fs_state const &state)
+void Sculpt::gen_ram_fs_child_content(Generator &g, Ram_fs_state const &state)
 {
-	state.gen_start_node_content(g);
+	state.gen_child_node_content(g);
 
-	gen_provides<::File_system::Session>(g);
+	g.node("provides", [&] { g.node("fs"); });
 
-	g.tabular_node("route", [&] {
-		gen_parent_rom_route(g, "vfs");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_rom_route(g, "vfs.lib.so");
-		gen_parent_route<Cpu_session> (g);
-		gen_parent_route<Pd_session>  (g);
-		gen_parent_route<Log_session> (g);
-		gen_parent_rom_route(g, "config", "config -> ram_fs");
-		gen_parent_route<Rom_session> (g);
+	g.tabular_node("connect", [&] {
+		connect_parent_rom(g, "vfs.lib.so");
+		connect_config_rom(g, "config", "ram_fs");
+		g.node("rom", [&] { g.node("parent"); });
 	});
 }

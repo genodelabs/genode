@@ -24,96 +24,6 @@
 
 namespace Sculpt {
 
-	static inline void gen_named_node(Generator &g,
-	                                  char const *type, char const *name, auto const &fn)
-	{
-		g.node(type, [&] {
-			g.attribute("name", name);
-			fn();
-		});
-	}
-
-	static inline void gen_named_node(Generator &g, char const *type, char const *name)
-	{
-		g.node(type, [&] { g.attribute("name", name); });
-	}
-
-	static inline void gen_named_node(Generator &g,
-	                                  char const *type, auto const &name, auto const &fn)
-	{
-		gen_named_node(g, type, name.string(), fn);
-	}
-
-	static inline void gen_named_node(Generator &g, char const *type, auto const &name)
-	{
-		gen_named_node(g, type, name.string());
-	}
-
-	template <typename SESSION>
-	static inline void gen_service_node(Generator &g, auto const &fn)
-	{
-		gen_named_node(g, "service", SESSION::service_name(), fn);
-	}
-
-	template <typename SESSION>
-	static inline void gen_parent_service(Generator &g)
-	{
-		gen_named_node(g, "service", SESSION::service_name());
-	};
-
-	template <typename SESSION>
-	static inline void gen_parent_route(Generator &g)
-	{
-		gen_named_node(g, "service", SESSION::service_name(), [&] {
-			g.node("parent", [&] { }); });
-	}
-
-	static inline void gen_parent_rom_route(Generator      &g,
-	                                        Rom_name const &name,
-	                                        auto     const &label)
-	{
-		gen_service_node<Rom_session>(g, [&] {
-			g.attribute("label_last", name);
-			g.node("parent", [&] {
-				g.attribute("label", label); });
-		});
-	}
-
-	static inline void gen_parent_rom_route(Generator &g, Rom_name const &name)
-	{
-		gen_parent_rom_route(g, name, name);
-	}
-
-	template <typename SESSION>
-	static inline void gen_provides(Generator &g)
-	{
-		g.node("provides", [&] {
-			gen_named_node(g, "service", SESSION::service_name()); });
-	}
-
-	static inline void gen_common_routes(Generator &g)
-	{
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_route<Cpu_session>    (g);
-		gen_parent_route<Pd_session>     (g);
-		gen_parent_route<Log_session>    (g);
-		gen_parent_route<Timer::Session> (g);
-		gen_parent_route<Report::Session>(g);
-	}
-
-	static inline void gen_common_start_content(Generator       &g,
-	                                            Rom_name  const &name,
-	                                            Cap_quota const  caps,
-	                                            Ram_quota const  ram,
-	                                            Priority  const  priority)
-	{
-		g.attribute("name", name);
-		g.attribute("caps", caps.value);
-		g.attribute("priority", (int)priority);
-		gen_named_node(g, "resource", "RAM", [&] {
-			g.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
-	}
-
 	template <typename T>
 	static T _attribute_value(Node const &node, char const *attr_name)
 	{
@@ -190,6 +100,179 @@ namespace Sculpt {
 
 			bool valid() const override { return !_rom.node().has_type("empty"); }
 	};
+
+
+	/*
+	 * Helpers for generating names nodes
+	 */
+
+	static inline void gen_named_node(Generator &g,
+	                                  char const *type, char const *name, auto const &fn)
+	{
+		g.node(type, [&] {
+			g.attribute("name", name);
+			fn();
+		});
+	}
+
+	static inline void gen_named_node(Generator &g, char const *type, char const *name)
+	{
+		g.node(type, [&] { g.attribute("name", name); });
+	}
+
+	static inline void gen_named_node(Generator &g,
+	                                  char const *type, auto const &name, auto const &fn)
+	{
+		gen_named_node(g, type, name.string(), fn);
+	}
+
+	static inline void gen_named_node(Generator &g, char const *type, auto const &name)
+	{
+		gen_named_node(g, type, name.string());
+	}
+
+
+	/*
+	 * Helpers for generating init configurations
+	 */
+
+	template <typename SESSION>
+	static inline void gen_service_node(Generator &g, auto const &fn)
+	{
+		gen_named_node(g, "service", SESSION::service_name(), fn);
+	}
+
+	template <typename SESSION>
+	static inline void gen_parent_service(Generator &g)
+	{
+		gen_named_node(g, "service", SESSION::service_name());
+	};
+
+	template <typename SESSION>
+	static inline void gen_parent_route(Generator &g)
+	{
+		gen_named_node(g, "service", SESSION::service_name(), [&] {
+			g.node("parent", [&] { }); });
+	}
+
+	static inline void gen_parent_rom_route(Generator      &g,
+	                                        Rom_name const &name,
+	                                        auto     const &label)
+	{
+		gen_service_node<Rom_session>(g, [&] {
+			g.attribute("label_last", name);
+			g.node("parent", [&] {
+				g.attribute("label", label); });
+		});
+	}
+
+	static inline void gen_parent_rom_route(Generator &g, Rom_name const &name)
+	{
+		gen_parent_rom_route(g, name, name);
+	}
+
+	template <typename SESSION>
+	static inline void gen_provides(Generator &g)
+	{
+		g.node("provides", [&] {
+			gen_named_node(g, "service", SESSION::service_name()); });
+	}
+
+	static inline void gen_common_start_content(Generator       &g,
+	                                            Rom_name  const &name,
+	                                            Cap_quota const  caps,
+	                                            Ram_quota const  ram,
+	                                            Priority  const  priority)
+	{
+		g.attribute("name", name);
+		g.attribute("caps", caps.value);
+		g.attribute("priority", (int)priority);
+		gen_named_node(g, "resource", "RAM", [&] {
+			g.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
+	}
+
+
+	/*
+	 * Helpers for generating deploy configurations
+	 */
+
+	static inline void connect_parent_rom(Generator &g,
+	                                      Rom_name const &name,
+	                                      auto     const &label)
+	{
+		gen_named_node(g, "rom", name, [&] {
+			g.node("parent", [&] { g.attribute("label", label); }); });
+	}
+
+	static inline void connect_parent_rom(Generator &g, Rom_name const &name)
+	{
+		gen_named_node(g, "rom", name, [&] {
+			g.node("parent", [&] { g.attribute("label", name); }); });
+	}
+
+	static inline void connect_report(Generator &g)
+	{
+		g.node("report", [&] { g.node("parent", [&] { }); });
+	}
+
+	static inline void connect_platform(Generator &g)
+	{
+		g.node("platform", [&] { g.node("parent", [&] { }); });
+	}
+
+	static inline void connect_event(Generator &g, auto const &label)
+	{
+		g.node("event", [&] {
+			g.node("parent", [&] { g.attribute("label", label); }); });
+	}
+
+	static inline void connect_capture(Generator &g)
+	{
+		g.node("capture", [&] { g.node("parent"); });
+	}
+
+	static inline void connect_pin_control(Generator &g)
+	{
+		g.node("pin_control", [&] { g.node("parent"); });
+	}
+
+	static inline void connect_i2c(Generator &g)
+	{
+		g.node("i2c", [&] { g.node("parent"); });
+	}
+
+	static inline void connect_config_fs(Generator &g)
+	{
+		g.node("fs", [&] {
+			g.node("parent", [&] { g.attribute("identity", "config"); }); });
+	}
+
+	static inline void connect_config_rom(Generator &g, Rom_name const &name, Rom_name const &config_rom)
+	{
+		gen_named_node(g, "rom", name, [&] {
+			g.node("parent", [&] {
+				Session_label const label { "config -> ", config_rom };
+				g.attribute("label", label); }); });
+	}
+
+	static inline void connect_fs(Generator &g, Server_name const &server)
+	{
+		g.node("fs", [&] { gen_named_node(g, "child", server); });
+	}
+
+	static inline void gen_child_attr(Generator         &g,
+	                                  Child_name  const &name,
+	                                  Binary_name const &binary,
+	                                  Cap_quota   const  caps,
+	                                  Ram_quota   const  ram,
+	                                  Priority    const  priority)
+	{
+		g.attribute("name",   name);
+		g.attribute("binary", binary);
+		g.attribute("ram",    String<64>(Num_bytes { ram.value }));
+		g.attribute("caps",   caps.value);
+		g.attribute("priority", (int)priority);
+	}
 }
 
 #endif /* _XML_H_ */

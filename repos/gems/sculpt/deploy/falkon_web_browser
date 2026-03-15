@@ -7,6 +7,8 @@ config | arch: | info: disposable web browser
   + service LOG                         | + parent
   + service Timer                       | + parent
 
++ option managed
+
 + start black_hole
 + start mixer
 + start system_clock

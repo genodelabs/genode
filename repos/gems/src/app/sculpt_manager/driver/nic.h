@@ -21,25 +21,24 @@ struct Sculpt::Nic_driver : private Noncopyable
 {
 	Constructible<Child_state> _nic { };
 
-	void gen_start_node(Generator &g) const
+	void gen_child_node(Generator &g) const
 	{
 		if (!_nic.constructed())
 			return;
 
-		g.node("start", [&] {
-			_nic->gen_start_node_content(g);
+		g.node("child", [&] {
+			_nic->gen_child_node_content(g);
 			g.node("config", [&] { });
-			g.tabular_node("route", [&] {
-				gen_service_node<Platform::Session>(g, [&] {
+			g.tabular_node("connect", [&] {
+				g.node("platform", [&] {
 					g.node("parent", [&] {
 						g.attribute("label", "nic"); }); });
-				gen_service_node<Uplink::Session>(g, [&] {
+				g.node("uplink", [&] {
 					g.node("child", [&] {
 						g.attribute("name", "nic_router"); }); });
-				gen_common_routes(g);
-				gen_parent_rom_route(g, "nic");
-				gen_parent_rom_route(g, "nic.dtb");
-				gen_parent_route<Rm_session>(g);
+				connect_report(g);
+				connect_parent_rom(g, "nic.dtb");
+				g.node("rm",  [&] { g.node("parent"); });
 			});
 		});
 	};

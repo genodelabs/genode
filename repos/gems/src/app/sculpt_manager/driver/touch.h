@@ -21,24 +21,20 @@ struct Sculpt::Touch_driver : private Noncopyable
 {
 	Constructible<Child_state> _soc { };
 
-	void gen_start_node(Generator &g) const
+	void gen_child_node(Generator &g) const
 	{
 		if (!_soc.constructed())
 			return;
 
-		g.node("start", [&] {
-			_soc->gen_start_node_content(g);
+		g.node("child", [&] {
+			_soc->gen_child_node_content(g);
 			g.node("config", [&] { });
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>   (g);
-				gen_parent_rom_route(g, "dtb", "touch.dtb");
-				gen_parent_rom_route(g, "touch");
-				gen_common_routes(g);
-				gen_parent_route<Pin_control::Session>(g);
-				gen_parent_route<Irq_session>         (g);
-				gen_service_node<Event::Session>(g, [&] {
-					g.node("parent", [&] {
-						g.attribute("label", "touch"); }); });
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_parent_rom(g, "dtb", "touch.dtb");
+				connect_pin_control(g);
+				g.node("irq", [&] { g.node("parent"); });
+				connect_event(g, "touch");
 			});
 		});
 	};

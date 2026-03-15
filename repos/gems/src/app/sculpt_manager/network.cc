@@ -272,11 +272,11 @@ void Sculpt::Network::_handle_nic_router_config(Node const &config)
 }
 
 
-void Sculpt::Network::gen_runtime_start_nodes(Generator &g) const
+void Sculpt::Network::gen_child_nodes(Generator &g) const
 {
 	bool const nic_router_needed = _nic_target.type() != Nic_target::OFF
 	                            && _nic_target.type() != Nic_target::UNDEFINED;
 
 	if (nic_router_needed)
-		g.node("start", [&] { gen_nic_router_start_content(g); });
+		g.node("child", [&] { gen_nic_router_child_content(g); });
 }

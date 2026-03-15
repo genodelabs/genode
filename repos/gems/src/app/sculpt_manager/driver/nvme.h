@@ -36,14 +36,14 @@ struct Sculpt::Nvme_driver : private Noncopyable
 
 	Nvme_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_node(Generator &g) const
+	void gen_child_node(Generator &g) const
 	{
 		if (!_nvme.constructed())
 			return;
 
-		g.node("start", [&] {
-			_nvme->gen_start_node_content(g);
-			gen_provides<Block::Session>(g);
+		g.node("child", [&] {
+			_nvme->gen_child_node_content(g);
+			g.node("provides", [&] { g.node("block"); });
 			g.node("config", [&] {
 				g.attribute("system", "yes");
 				g.node("report", [&] { g.attribute("namespaces", "yes"); });
@@ -52,11 +52,10 @@ struct Sculpt::Nvme_driver : private Noncopyable
 					g.attribute("namespace", 1);
 					g.attribute("writeable", "yes"); });
 			});
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>(g);
-				gen_parent_rom_route(g, "nvme");
-				gen_parent_rom_route(g, "system",   "config -> system");
-				gen_common_routes(g);
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_config_rom(g, "system", "system");
+				connect_report(g);
 			});
 		});
 	};

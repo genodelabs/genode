@@ -84,7 +84,7 @@ void Sculpt::gen_prepare_fs_rom_start(Generator &g)
 	                         Cap_quota{100}, Ram_quota{15*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(g, "binary", "fs_rom", [&] { });
+	gen_named_node(g, "binary", "cached_fs_rom", [&] { });
 
 	gen_provides<Rom_session>(g);
 
@@ -153,15 +153,12 @@ void Sculpt::gen_prepare_bash_start(Generator &g)
 }
 
 
-void Sculpt::gen_prepare_start_content(Generator &g, Prepare_version version)
+void Sculpt::gen_prepare_child_content(Generator &g, Prepare_version version)
 {
+	gen_child_attr(g, Child_name { "prepare" }, Binary_name { "init" },
+	               Cap_quota{800}, Ram_quota{100*1024*1024}, Priority::STORAGE);
+
 	g.attribute("version", version.value);
-
-	gen_common_start_content(g, "prepare",
-	                         Cap_quota{800}, Ram_quota{100*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", "init");
 
 	g.node("config", [&] {
 
@@ -181,29 +178,24 @@ void Sculpt::gen_prepare_start_content(Generator &g, Prepare_version version)
 		g.node("start", [&] { gen_prepare_bash_start  (g); });
 	});
 
-	g.node("route", [&] {
+	g.node("connect", [&] {
 
-		gen_service_node<::File_system::Session>(g, [&] {
-			g.attribute("label_prefix", "vfs -> target ->");
+		gen_named_node(g, "fs", "vfs -> target", [&] {
 			gen_named_node(g, "child", "default_fs_rw"); });
 
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_rom_route(g, "bash-minimal.tar");
-		gen_parent_rom_route(g, "coreutils-minimal.tar");
-		gen_parent_rom_route(g, "depot_users.tar");
-		gen_parent_rom_route(g, "vfs.lib.so");
-		gen_parent_rom_route(g, "vfs_pipe.lib.so");
-		gen_parent_rom_route(g, "libc.lib.so");
-		gen_parent_rom_route(g, "libm.lib.so");
-		gen_parent_rom_route(g, "posix.lib.so");
-		gen_parent_route<Cpu_session>    (g);
-		gen_parent_route<Pd_session>     (g);
-		gen_parent_route<Log_session>    (g);
-		gen_parent_route<Rom_session>    (g);
-		gen_parent_route<Timer::Session> (g);
-
-		gen_service_node<::File_system::Session>(g, [&] {
-			g.attribute("label_prefix", "vfs -> config ->");
+		gen_named_node(g, "fs", "vfs -> config", [&] {
 			g.node("parent", [&] { g.attribute("identity", "config"); }); });
+
+		connect_parent_rom(g, "vfs");
+		connect_parent_rom(g, "cached_fs_rom");
+		connect_parent_rom(g, "bash-minimal.tar");
+		connect_parent_rom(g, "coreutils-minimal.tar");
+		connect_parent_rom(g, "depot_users.tar");
+		connect_parent_rom(g, "vfs.lib.so");
+		connect_parent_rom(g, "vfs_pipe.lib.so");
+		connect_parent_rom(g, "libc.lib.so");
+		connect_parent_rom(g, "libm.lib.so");
+		connect_parent_rom(g, "posix.lib.so");
+		connect_parent_rom(g, "VERSION");
 	});
 }

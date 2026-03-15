@@ -1,5 +1,5 @@
 /*
- * \brief  fs-query tool for tracking config-fs sub directories
+ * \brief  fs-query tool for tracking options and launchers
  * \author Norman Feske
  * \date   2018-08-21
  */
@@ -33,11 +33,6 @@ void Sculpt::gen_launcher_query_start_content(Generator &g)
 
 		g.node("query", [&] {
 			g.attribute("path", "/launcher");
-			g.attribute("content", "yes");
-		});
-
-		g.node("query", [&] {
-			g.attribute("path", "/presets");
 			g.attribute("content", "yes");
 		});
 	});

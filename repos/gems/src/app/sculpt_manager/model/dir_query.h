@@ -100,7 +100,8 @@ struct Sculpt::Dir_query : Noncopyable
 					if (_query.fs == "" || _query.fs == fs.name)
 						gen_named_node(g, "dir", fs.name, [&] {
 							g.node("fs", [&] {
-								g.attribute("label", fs.name); }); }); }); });
+								Session_label const label { fs.name, " -> /" };
+								g.attribute("label", label); }); }); }); });
 
 			g.node("query", [&] {
 				g.attribute("path", _query.vfs_path());
@@ -225,15 +226,14 @@ struct Sculpt::Dir_query : Noncopyable
 		return result;
 	}
 
-	void gen_start_nodes(Generator &g) const
+	void gen_child_nodes(Generator &g) const
 	{
 		if (!_state.constructed())
 			return;
 
-		auto gen_fs_route = [&] (Generator &g, Fs const &fs)
+		auto gen_fs_connect = [&] (Generator &g, Fs const &fs)
 		{
-			gen_service_node<::File_system::Session>(g, [&] {
-				g.attribute("label", fs.name);
+			gen_named_node(g, "fs", fs.name, [&] {
 				if (fs.parent)
 					g.node("parent", [&] {
 						g.attribute("identity", fs.name);
@@ -246,23 +246,17 @@ struct Sculpt::Dir_query : Noncopyable
 			});
 		};
 
-		g.node("start", [&] {
-			_state->_fs_query.gen_start_node_content(g);
+		g.node("child", [&] {
+			_state->_fs_query.gen_child_node_content(g);
 
-			g.tabular_node("route", [&] {
-				gen_parent_rom_route(g, "fs_query");
-				gen_parent_rom_route(g, "config", "config -> dir_query");
-				gen_parent_rom_route(g, "ld.lib.so");
-				gen_parent_rom_route(g, "vfs.lib.so");
-
-				gen_parent_route<Cpu_session>     (g);
-				gen_parent_route<Pd_session>      (g);
-				gen_parent_route<Log_session>     (g);
-				gen_parent_route<Report::Session> (g);
+			g.tabular_node("connect", [&] {
+				connect_config_rom(g, "config", "dir_query");
+				connect_parent_rom(g, "vfs.lib.so");
+				connect_report(g);
 
 				_fs_dict.for_each([&] (Fs const &fs) {
 					if (_query.fs == "" || _query.fs == fs.name)
-						gen_fs_route(g, fs); });
+						gen_fs_connect(g, fs); });
 			});
 		});
 	}

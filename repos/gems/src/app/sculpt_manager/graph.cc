@@ -160,6 +160,7 @@ void Graph::view(Scope<Depgraph> &s) const
 		bool const hidden = (name == "runtime_view"
 		                  || name == "editor"
 		                  || name == "launcher_query"
+		                  || name == "config_query"
 		                  || name == "update"
 		                  || name == "fs_tool"
 		                  || name == "depot_rw"

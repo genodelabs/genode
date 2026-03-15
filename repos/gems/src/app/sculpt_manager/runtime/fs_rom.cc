@@ -13,26 +13,18 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_fs_rom_start_content(Generator &g,
+void Sculpt::gen_fs_rom_child_content(Generator &g,
                                       Server_name const &server,
                                       Child_state const &state)
 {
-	state.gen_start_node_content(g);
+	state.gen_child_node_content(g);
 
 	g.node("config", [&] { });
 
-	gen_provides<Rom_session>(g);
+	g.node("provides", [&] { g.node("rom"); });
 
-	g.tabular_node("route", [&] {
-
-		gen_service_node<::File_system::Session>(g, [&] {
-			gen_named_node(g, "child", server); });
-
-		gen_parent_rom_route(g, state.attr.binary);
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_route<Cpu_session>(g);
-		gen_parent_route<Pd_session> (g);
-		gen_parent_route<Log_session>(g);
-		gen_parent_route<Rm_session> (g);
+	g.tabular_node("connect", [&] {
+		connect_fs(g, server);
+		g.node("rm", [&] { g.node("parent"); });
 	});
 }

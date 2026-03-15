@@ -66,12 +66,11 @@ struct Sculpt::Storage_target
 
 	Label fs() const { return ram_fs() ? label() : Label(label(), ".fs"); }
 
-	void gen_block_session_route(Generator &g) const
+	void gen_block_session_connect(Generator &g) const
 	{
 		bool const whole_device = !partition.valid();
 
-		g.node("service", [&] {
-			g.attribute("name", Block::Session::service_name());
+		g.node("block", [&] {
 
 			if (whole_device) {
 				g.node("child", [&] {

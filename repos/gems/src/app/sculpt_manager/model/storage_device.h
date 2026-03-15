@@ -51,9 +51,9 @@ struct Sculpt::Storage_device
 		                    : Start_name { driver };
 	}
 
-	Start_name part_block_start_name() const { return { name(), ".part"    }; }
-	Start_name relabel_start_name()    const { return { name(), ".relabel" }; }
-	Start_name expand_start_name()     const { return { name(), ".expand"  }; }
+	Child_name part_block_child_name() const { return { name(), ".part"    }; }
+	Child_name relabel_child_name()    const { return { name(), ".relabel" }; }
+	Child_name expand_child_name()     const { return { name(), ".expand"  }; }
 
 	Capacity capacity; /* non-const because USB storage devices need to update it */
 
@@ -67,7 +67,7 @@ struct Sculpt::Storage_device
 	Partitions partitions { };
 
 	Rom_handler<Storage_device> _partitions {
-		_env, String<80>("report -> runtime/", part_block_start_name(), "/partitions").string(),
+		_env, String<80>("report -> runtime/", part_block_child_name(), "/partitions").string(),
 		*this, &Storage_device::_handle_partitions };
 
 	unsigned _part_block_version = 0;
@@ -169,7 +169,7 @@ struct Sculpt::Storage_device
 		return needed_for_access;
 	}
 
-	inline void gen_part_block_start_content(Generator &) const;
+	inline void gen_part_block_child_content(Generator &) const;
 
 	void for_each_partition(auto const &fn) const
 	{
@@ -224,15 +224,12 @@ struct Sculpt::Storage_device
 };
 
 
-void Sculpt::Storage_device::gen_part_block_start_content(Generator &g) const
+void Sculpt::Storage_device::gen_part_block_child_content(Generator &g) const
 {
+	gen_child_attr(g, part_block_child_name(), Binary_name { "part_block" },
+	               Cap_quota{100}, Ram_quota{8*1024*1024}, Priority::STORAGE);
+
 	g.attribute("version", _part_block_version);
-
-	gen_common_start_content(g, part_block_start_name(),
-	                         Cap_quota{100}, Ram_quota{8*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", "part_block");
 
 	g.node("heartbeat", [&] { });
 
@@ -248,23 +245,15 @@ void Sculpt::Storage_device::gen_part_block_start_content(Generator &g) const
 		}
 	});
 
-	gen_provides<Block::Session>(g);
+	g.node("provides", [&] { g.node("block"); });
 
-	g.tabular_node("route", [&] {
+	g.tabular_node("connect", [&] {
 
-		gen_service_node<Block::Session>(g, [&] {
+		g.node("block", [&] {
 			gen_named_node(g, "child", driver, [&] {
 				g.attribute("label", port); }); });
 
-		gen_parent_rom_route(g, "part_block");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_route<Cpu_session> (g);
-		gen_parent_route<Pd_session>  (g);
-		gen_parent_route<Log_session> (g);
-
-		gen_service_node<Report::Session>(g, [&] {
-			g.attribute("label", "partitions");
-			g.node("parent", [&] { }); });
+		connect_report(g);
 	});
 }
 

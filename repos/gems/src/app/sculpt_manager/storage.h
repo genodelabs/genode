@@ -55,7 +55,7 @@ struct Sculpt::Storage : Noncopyable
 		return result;
 	}
 
-	void gen_runtime_start_nodes(Generator &) const;
+	void gen_child_nodes(Generator &) const;
 
 	void gen_usb_storage_policies(Generator &g) const
 	{

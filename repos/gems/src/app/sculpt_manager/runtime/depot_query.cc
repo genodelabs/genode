@@ -13,13 +13,12 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_depot_query_start_content(Generator &g)
+void Sculpt::gen_depot_query_child_content(Generator &g)
 {
-	gen_common_start_content(g, "depot_query",
-	                         Cap_quota{200}, Ram_quota{2*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", "depot_query");
+	gen_child_attr(g,
+	               Child_name { "depot_query" }, Binary_name { "depot_query" },
+	               Cap_quota{200}, Ram_quota{2*1024*1024},
+	               Priority::STORAGE);
 
 	g.node("config", [&] {
 		g.attribute("query", "rom");
@@ -27,18 +26,10 @@ void Sculpt::gen_depot_query_start_content(Generator &g)
 			gen_named_node(g, "dir", "depot", [&] {
 				g.node("fs", [&] {}); }); }); });
 
-	g.tabular_node("route", [&] {
-		gen_service_node<::File_system::Session>(g, [&] {
-			gen_named_node(g, "child", "depot"); });
-
-		gen_parent_rom_route(g, "depot_query");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_rom_route(g, "vfs.lib.so");
-		gen_parent_rom_route(g, "query", "config -> depot_query");
-
-		gen_parent_route<Cpu_session>     (g);
-		gen_parent_route<Pd_session>      (g);
-		gen_parent_route<Log_session>     (g);
-		gen_parent_route<Report::Session> (g);
+	g.tabular_node("connect", [&] {
+		connect_fs(g, "depot");
+		connect_parent_rom(g, "vfs.lib.so");
+		connect_config_rom(g, "query", "depot_query");
+		connect_report(g);
 	});
 }

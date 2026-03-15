@@ -111,46 +111,42 @@ struct Sculpt::Usb_driver : private Noncopyable
 		_usb_config.trigger_update();
 	}
 
-	void gen_start_nodes(Generator &g) const
+	void gen_child_nodes(Generator &g) const
 	{
-		auto start_node = [&] (auto const &driver, auto const &fn)
+		auto child_node = [&] (auto const &driver, auto const &fn)
 		{
 			if (driver.constructed())
-				g.node("start", [&] {
-					driver->gen_start_node_content(g);
+				g.node("child", [&] {
+					driver->gen_child_node_content(g);
 					fn(); });
 		};
 
-		start_node(_hcd, [&] {
-			gen_provides<Usb::Session>(g);
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>(g);
-				gen_parent_rom_route(g, "usb");
-				gen_parent_rom_route(g, "config", "config -> usb");
-				gen_parent_rom_route(g, "dtb",    "usb.dtb");
-				gen_common_routes(g);
+		child_node(_hcd, [&] {
+			g.node("provides", [&] { g.node("usb"); });
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_report(g);
+				connect_config_rom(g, "config", "usb");
+				connect_parent_rom(g, "dtb",    "usb.dtb");
 			});
 		});
 
-		start_node(_hid, [&] {
+		child_node(_hid, [&] {
 			g.node("config", [&] {
 				g.attribute("capslock_led", "rom");
 				g.attribute("numlock_led",  "rom");
 			});
-			g.tabular_node("route", [&] {
-				gen_service_node<Usb::Session>(g, [&] {
+			g.tabular_node("connect", [&] {
+				g.node("usb", [&] {
 					gen_named_node(g, "child", "usb"); });
-				gen_parent_rom_route(g, "usb_hid");
-				gen_parent_rom_route(g, "capslock", "capslock");
-				gen_parent_rom_route(g, "numlock",  "numlock");
-				gen_common_routes(g);
-				gen_service_node<Event::Session>(g, [&] {
-					g.node("parent", [&] {
-						g.attribute("label", "usb_hid"); }); });
+				connect_report(g);
+				connect_parent_rom(g, "capslock");
+				connect_parent_rom(g, "numlock");
+				connect_event(g, "usb_hid");
 			});
 		});
 
-		start_node(_net, [&] {
+		child_node(_net, [&] {
 			g.node("config", [&] {
 				g.node("device", [&] {
 					/*
@@ -162,12 +158,11 @@ struct Sculpt::Usb_driver : private Noncopyable
 					g.attribute("mac", "02:00:00:00:01:05");
 				});
 			});
-			g.tabular_node("route", [&] {
-				gen_service_node<Usb::Session>(g, [&] {
+			g.tabular_node("connect", [&] {
+				g.node("usb", [&] {
 					gen_named_node(g, "child", "usb"); });
-				gen_parent_rom_route(g, "usb_net");
-				gen_common_routes(g);
-				gen_service_node<Uplink::Session>(g, [&] {
+				connect_report(g);
+				g.node("uplink", [&] {
 					g.node("child", [&] {
 						g.attribute("name", "nic_router");
 						g.attribute("label", "usb_net -> ");

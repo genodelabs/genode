@@ -56,85 +56,72 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 	Fb_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_nodes(Generator &g) const
+	void gen_child_nodes(Generator &g) const
 	{
-		auto gen_capture_route = [&] (Generator &g)
-		{
-			gen_service_node<Capture::Session>(g, [&] {
-				g.node("parent", [] { }); });
-		};
-
-		auto start_node = [&] (auto const &driver, auto const &fn)
+		auto child_node = [&] (auto const &driver, auto const &fn)
 		{
 			if (driver.constructed())
-				g.node("start", [&] {
-					driver->gen_start_node_content(g);
+				g.node("child", [&] {
+					driver->gen_child_node_content(g);
 					fn(); });
 		};
 
-		start_node(_intel_gpu, [&] {
+		child_node(_intel_gpu, [&] {
 			g.node("provides", [&] {
-				gen_service_node<Gpu::Session>     (g, [&] { });
-				gen_service_node<Platform::Session>(g, [&] { });
+				g.node("gpu");
+				g.node("platform");
 			});
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>(g);
-				gen_parent_rom_route(g, "intel_gpu");
-				gen_parent_rom_route(g, "config", "config -> gpu");
-				gen_parent_rom_route(g, "system", "config -> system");
-				gen_parent_route<Rm_session>(g);
-				gen_common_routes(g);
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_config_rom(g, "config", "gpu");
+				connect_config_rom(g, "system", "system");
+				g.node("rm", [&] { g.node("parent"); });
 			});
 		});
 
-		start_node(_intel_fb, [&] {
+		child_node(_intel_fb, [&] {
 			g.node("heartbeat", [&] { });
-			g.tabular_node("route", [&] {
-				gen_service_node<Platform::Session>(g, [&] {
-					gen_named_node(g, "child", "intel_gpu"); });
-				gen_capture_route(g);
-				gen_parent_rom_route(g, "pc_intel_fb");
-				gen_parent_rom_route(g, "config", "config -> fb");
-				gen_parent_rom_route(g, "intel_opregion", "report -> drivers/intel_opregion");
-				gen_parent_route<Rm_session>(g);
-				gen_common_routes(g);
+			g.tabular_node("connect", [&] {
+				g.node("platform", [&] { gen_named_node(g, "child", "intel_gpu"); });
+				connect_capture(g);
+				connect_report(g);
+				connect_config_rom(g, "config", "fb");
+				connect_parent_rom(g, "intel_opregion", "report -> drivers/intel_opregion");
+				g.node("rm", [&] { g.node("parent"); });
 			});
 		});
 
-		start_node(_vesa_fb, [&] {
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>(g);
-				gen_capture_route(g);
-				gen_parent_rom_route(g, "vesa_fb");
-				gen_parent_rom_route(g, "config", "config -> fb");
-				gen_parent_route<Io_mem_session>(g);
-				gen_parent_route<Io_port_session>(g);
-				gen_common_routes(g);
+		child_node(_vesa_fb, [&] {
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_capture(g);
+				connect_report(g);
+				connect_config_rom(g, "config", "fb");
+				g.node("io_mem",  [&] { g.node("parent"); });
+				g.node("io_port", [&] { g.node("parent"); });
 			});
 		});
 
-		start_node(_boot_fb, [&] {
-			g.tabular_node("route", [&] {
-				gen_parent_rom_route(g, "config", "config -> fb");
-				gen_parent_rom_route(g, "boot_fb");
-				gen_parent_rom_route(g, "platform_info");
-				gen_parent_route<Io_mem_session>(g);
-				gen_capture_route(g);
-				gen_common_routes(g);
+		child_node(_boot_fb, [&] {
+			g.tabular_node("connect", [&] {
+				connect_config_rom(g, "config", "fb");
+				connect_parent_rom(g, "platform_info");
+				g.node("io_mem", [&] { g.node("parent"); });
+				connect_capture(g);
+				connect_report(g);
 			});
 		});
 
-		start_node(_soc_fb, [&] {
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>   (g);
-				gen_parent_route<Pin_control::Session>(g);
-				gen_parent_route<I2c::Session>(g);
-				gen_capture_route(g);
-				gen_parent_rom_route(g, "fb");
-				gen_parent_rom_route(g, "config", "config -> fb");
-				gen_parent_rom_route(g, "dtb",    "fb.dtb");
-				gen_parent_route<Rm_session>(g);
-				gen_common_routes(g);
+		child_node(_soc_fb, [&] {
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_pin_control(g);
+				connect_i2c(g);
+				connect_capture(g);
+				connect_report(g);
+				connect_config_rom(g, "config", "fb");
+				connect_parent_rom(g, "dtb",    "fb.dtb");
+				g.node("rm", [&] { g.node("parent"); });
 			});
 		});
 	};

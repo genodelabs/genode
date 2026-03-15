@@ -33,13 +33,10 @@ namespace Sculpt {
 
 void Sculpt::gen_touch_keyboard(Generator &g, Touch_keyboard_attr const attr)
 {
-	g.node("start", [&] {
+	g.node("child", [&] {
 
-		gen_common_start_content(g, "manager_keyboard",
-		                         Cap_quota{700}, Ram_quota{18*1024*1024},
-		                         Priority::LEITZENTRALE);
-
-		gen_named_node(g, "binary", "touch_keyboard", [&] { });
+		gen_child_attr(g, Child_name { "manager_keyboard" }, Binary_name { "touch_keyboard" },
+		               Cap_quota{700}, Ram_quota{18*1024*1024}, Priority::LEITZENTRALE);
 
 		g.node("config", [&] {
 			g.attribute("min_width",  attr.min_width);
@@ -51,38 +48,30 @@ void Sculpt::gen_touch_keyboard(Generator &g, Touch_keyboard_attr const attr)
 			g.attribute("background", String<20>(attr.background));
 		});
 
-		g.node("route", [&] {
-			gen_parent_rom_route(g, "ld.lib.so");
-			gen_parent_rom_route(g, "touch_keyboard");
-			gen_parent_rom_route(g, "layout", "touch_keyboard_layout.config");
-			gen_parent_rom_route(g, "menu_view");
-			gen_parent_rom_route(g, "ld.lib.so");
-			gen_parent_rom_route(g, "vfs.lib.so");
-			gen_parent_rom_route(g, "libc.lib.so");
-			gen_parent_rom_route(g, "libm.lib.so");
-			gen_parent_rom_route(g, "libpng.lib.so");
-			gen_parent_rom_route(g, "zlib.lib.so");
-			gen_parent_rom_route(g, "sandbox.lib.so");
-			gen_parent_rom_route(g, "dialog.lib.so");
-			gen_parent_rom_route(g, "menu_view_styles.tar");
+		g.node("connect", [&] {
+			connect_parent_rom(g, "ld.lib.so");
+			connect_parent_rom(g, "touch_keyboard");
+			connect_parent_rom(g, "layout", "touch_keyboard_layout.config");
+			connect_parent_rom(g, "menu_view");
+			connect_parent_rom(g, "ld.lib.so");
+			connect_parent_rom(g, "vfs.lib.so");
+			connect_parent_rom(g, "libc.lib.so");
+			connect_parent_rom(g, "libm.lib.so");
+			connect_parent_rom(g, "libpng.lib.so");
+			connect_parent_rom(g, "zlib.lib.so");
+			connect_parent_rom(g, "sandbox.lib.so");
+			connect_parent_rom(g, "dialog.lib.so");
+			connect_parent_rom(g, "menu_view_styles.tar");
 
-			gen_parent_route<Cpu_session>    (g);
-			gen_parent_route<Pd_session>     (g);
-			gen_parent_route<Log_session>    (g);
-			gen_parent_route<Timer::Session> (g);
-
-			gen_service_node<::File_system::Session>(g, [&] {
-				g.attribute("label_prefix", "fonts ->");
+			gen_named_node(g, "fs", "fonts", [&] {
 				g.node("parent", [&] {
 					g.attribute("identity", "leitzentrale -> fonts"); }); });
 
-			gen_service_node<Gui::Session>(g, [&] {
+			g.node("gui", [&] {
 				g.node("parent", [&] {
 					g.attribute("label", "leitzentrale -> touch_keyboard"); }); });
 
-			gen_service_node<Event::Session>(g, [&] {
-				g.node("parent", [&] {
-					g.attribute("label", "global"); }); });
+			connect_event(g, "global");
 		});
 	});
 }

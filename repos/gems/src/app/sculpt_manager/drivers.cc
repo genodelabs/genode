@@ -144,17 +144,17 @@ class Sculpt::Drivers::Instance : Noncopyable,
 			}
 		}
 
-		void gen_start_nodes(Generator &g) const
+		void gen_child_nodes(Generator &g) const
 		{
-			_ps2_driver  .gen_start_node (g);
-			_touch_driver.gen_start_node (g);
-			_fb_driver   .gen_start_nodes(g);
-			_usb_driver  .gen_start_nodes(g);
-			_ahci_driver .gen_start_node (g);
-			_nvme_driver .gen_start_node (g);
-			_mmc_driver  .gen_start_node (g);
-			_wifi_driver .gen_start_node (g);
-			_nic_driver  .gen_start_node (g);
+			_ps2_driver  .gen_child_node (g);
+			_touch_driver.gen_child_node (g);
+			_fb_driver   .gen_child_nodes(g);
+			_usb_driver  .gen_child_nodes(g);
+			_ahci_driver .gen_child_node (g);
+			_nvme_driver .gen_child_node (g);
+			_mmc_driver  .gen_child_node (g);
+			_wifi_driver .gen_child_node (g);
+			_nic_driver  .gen_child_node (g);
 		}
 
 		void with(With_storage_devices::Ft const &fn) const
@@ -215,7 +215,7 @@ void Drivers::update_usb    ()                        { _instance.update_usb(); 
 void Drivers::update_soc    (Board_info::Soc     soc) { _instance.update_soc(soc); }
 void Drivers::update_options(Board_info::Options opt) { _instance.update_options(opt); }
 
-void Drivers::gen_start_nodes(Generator &g) const { _instance.gen_start_nodes(g); }
+void Drivers::gen_child_nodes(Generator &g) const { _instance.gen_child_nodes(g); }
 
 bool Drivers::suspend_supported() const { return _instance.suspend_supported(); };
 bool Drivers::ready_for_suspend() const { return _instance.ready_for_suspend(); };

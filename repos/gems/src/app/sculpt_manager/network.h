@@ -78,7 +78,7 @@ struct Sculpt::Network : Noncopyable
 
 	Wifi_connection _wifi_connection = Wifi_connection::disconnected_wifi_connection();
 
-	void gen_runtime_start_nodes(Generator &) const;
+	void gen_child_nodes(Generator &) const;
 
 	bool ready() const { return _nic_target.ready() && _nic_state.ready(); }
 

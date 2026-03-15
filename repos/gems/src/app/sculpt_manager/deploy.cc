@@ -186,22 +186,26 @@ void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 }
 
 
+void Sculpt::Deploy::gen_child_nodes(Generator &g) const
+{
+	/* depot-ROM instance for regular (immutable) depot content */
+	g.node("child", [&] {
+		gen_fs_rom_child_content(g, "depot", cached_depot_rom_state); });
+
+	/* depot-ROM instance for mutable content (/depot/local/) */
+	g.node("child", [&] {
+		gen_fs_rom_child_content(g, "depot", uncached_depot_rom_state); });
+
+	g.node("child", [&] {
+		gen_depot_query_child_content(g); });
+}
+
+
 void Sculpt::Deploy::gen_runtime_start_nodes(Generator      &g,
                                              Node     const &deploy,
                                              Prio_levels     prio_levels,
                                              Affinity::Space affinity_space) const
 {
-	/* depot-ROM instance for regular (immutable) depot content */
-	g.node("start", [&] {
-		gen_fs_rom_start_content(g, "depot", cached_depot_rom_state); });
-
-	/* depot-ROM instance for mutable content (/depot/local/) */
-	g.node("start", [&] {
-		gen_fs_rom_start_content(g, "depot", uncached_depot_rom_state); });
-
-	g.node("start", [&] {
-		gen_depot_query_start_content(g); });
-
 	/* insert content of '<static>' node as is */
 	deploy.with_optional_sub_node("static",
 		[&] (Node const &static_config) {

@@ -8,6 +8,8 @@ config | arch: | info: software-rendering example
   + service LOG                         | + parent
   + service Timer                       | + parent
 
++ option managed
+
 + start backdrop | pkg: sticks_blue_backdrop
   + config
   | + libc

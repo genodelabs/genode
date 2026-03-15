@@ -72,13 +72,13 @@ struct Sculpt::File_browser_state : Noncopyable
 
 	bool any_browsed_fs() const { return browsed_fs.length() > 0; }
 
-	void gen_start_nodes(Generator &g) const
+	void gen_child_nodes(Generator &g) const
 	{
 		if (!fs_query.constructed() || !any_browsed_fs())
 			return;
 
-		g.node("start", [&] {
-			fs_query->gen_start_node_content(g);
+		g.node("child", [&] {
+			fs_query->gen_child_node_content(g);
 
 			g.node("config", [&] {
 				g.node("vfs", [&] {
@@ -89,18 +89,11 @@ struct Sculpt::File_browser_state : Noncopyable
 				});
 			});
 
-			g.tabular_node("route", [&] {
-				gen_parent_rom_route(g, "fs_query");
-				gen_parent_rom_route(g, "ld.lib.so");
-				gen_parent_rom_route(g, "vfs.lib.so");
+			g.tabular_node("connect", [&] {
+				connect_parent_rom(g, "vfs.lib.so");
+				connect_report(g);
 
-				gen_parent_route<Cpu_session>     (g);
-				gen_parent_route<Pd_session>      (g);
-				gen_parent_route<Log_session>     (g);
-				gen_parent_route<Report::Session> (g);
-
-				gen_service_node<::File_system::Session>(g, [&] {
-
+				g.node("fs", [&] {
 					if (browsed_fs == "config") {
 						g.node("parent", [&] {
 							g.attribute("identity", "config"); });
@@ -120,8 +113,8 @@ struct Sculpt::File_browser_state : Noncopyable
 		if (edited_file.length() <= 1 || !text_area.constructed())
 			return;
 
-		g.node("start", [&] {
-			text_area->gen_start_node_content(g);
+		g.node("child", [&] {
+			text_area->gen_child_node_content(g);
 
 			g.node("config", [&] {
 				Path const file_path = (path == "/")
@@ -149,40 +142,30 @@ struct Sculpt::File_browser_state : Noncopyable
 					g.node("fs", [&] {}); });
 			});
 
-			g.tabular_node("route", [&] {
-				gen_parent_rom_route(g, "text_area");
-				gen_parent_rom_route(g, "ld.lib.so");
-				gen_parent_rom_route(g, "vfs.lib.so");
-				gen_parent_rom_route(g, "sandbox.lib.so");
-				gen_parent_rom_route(g, "dialog.lib.so");
-				gen_parent_rom_route(g, "menu_view");
-				gen_parent_rom_route(g, "libc.lib.so");
-				gen_parent_rom_route(g, "libm.lib.so");
-				gen_parent_rom_route(g, "libpng.lib.so");
-				gen_parent_rom_route(g, "zlib.lib.so");
-				gen_parent_rom_route(g, "menu_view_styles.tar");
+			g.tabular_node("connect", [&] {
+				connect_parent_rom(g, "vfs.lib.so");
+				connect_parent_rom(g, "sandbox.lib.so");
+				connect_parent_rom(g, "dialog.lib.so");
+				connect_parent_rom(g, "libc.lib.so");
+				connect_parent_rom(g, "libm.lib.so");
+				connect_parent_rom(g, "libpng.lib.so");
+				connect_parent_rom(g, "zlib.lib.so");
+				connect_parent_rom(g, "menu_view");
+				connect_parent_rom(g, "menu_view_styles.tar");
 
-				gen_parent_route<Cpu_session>     (g);
-				gen_parent_route<Pd_session>      (g);
-				gen_parent_route<Log_session>     (g);
-				gen_parent_route<Report::Session> (g);
-				gen_parent_route<Timer::Session>  (g);
+				connect_report(g);
 
-				gen_service_node<Rom_session>(g, [&] {
-					g.attribute("label", "clipboard");
-					g.node("parent", [&] { }); });
-
-				gen_service_node<Gui::Session>(g, [&] {
+				connect_parent_rom(g, "clipboard");
+				g.node("gui", [&] {
 					g.node("parent", [&] {
 						g.attribute("label", "leitzentrale -> editor"); }); });
 
-				gen_service_node<::File_system::Session>(g, [&] {
-					g.attribute("label_prefix", "fonts ->");
+				g.node("fs", [&] {
+					g.attribute("name", "fonts");
 					g.node("parent", [&] {
 						g.attribute("identity", "leitzentrale -> fonts"); }); });
 
-				gen_service_node<::File_system::Session>(g, [&] {
-
+				g.node("fs", [&] {
 					if (browsed_fs == "config") {
 						g.node("parent", [&] {
 							g.attribute("identity", "config"); });

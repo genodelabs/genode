@@ -10,6 +10,8 @@ config | arch: | info: webcam example
   + service Capture                     | + parent
   + service Gui                         | + parent
 
++ option managed
+
 + start internal | ram: 64M | pkg: usb_webcam
   + route
     + service Usb | + child usb

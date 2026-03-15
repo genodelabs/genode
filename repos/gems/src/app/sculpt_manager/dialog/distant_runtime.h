@@ -51,7 +51,7 @@ class Dialog::Distant_runtime : Noncopyable
 
 		Event::Seq_number _global_seq_number { 1 };
 
-		Start_name const _start_name   { "runtime_view" };
+		Start_name const _child_name   { "runtime_view" };
 		Ram_quota  const _initial_ram  { 52*1024*1024 };
 		Cap_quota  const _initial_caps { 330 };
 
@@ -101,7 +101,7 @@ class Dialog::Distant_runtime : Noncopyable
 		{
 			bool result = false;
 
-			if (child.attribute_value("name", Start_name()) != _start_name)
+			if (child.attribute_value("name", Start_name()) != _child_name)
 				return false;
 
 			child.with_optional_sub_node("ram", [&] (Node const &node) {
@@ -140,7 +140,7 @@ class Dialog::Distant_runtime : Noncopyable
 		 */
 		bool apply_runtime_state(Node const &);
 
-		void gen_start_nodes(Generator &) const;
+		void gen_child_nodes(Generator &) const;
 };
 
 
@@ -228,7 +228,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 		Color const _background;
 
 		void _gen_menu_view_dialog(Generator &) const;
-		void _gen_menu_view_routes(Generator &) const;
+		void _gen_view_connections(Generator &) const;
 
 	public:
 

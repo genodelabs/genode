@@ -36,14 +36,14 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 	Ahci_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_node(Generator &g) const
+	void gen_child_node(Generator &g) const
 	{
 		if (!_ahci.constructed())
 			return;
 
-		g.node("start", [&] {
-			_ahci->gen_start_node_content(g);
-			gen_provides<Block::Session>(g);
+		g.node("child", [&] {
+			_ahci->gen_child_node_content(g);
+			g.node("provides", [&] { g.node("block"); });
 			g.node("config", [&] {
 				g.attribute("system", "yes");
 				g.node("report", [&] { g.attribute("ports", "yes"); });
@@ -53,11 +53,10 @@ struct Sculpt::Ahci_driver : private Noncopyable
 						g.attribute("device", i);
 						g.attribute("writeable", "yes"); });
 			});
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>(g);
-				gen_parent_rom_route(g, "ahci");
-				gen_parent_rom_route(g, "system",   "config -> system");
-				gen_common_routes(g);
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_config_rom(g, "system",   "system");
+				connect_report(g);
 			});
 		});
 	};

@@ -6,4 +6,5 @@ config | arch:
   + service PD                          | + parent
   + service LOG                         | + parent
   + service Timer                       | + parent
++ option managed
 -

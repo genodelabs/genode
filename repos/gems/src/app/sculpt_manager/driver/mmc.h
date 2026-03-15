@@ -36,14 +36,14 @@ struct Sculpt::Mmc_driver : private Noncopyable
 
 	Mmc_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_node(Generator &g) const
+	void gen_child_node(Generator &g) const
 	{
 		if (!_mmc.constructed())
 			return;
 
-		g.node("start", [&] {
-			_mmc->gen_start_node_content(g);
-			gen_provides<Block::Session>(g);
+		g.node("child", [&] {
+			_mmc->gen_child_node_content(g);
+			g.node("provides", [&] { g.node("block"); });
 			g.node("config", [&] {
 				g.attribute("report", "yes");
 				for (unsigned i = 0; i < 4; i++) {
@@ -55,11 +55,11 @@ struct Sculpt::Mmc_driver : private Noncopyable
 					});
 				}
 			});
-			g.tabular_node("route", [&] {
-				gen_parent_route<Platform::Session>(g);
-				gen_parent_rom_route(g, "dtb", "mmc.dtb");
-				gen_parent_rom_route(g, "mmc");
-				gen_common_routes(g);
+			g.tabular_node("connect", [&] {
+				connect_platform(g);
+				connect_parent_rom(g, "dtb", "mmc.dtb");
+				connect_config_rom(g, "system", "system");
+				connect_report(g);
 			});
 		});
 	};
