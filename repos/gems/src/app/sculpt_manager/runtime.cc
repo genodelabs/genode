@@ -25,6 +25,5 @@
 #include <runtime/nic_router.cc>
 #include <runtime/prepare.cc>
 #include <runtime/ram_fs.cc>
-#include <runtime/runtime_view.cc>
 #include <runtime/update.cc>
 #include <runtime/fs_tool.cc>

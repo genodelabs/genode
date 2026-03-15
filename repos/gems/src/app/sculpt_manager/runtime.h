@@ -50,14 +50,9 @@ namespace Sculpt {
 	void gen_depot_query_start_content(Generator &);
 	void gen_launcher_query_start_content(Generator &);
 
-	void gen_runtime_view_start_content(Generator &, Child_state const &,
-	                                    double font_size);
-
 	struct Inspect_view_version { unsigned value; };
 	void gen_inspect_view(Generator &, Storage_devices const &,
 	                      Ram_fs_state const &, Inspect_view_version);
-
-	void gen_runtime_view(Generator &);
 
 	void gen_fs_start_content(Generator &, Storage_target const &,
 	                          File_system::Type);
