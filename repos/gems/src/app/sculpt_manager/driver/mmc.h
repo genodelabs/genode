@@ -43,7 +43,6 @@ struct Sculpt::Mmc_driver : private Noncopyable
 
 		g.node("start", [&] {
 			_mmc->gen_start_node_content(g);
-			gen_named_node(g, "binary", "mmc");
 			gen_provides<Block::Session>(g);
 			g.node("config", [&] {
 				g.attribute("report", "yes");
@@ -67,8 +66,8 @@ struct Sculpt::Mmc_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_mmc.conditional(board_info.soc.mmc,
-		                 registry, "mmc", Priority::DEFAULT,
+		_mmc.conditional(board_info.soc.mmc, registry, Priority::DEFAULT,
+		                 Child_name { "mmc" }, Binary_name { "mmc" },
 		                 Ram_quota { 16*1024*1024 }, Cap_quota { 500 });
 	}
 

@@ -14,13 +14,10 @@
 #include <runtime.h>
 
 void Sculpt::gen_fs_rom_start_content(Generator &g,
-                                      Start_name const &binary,
-                                      Start_name const &server,
+                                      Server_name const &server,
                                       Child_state const &state)
 {
 	state.gen_start_node_content(g);
-
-	gen_named_node(g, "binary", binary);
 
 	g.node("config", [&] { });
 
@@ -31,7 +28,7 @@ void Sculpt::gen_fs_rom_start_content(Generator &g,
 		gen_service_node<::File_system::Session>(g, [&] {
 			gen_named_node(g, "child", server); });
 
-		gen_parent_rom_route(g, binary);
+		gen_parent_rom_route(g, state.attr.binary);
 		gen_parent_rom_route(g, "ld.lib.so");
 		gen_parent_route<Cpu_session>(g);
 		gen_parent_route<Pd_session> (g);

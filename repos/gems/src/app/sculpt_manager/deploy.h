@@ -68,16 +68,16 @@ struct Sculpt::Deploy
 
 	Child_state cached_depot_rom_state {
 		_child_states, { .name      = "depot_rom",
+		                 .binary    = "cached_fs_rom",
 		                 .priority  = Priority::STORAGE,
-		                 .cpu_quota = 0,
 		                 .location  = { },
 		                 .initial   = { Ram_quota{24*1024*1024}, Cap_quota{200} },
 		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
 
 	Child_state uncached_depot_rom_state {
 		_child_states, { .name      = "dynamic_depot_rom",
+		                 .binary    = "fs_rom",
 		                 .priority  = Priority::STORAGE,
-		                 .cpu_quota = 0,
 		                 .location  = { },
 		                 .initial   = { Ram_quota{8*1024*1024}, Cap_quota{200} },
 		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };

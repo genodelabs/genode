@@ -29,8 +29,6 @@ struct Sculpt::Ps2_driver : private Noncopyable
 		g.node("start", [&] {
 			_ps2->gen_start_node_content(g);
 
-			gen_named_node(g, "binary", "ps2");
-
 			g.node("config", [&] {
 				g.attribute("capslock_led", "rom");
 				g.attribute("numlock_led",  "rom");
@@ -57,7 +55,8 @@ struct Sculpt::Ps2_driver : private Noncopyable
 		                 && !board_info.options.suppress.ps2
 		                 && !board_info.options.suspending;
 
-		_ps2.conditional(use_ps2, registry, "ps2", Priority::MULTIMEDIA,
+		_ps2.conditional(use_ps2, registry, Priority::MULTIMEDIA,
+		                 Child_name { "ps2" }, Binary_name { "ps2" },
 		                 Ram_quota { 1*1024*1024 }, Cap_quota { 100 });
 	}
 };

@@ -193,13 +193,11 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Generator      &g,
 {
 	/* depot-ROM instance for regular (immutable) depot content */
 	g.node("start", [&] {
-		gen_fs_rom_start_content(g, "cached_fs_rom", "depot",
-		                         cached_depot_rom_state); });
+		gen_fs_rom_start_content(g, "depot", cached_depot_rom_state); });
 
 	/* depot-ROM instance for mutable content (/depot/local/) */
 	g.node("start", [&] {
-		gen_fs_rom_start_content(g, "fs_rom", "depot",
-		                         uncached_depot_rom_state); });
+		gen_fs_rom_start_content(g, "depot", uncached_depot_rom_state); });
 
 	g.node("start", [&] {
 		gen_depot_query_start_content(g); });

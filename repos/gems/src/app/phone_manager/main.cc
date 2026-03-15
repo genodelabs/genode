@@ -107,7 +107,7 @@ struct Sculpt::Main : Input_event_handler,
 	void _with_child(auto const &name, auto const &fn)
 	{
 		_child_states.for_each([&] (Child_state &child) {
-			if (child.name() == name)
+			if (child.attr.name == name)
 				fn(child); });
 
 		_child_states.for_each([&] (Child_state &) { }); /* restore orig. order */

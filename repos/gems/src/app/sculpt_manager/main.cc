@@ -100,7 +100,7 @@ struct Sculpt::Main : Input_event_handler,
 	void _with_child(auto const &name, auto const &fn)
 	{
 		_child_states.for_each([&] (Child_state &child) {
-			if (child.name() == name)
+			if (child.attr.name == name)
 				fn(child); });
 
 		_child_states.for_each([&] (Child_state &) { }); /* restore orig. order */
@@ -1562,12 +1562,13 @@ struct Sculpt::Main : Input_event_handler,
 			_file_browser_state.browsed_fs = name;
 			_file_browser_state.path = File_browser_state::Path("/");
 
-			Start_name const start_name(name, ".query");
-			_file_browser_state.fs_query.construct(_child_states, start_name,
-			                                       Priority::LEITZENTRALE,
+			Child_name const child_name(name, ".query");
+			_file_browser_state.fs_query.construct(_child_states, Priority::LEITZENTRALE,
+			                                       child_name,
+			                                       Binary_name { "fs_query" },
 			                                       Ram_quota{8*1024*1024}, Cap_quota{200});
 
-			Service::Name const rom_label("report -> /runtime/", start_name, "/listing");
+			Service::Name const rom_label("report -> /runtime/", child_name, "/listing");
 
 			_file_browser_state.query_result.construct(_env, rom_label.string());
 			_file_browser_state.query_result->sigh(_fs_query_result_handler);
@@ -1625,9 +1626,10 @@ struct Sculpt::Main : Input_event_handler,
 			if (_file_browser_state.text_area.constructed()) {
 				_file_browser_state.text_area->trigger_restart();
 			} else {
-				Start_name const start_name("editor");
-				_file_browser_state.text_area.construct(_child_states, start_name,
+				_file_browser_state.text_area.construct(_child_states,
 				                                        Priority::LEITZENTRALE,
+				                                        Child_name  { "editor" },
+				                                        Binary_name { "text_area" },
 				                                        Ram_quota{80*1024*1024}, Cap_quota{350});
 			}
 		}

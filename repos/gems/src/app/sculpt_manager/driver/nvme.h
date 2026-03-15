@@ -43,7 +43,6 @@ struct Sculpt::Nvme_driver : private Noncopyable
 
 		g.node("start", [&] {
 			_nvme->gen_start_node_content(g);
-			gen_named_node(g, "binary", "nvme");
 			gen_provides<Block::Session>(g);
 			g.node("config", [&] {
 				g.attribute("system", "yes");
@@ -64,8 +63,8 @@ struct Sculpt::Nvme_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_nvme.conditional(board_info.detected.nvme,
-		                  registry, "nvme", Priority::DEFAULT,
+		_nvme.conditional(board_info.detected.nvme, registry, Priority::DEFAULT,
+		                  Child_name { "nvme" }, Binary_name { "nvme" },
 		                  Ram_quota { 8*1024*1024 }, Cap_quota { 100 });
 	}
 

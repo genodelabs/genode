@@ -80,8 +80,6 @@ struct Sculpt::File_browser_state : Noncopyable
 		g.node("start", [&] {
 			fs_query->gen_start_node_content(g);
 
-			gen_named_node(g, "binary", "fs_query");
-
 			g.node("config", [&] {
 				g.node("vfs", [&] {
 					g.node("fs", [&] {}); });
@@ -124,8 +122,6 @@ struct Sculpt::File_browser_state : Noncopyable
 
 		g.node("start", [&] {
 			text_area->gen_start_node_content(g);
-
-			gen_named_node(g, "binary", "text_area");
 
 			g.node("config", [&] {
 				Path const file_path = (path == "/")

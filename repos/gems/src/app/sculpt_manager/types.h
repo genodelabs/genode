@@ -43,6 +43,10 @@ namespace Sculpt {
 	using Path       = String<128>;
 	using Start_name = String<36>;
 
+	struct Child_name  : String<36> { using String::String; };
+	struct Binary_name : Rom_name   { using Rom_name::Rom_name; };
+	struct Server_name : Child_name { using Child_name::Child_name; };
+
 	using Point = Gui::Point;
 	using Rect  = Gui::Rect;
 	using Area  = Gui::Area;

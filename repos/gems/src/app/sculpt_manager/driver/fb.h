@@ -64,16 +64,15 @@ struct Sculpt::Fb_driver : private Noncopyable
 				g.node("parent", [] { }); });
 		};
 
-		auto start_node = [&] (auto const &driver, auto const &binary, auto const &fn)
+		auto start_node = [&] (auto const &driver, auto const &fn)
 		{
 			if (driver.constructed())
 				g.node("start", [&] {
 					driver->gen_start_node_content(g);
-					gen_named_node(g, "binary", binary);
 					fn(); });
 		};
 
-		start_node(_intel_gpu, "intel_gpu", [&] {
+		start_node(_intel_gpu, [&] {
 			g.node("provides", [&] {
 				gen_service_node<Gpu::Session>     (g, [&] { });
 				gen_service_node<Platform::Session>(g, [&] { });
@@ -88,7 +87,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 			});
 		});
 
-		start_node(_intel_fb, "pc_intel_fb", [&] {
+		start_node(_intel_fb, [&] {
 			g.node("heartbeat", [&] { });
 			g.tabular_node("route", [&] {
 				gen_service_node<Platform::Session>(g, [&] {
@@ -102,7 +101,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 			});
 		});
 
-		start_node(_vesa_fb, "vesa_fb", [&] {
+		start_node(_vesa_fb, [&] {
 			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_capture_route(g);
@@ -114,7 +113,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 			});
 		});
 
-		start_node(_boot_fb, "boot_fb", [&] {
+		start_node(_boot_fb, [&] {
 			g.tabular_node("route", [&] {
 				gen_parent_rom_route(g, "config", "config -> fb");
 				gen_parent_rom_route(g, "boot_fb");
@@ -125,7 +124,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 			});
 		});
 
-		start_node(_soc_fb, "fb", [&] {
+		start_node(_soc_fb, [&] {
 			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>   (g);
 				gen_parent_route<Pin_control::Session>(g);
@@ -155,16 +154,16 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 		Fb_name const orig_fb_name = _fb_name();
 
-		_intel_gpu.conditional(use_intel_gpu,
-		                       registry, "intel_gpu", Priority::MULTIMEDIA,
+		_intel_gpu.conditional(use_intel_gpu, registry, Priority::MULTIMEDIA,
+		                       Child_name { "intel_gpu" }, Binary_name { "intel_gpu" },
 		                       Ram_quota { 32*1024*1024 }, Cap_quota { 1400 });
 
-		_intel_fb.conditional(use_intel_fb,
-		                      registry, "intel_fb", Priority::MULTIMEDIA,
+		_intel_fb.conditional(use_intel_fb, registry, Priority::MULTIMEDIA,
+		                      Child_name { "intel_fb" }, Binary_name { "pc_intel_fb" },
 		                      Ram_quota { 16*1024*1024 }, Cap_quota { 800 });
 
-		_vesa_fb.conditional(use_vesa,
-		                     registry, "vesa_fb", Priority::MULTIMEDIA,
+		_vesa_fb.conditional(use_vesa, registry, Priority::MULTIMEDIA,
+		                     Child_name { "vesa_fb" }, Binary_name { "vesa_fb" },
 		                     Ram_quota { 8*1024*1024 }, Cap_quota { 110 });
 
 		Affinity::Location const fb_affinity =
@@ -174,8 +173,8 @@ struct Sculpt::Fb_driver : private Noncopyable
 		_soc_fb.conditional(board_info.soc.fb && board_info.options.display,
 		                    registry, Child_state::Attr {
 		                        .name      = "fb",
+		                        .binary    = "fb",
 		                        .priority  = Priority::MULTIMEDIA,
-		                        .cpu_quota = 20,
 		                        .location  = fb_affinity,
 		                        .initial   = { Ram_quota { 16*1024*1024 },
 		                                       Cap_quota { 250 } },
@@ -183,7 +182,8 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 		if (use_boot_fb && !_boot_fb.constructed())
 			Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
-				_boot_fb.construct(registry, "boot_fb", Priority::MULTIMEDIA,
+				_boot_fb.construct(registry, Priority::MULTIMEDIA,
+				                   Child_name { "boot_fb" }, Binary_name { "boot_fb" },
 				                   mode.ram_quota(), Cap_quota { 100 }); });
 
 		if (orig_fb_name != _fb_name()) {

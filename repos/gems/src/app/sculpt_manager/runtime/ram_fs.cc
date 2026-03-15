@@ -17,8 +17,6 @@ void Sculpt::gen_ram_fs_start_content(Generator &g, Ram_fs_state const &state)
 {
 	state.gen_start_node_content(g);
 
-	g.node("binary", [&] { g.attribute("name", "vfs"); });
-
 	gen_provides<::File_system::Session>(g);
 
 	g.tabular_node("route", [&] {

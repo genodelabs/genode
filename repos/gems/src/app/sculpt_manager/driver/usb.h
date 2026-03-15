@@ -113,16 +113,15 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	void gen_start_nodes(Generator &g) const
 	{
-		auto start_node = [&] (auto const &driver, auto const &binary, auto const &fn)
+		auto start_node = [&] (auto const &driver, auto const &fn)
 		{
 			if (driver.constructed())
 				g.node("start", [&] {
 					driver->gen_start_node_content(g);
-					gen_named_node(g, "binary", binary);
 					fn(); });
 		};
 
-		start_node(_hcd, "usb", [&] {
+		start_node(_hcd, [&] {
 			gen_provides<Usb::Session>(g);
 			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
@@ -133,7 +132,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			});
 		});
 
-		start_node(_hid, "usb_hid", [&] {
+		start_node(_hid, [&] {
 			g.node("config", [&] {
 				g.attribute("capslock_led", "rom");
 				g.attribute("numlock_led",  "rom");
@@ -151,7 +150,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			});
 		});
 
-		start_node(_net, "usb_net", [&] {
+		start_node(_net, [&] {
 			g.node("config", [&] {
 				g.node("device", [&] {
 					/*
@@ -183,15 +182,18 @@ struct Sculpt::Usb_driver : private Noncopyable
 		bool const suspending = board_info.options.suspending;
 
 		_hcd.conditional(board_info.usb_avail() && !suspending,
-		                 registry, "usb", Priority::MULTIMEDIA,
+		                 registry, Priority::MULTIMEDIA,
+		                 Child_name { "usb" }, Binary_name { "usb" },
 		                 Ram_quota { 16*1024*1024 }, Cap_quota { 200 });
 
 		_hid.conditional(board_info.usb_avail() && _detected.hid && !suspending,
-		                 registry, "usb_hid", Priority::MULTIMEDIA,
+		                 registry, Priority::MULTIMEDIA,
+		                 Child_name { "usb_hid" }, Binary_name { "usb_hid" },
 		                 Ram_quota { 11*1024*1024 }, Cap_quota { 180 });
 
 		_net.conditional(board_info.usb_avail() && _detected.net && !suspending && board_info.options.usb_net,
-		                 registry, "usb_net", Priority::DEFAULT,
+		                 registry, Priority::DEFAULT,
+		                 Child_name { "usb_net" }, Binary_name { "usb_net" },
 		                 Ram_quota { 20*1024*1024 }, Cap_quota { 200 });
 
 		_usb_config.trigger_update();

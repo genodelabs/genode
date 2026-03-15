@@ -28,7 +28,6 @@ struct Sculpt::Touch_driver : private Noncopyable
 
 		g.node("start", [&] {
 			_soc->gen_start_node_content(g);
-			gen_named_node(g, "binary", "touch");
 			g.node("config", [&] { });
 			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>   (g);
@@ -49,8 +48,8 @@ struct Sculpt::Touch_driver : private Noncopyable
 		_soc.conditional(board_info.soc.touch && board_info.options.display,
 		                 registry, Child_state::Attr {
 		                    .name      = "touch",
+		                    .binary    = "touch",
 		                    .priority  = Priority::MULTIMEDIA,
-		                    .cpu_quota = 10,
 		                    .location  = { },
 		                    .initial   = { Ram_quota { 10*1024*1024 },
 		                                   Cap_quota { 250 } },

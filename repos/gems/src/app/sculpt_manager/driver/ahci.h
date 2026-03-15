@@ -43,7 +43,6 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 		g.node("start", [&] {
 			_ahci->gen_start_node_content(g);
-			gen_named_node(g, "binary", "ahci");
 			gen_provides<Block::Session>(g);
 			g.node("config", [&] {
 				g.attribute("system", "yes");
@@ -65,8 +64,8 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info)
 	{
-		_ahci.conditional(board_info.detected.ahci,
-		                 registry, "ahci", Priority::DEFAULT,
+		_ahci.conditional(board_info.detected.ahci, registry, Priority::DEFAULT,
+		                 Child_name { "ahci" }, Binary_name { "ahci" },
 		                 Ram_quota { 10*1024*1024 }, Cap_quota { 100 });
 	}
 

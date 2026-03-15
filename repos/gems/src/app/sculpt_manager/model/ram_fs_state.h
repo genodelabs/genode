@@ -29,11 +29,11 @@ struct Sculpt::Ram_fs_state : Child_state, File_system
 	 * high-priority driver is spinning.
 	 */
 
-	Ram_fs_state(Registry<Child_state> &registry, Start_name const &name)
+	Ram_fs_state(Registry<Child_state> &registry, Child_name const &name)
 	:
 		Child_state(registry, { .name      = name,
+		                        .binary    = "vfs",
 		                        .priority  = Priority::LEITZENTRALE,
-		                        .cpu_quota = 0,
 		                        .location  = { },
 		                        .initial   = { Ram_quota{1024*1024}, Cap_quota{300} },
 		                        .max       = { Ram_quota{2*1024*1024*1024UL}, { } } }),

@@ -78,8 +78,8 @@ struct Sculpt::Dir_query : Noncopyable
 			_action(action),
 			_fs_query(children, {
 				.name      = "dir_query",
+				.binary    = "fs_query",
 				.priority  = Priority::STORAGE,
-				.cpu_quota = { },
 				.location  = { },
 				.initial   = { .ram =  4*1024*1024, .caps = 1000 },
 				.max       = { .ram = 16*1024*1024, .caps = 2000 } }),
@@ -248,8 +248,6 @@ struct Sculpt::Dir_query : Noncopyable
 
 		g.node("start", [&] {
 			_state->_fs_query.gen_start_node_content(g);
-
-			gen_named_node(g, "binary", "fs_query");
 
 			g.tabular_node("route", [&] {
 				gen_parent_rom_route(g, "fs_query");

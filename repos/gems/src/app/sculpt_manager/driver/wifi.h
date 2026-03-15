@@ -28,7 +28,6 @@ struct Sculpt::Wifi_driver : private Noncopyable
 
 		g.node("start", [&] {
 			_wifi->gen_start_node_content(g);
-			gen_named_node(g, "binary", "wifi");
 
 			g.node("config", [&] {
 				g.attribute("dtb", "wifi.dtb");
@@ -96,7 +95,8 @@ struct Sculpt::Wifi_driver : private Noncopyable
 		                  &&  board_info.options.wifi
 		                  && !board_info.options.suspending;
 
-		_wifi.conditional(use_wifi, registry, "wifi", Priority::DEFAULT,
+		_wifi.conditional(use_wifi, registry, Priority::DEFAULT,
+		                  Child_name { "wifi" }, Binary_name { "wifi" },
 		                  Ram_quota { 16*1024*1024 }, Cap_quota { 260 });
 	}
 };

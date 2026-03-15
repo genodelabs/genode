@@ -31,9 +31,9 @@ struct Sculpt::Child_state : Noncopyable
 
 		struct Attr
 		{
-			Start_name name;
-			Priority   priority;
-			unsigned   cpu_quota;
+			Child_name  name;
+			Binary_name binary;
+			Priority    priority;
 
 			Affinity::Location location;
 
@@ -44,11 +44,11 @@ struct Sculpt::Child_state : Noncopyable
 			                                     .caps = { 5000 } };
 		};
 
+		Attr const attr;
+
 	private:
 
 		Registry<Child_state>::Element _element;
-
-		Attr const _attr;
 
 		static Attr _init_attr(Attr const attr)
 		{
@@ -58,8 +58,8 @@ struct Sculpt::Child_state : Noncopyable
 			return result;
 		}
 
-		Ram_quota _ram_quota = _attr.initial.ram;
-		Cap_quota _cap_quota = _attr.initial.caps;
+		Ram_quota _ram_quota = attr.initial.ram;
+		Cap_quota _cap_quota = attr.initial.caps;
 
 		struct Warned_once { bool ram, caps; } _warned_once { };
 
@@ -73,14 +73,15 @@ struct Sculpt::Child_state : Noncopyable
 	public:
 
 		Child_state(Registry<Child_state> &registry, Attr const attr)
-		: _element(registry, *this), _attr(_init_attr(attr)) { }
+		: attr(_init_attr(attr)), _element(registry, *this) { }
 
-		Child_state(Registry<Child_state> &registry, auto const &name,
-		            Priority priority, Ram_quota initial_ram, Cap_quota initial_caps)
+		Child_state(Registry<Child_state> &registry, Priority priority,
+		            Child_name const &name, Binary_name const &binary,
+		            Ram_quota initial_ram, Cap_quota initial_caps)
 		:
 			Child_state(registry, { .name      = name,
+			                        .binary    = binary,
 			                        .priority  = priority,
-			                        .cpu_quota = 0,
 			                        .location  = { },
 			                        .initial   = { initial_ram, initial_caps },
 			                        .max       = { } })
@@ -89,8 +90,8 @@ struct Sculpt::Child_state : Noncopyable
 		void trigger_restart()
 		{
 			_version.value++;
-			_ram_quota = _attr.initial.ram;
-			_cap_quota = _attr.initial.caps;
+			_ram_quota = attr.initial.ram;
+			_cap_quota = attr.initial.caps;
 		}
 
 		void gen_start_node_version(Generator &g) const
@@ -101,27 +102,26 @@ struct Sculpt::Child_state : Noncopyable
 
 		void gen_start_node_content(Generator &g) const
 		{
-			g.attribute("name", _attr.name);
+			g.attribute("name", attr.name);
 
 			gen_start_node_version(g);
 
 			g.attribute("caps", _cap_quota.value);
-			g.attribute("priority", (int)_attr.priority);
+			g.attribute("priority", (int)attr.priority);
+
+			if (attr.binary != attr.name)
+				gen_named_node(g, "binary", attr.binary);
 
 			gen_named_node(g, "resource", "RAM", [&] {
 				Number_of_bytes const bytes(_ram_quota.value);
 				g.attribute("quantum", String<64>(bytes)); });
 
-			if (_attr.cpu_quota)
-				gen_named_node(g, "resource", "CPU", [&] {
-					g.attribute("quantum", _attr.cpu_quota); });
-
-			if (_location_valid(_attr))
+			if (_location_valid(attr))
 				g.node("affinity", [&] {
-					g.attribute("xpos",   _attr.location.xpos());
-					g.attribute("ypos",   _attr.location.ypos());
-					g.attribute("width",  _attr.location.width());
-					g.attribute("height", _attr.location.height());
+					g.attribute("xpos",   attr.location.xpos());
+					g.attribute("ypos",   attr.location.ypos());
+					g.attribute("width",  attr.location.width());
+					g.attribute("height", attr.location.height());
 				});
 		}
 
@@ -139,14 +139,14 @@ struct Sculpt::Child_state : Noncopyable
 		{
 			bool result = false;
 
-			if (child.attribute_value("name", Start_name()) != _attr.name)
+			if (child.attribute_value("name", Start_name()) != attr.name)
 				return false;
 
 			auto upgrade = [&] (auto const &msg, auto &quota, auto &max_quota, bool &warned_once)
 			{
 				if (quota.value == max_quota.value) {
 					if (!warned_once)
-						warning(msg, " consumption of ", _attr.name, " exceeeded maximum of ", max_quota);
+						warning(msg, " consumption of ", attr.name, " exceeeded maximum of ", max_quota);
 					warned_once = true;
 				} else {
 					quota.value = min(quota.value*2, max_quota.value);
@@ -156,11 +156,11 @@ struct Sculpt::Child_state : Noncopyable
 
 			child.with_optional_sub_node("ram", [&] (Node const &node) {
 				if (node.has_attribute("requested"))
-					upgrade("RAM",  _ram_quota, _attr.max.ram,  _warned_once.ram); });
+					upgrade("RAM",  _ram_quota, attr.max.ram,  _warned_once.ram); });
 
 			child.with_optional_sub_node("caps", [&] (Node const &node) {
 				if (node.has_attribute("requested"))
-					upgrade("caps", _cap_quota, _attr.max.caps, _warned_once.caps); });
+					upgrade("caps", _cap_quota, attr.max.caps, _warned_once.caps); });
 
 			bool const responsive = (child.attribute_value("skipped_heartbeats", 0U) <= 4);
 			if (!responsive) {
@@ -172,8 +172,6 @@ struct Sculpt::Child_state : Noncopyable
 		}
 
 		Ram_quota ram_quota() const { return _ram_quota; }
-
-		Start_name name() const { return _attr.name; }
 };
 
 #endif /* _MODEL__CHILD_STATE_H_ */

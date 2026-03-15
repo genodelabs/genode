@@ -28,7 +28,6 @@ struct Sculpt::Nic_driver : private Noncopyable
 
 		g.node("start", [&] {
 			_nic->gen_start_node_content(g);
-			gen_named_node(g, "binary", "nic");
 			g.node("config", [&] { });
 			g.tabular_node("route", [&] {
 				gen_service_node<Platform::Session>(g, [&] {
@@ -51,7 +50,8 @@ struct Sculpt::Nic_driver : private Noncopyable
 		                 &&  board_info.options.nic
 		                 && !board_info.options.suspending;
 
-		_nic.conditional(use_nic, registry, "nic", Priority::DEFAULT,
+		_nic.conditional(use_nic, registry, Priority::DEFAULT,
+		                 Child_name { "nic" }, Binary_name { "nic" },
 		                 Ram_quota { 20*1024*1024 }, Cap_quota { 300 });
 	}
 };
