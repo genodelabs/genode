@@ -141,14 +141,31 @@ class Test::Log_session_component : public Rpc_object<Log_session>
 
 		void write(String const &string) override
 		{
-			/* strip known line delimiter from incoming message */
-			unsigned n = 0;
-			static char const delim[] = "\033[0m\n";
-			static Genode::String<sizeof(delim)> const pattern(delim);
-			for (char const *s = string.string(); s[n] && pattern != s + n; n++);
+			/*
+			 * Strip 5-character escape sequences and trailing line endings
+			 * from message.
+			 */
+			size_t n = strlen(string.string());
+			char buf[n] { };
+			memcpy(buf, string.string(), n);
+
+			for (size_t i = 0; i < n; i++) {
+
+				auto remove = [&] (size_t k)
+				{
+					k = min(k, n - i);
+					memmove(&buf[i], &buf[i + k], n - i - k);
+					n -= k;
+				};
+
+				bool const last = (i + 1 == n);
+
+				if (buf[i] == 27)           remove(5);
+				if (buf[i] == '\n' && last) remove(1);
+			}
 
 			Log_message_handler::Message const
-				message("[", _label, "] ", Cstring(string.string(), n));
+				message("[", _label, "] ", Cstring(buf, n));
 
 			Log_message_handler::Result const result =
 				_handler.handle_log_message(message);
@@ -254,10 +271,6 @@ struct Test::Main : Log_message_handler
 			}
 			if (step.type() == "expect_warning") {
 				_expect_log_msg = step.attribute_value("string", Log_message_handler::Message());
-				Log_message_handler::Message colored (step.attribute_value("colored", Log_message_handler::Message()));
-				_expect_log_msg = Log_message_handler::Message(_expect_log_msg,
-				                                               " \033[34m",
-				                                               colored);
 				_expect_log     = true;
 				return RETURN;
 			}
