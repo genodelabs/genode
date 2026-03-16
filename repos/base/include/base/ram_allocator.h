@@ -72,13 +72,6 @@ struct Genode::Ram_allocator : Ram::Constrained_allocator
 		Allocation { *this, { cap, size } };
 	}
 
-	/**
-	 * Downgrade RAM dataspace to read-only access
-	 *
-	 * See the description of 'Pd_session::seal_ram'.
-	 */
-	virtual void seal(Ram::Capability) = 0;
-
 	/* type aliases used for API transition */
 	using Alloc_result = Ram::Constrained_allocator::Result;
 	using Alloc_error  = Ram::Error;

@@ -57,6 +57,13 @@ struct Genode::Ram::Constrained_allocator : Interface, Noncopyable
 	 * \noapi
 	 */
 	virtual void _free(Allocation &) = 0;
+
+	/**
+	 * Downgrade RAM dataspace to read-only access
+	 *
+	 * See the description of 'Pd_session::seal_ram'.
+	 */
+	virtual void seal(Ram::Capability) = 0;
 };
 
 
