@@ -178,50 +178,18 @@ class Depot_deploy::Child : public Duplicate_checked,
 		                        Node const &, Node const &,
 		                        Depot_rom_server const &) const;
 
-		static void _gen_provides_sub_node(Generator &g, Node const &service,
-		                                   Node::Type const &node_type,
-		                                   Service::Name  const &service_name)
-		{
-			if (service.type() == node_type)
-				g.node("service", [&] {
-					g.attribute("name", service_name); });
-		}
-
 		/*
 		 * node is pkg runtime or deploy start (NO_PKG)
 		 */
-		static void _gen_provides(Generator &g, Node const &node)
+		static void _gen_provides(Generator &g, Resource::Types const &types, Node const &node)
 		{
 			node.with_optional_sub_node("provides", [&] (Node const &provides) {
 				g.node("provides", [&] {
 					provides.for_each_sub_node([&] (Node const &service) {
-						_gen_provides_sub_node(g, service, "audio_in",    "Audio_in");
-						_gen_provides_sub_node(g, service, "audio_out",   "Audio_out");
-						_gen_provides_sub_node(g, service, "block",       "Block");
-						_gen_provides_sub_node(g, service, "fs",          "File_system");
-						_gen_provides_sub_node(g, service, "file_system", "File_system");
-						_gen_provides_sub_node(g, service, "framebuffer", "Framebuffer");
-						_gen_provides_sub_node(g, service, "input",       "Input");
-						_gen_provides_sub_node(g, service, "event",       "Event");
-						_gen_provides_sub_node(g, service, "log",         "LOG");
-						_gen_provides_sub_node(g, service, "nic",         "Nic");
-						_gen_provides_sub_node(g, service, "uplink",      "Uplink");
-						_gen_provides_sub_node(g, service, "gui",         "Gui");
-						_gen_provides_sub_node(g, service, "gpu",         "Gpu");
-						_gen_provides_sub_node(g, service, "usb",         "Usb");
-						_gen_provides_sub_node(g, service, "report",      "Report");
-						_gen_provides_sub_node(g, service, "rom",         "ROM");
-						_gen_provides_sub_node(g, service, "terminal",    "Terminal");
-						_gen_provides_sub_node(g, service, "timer",       "Timer");
-						_gen_provides_sub_node(g, service, "pd",          "PD");
-						_gen_provides_sub_node(g, service, "cpu",         "CPU");
-						_gen_provides_sub_node(g, service, "rtc",         "Rtc");
-						_gen_provides_sub_node(g, service, "capture",     "Capture");
-						_gen_provides_sub_node(g, service, "play",        "Play");
-						_gen_provides_sub_node(g, service, "record",      "Record");
-					});
-				});
-			});
+						Resource const res = Resource::from_node_type(types, service.type());
+						if (res.type != Resource::UNDEFINED)
+							g.node("service", [&] {
+								g.attribute("name", res.service_name()); }); }); }); });
 		}
 
 		static void _gen_copy_of_sub_node(Generator &g, Node const &from_node,
@@ -635,12 +603,12 @@ void Depot_deploy::Child::_gen_start_node(Generator              &g,
 						_gen_copy_of_sub_node(g, runtime, "config");
 						config_defined = true; }
 
-				_gen_provides(g, runtime);
+				_gen_provides(g, resource_types, runtime);
 			});
 
 		} else if (_state == State::NO_PKG) {
 
-			_gen_provides(g, child_node);
+			_gen_provides(g, resource_types, child_node);
 		}
 
 		g.tabular_node("route", [&] {
