@@ -19,7 +19,7 @@
 #include <base/attached_rom_dataspace.h>
 
 /* local includes */
-#include "child.h"
+#include "alias.h"
 
 namespace Depot_deploy { class Option; }
 
@@ -27,6 +27,7 @@ namespace Depot_deploy { class Option; }
 struct Depot_deploy::Option : List_model<Option>::Element
 {
 	List_model<Child> children { };
+	List_model<Alias> aliases  { };
 
 	using Name = String<100>;
 
@@ -82,28 +83,16 @@ struct Depot_deploy::Option : List_model<Option>::Element
 	/*
 	 * \return true if config had any effect
 	 */
-	Progress apply(Dictionary &dict, Allocator &alloc, Node const &option)
+	Progress apply(Child_dict &child_dict, Alias_dict &alias_dict,
+	               Allocator &alloc, Node const &option)
 	{
 		Progress result = STALLED;
 
-		children.update_from_node(option,
+		if (Child::update_from_node(children, child_dict, alloc, option).progressed)
+			result = PROGRESSED;
 
-			/* create */
-			[&] (Node const &node) -> Child & {
-				result = PROGRESSED;
-				return *new (alloc)
-					Child(dict, Child::node_name(node)); },
-
-			/* destroy */
-			[&] (Child &child) {
-				result = PROGRESSED;
-				destroy(alloc, &child); },
-
-			/* update */
-			[&] (Child &child, Node const &node) {
-				if (child.apply_config(alloc, node).progressed)
-					result = PROGRESSED; }
-		);
+		if (Alias::update_from_node(aliases, alias_dict, alloc, option).progressed)
+			result = PROGRESSED;
 
 		return result;
 	}

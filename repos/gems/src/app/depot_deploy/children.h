@@ -31,14 +31,15 @@ class Depot_deploy::Children
 
 		Allocator &_alloc;
 
-		List_model<Child> _immediate_children { };
-
+		List_model<Child>  _immediate_children { };
+		List_model<Alias>  _immediate_aliases { };
 		List_model<Option> _options { };
 
 		/**
 		 * Dictionary of all immediate children and the children of all options
 		 */
-		Dictionary _dict { };
+		Child_dict _child_dict { };
+		Alias_dict _alias_dict { };
 
 		void _for_each_child(auto const &fn)
 		{
@@ -60,6 +61,14 @@ class Depot_deploy::Children
 				option.children.for_each([&] (Child const &c) { unique_fn(c); }); });
 		}
 
+		void _for_each_alias(auto const &fn) const
+		{
+			_immediate_aliases.for_each([&] (Alias const &a) { fn(a); });
+
+			_options.for_each([&] (Option const &option) {
+				option.aliases.for_each([&] (Alias const &a) { fn(a); }); });
+		}
+
 		Resource::Types const _resource_types { };
 
 	public:
@@ -70,24 +79,11 @@ class Depot_deploy::Children
 		{
 			Progress result = STALLED;
 
-			_immediate_children.update_from_node(deploy,
+			if (Child::update_from_node(_immediate_children, _child_dict, _alloc, deploy).progressed)
+				result = PROGRESSED;
 
-				/* create */
-				[&] (Node const &node) -> Child & {
-					result = PROGRESSED;
-					return *new (_alloc)
-						Child(_dict, Child::node_name(node)); },
-
-				/* destroy */
-				[&] (Child &child) {
-					result = PROGRESSED;
-					destroy(_alloc, &child); },
-
-				/* update */
-				[&] (Child &child, Node const &node) {
-					if (child.apply_config(_alloc, node).progressed)
-						result = PROGRESSED; }
-			);
+			if (Alias::update_from_node(_immediate_aliases, _alias_dict, _alloc, deploy).progressed)
+				result = PROGRESSED;
 
 			_options.update_from_node(deploy,
 
@@ -99,7 +95,7 @@ class Depot_deploy::Children
 				/* destroy */
 				[&] (Option &option) {
 					result = PROGRESSED;
-					option.apply(_dict, _alloc, Node()); /* flush children */
+					option.apply(_child_dict, _alias_dict, _alloc, Node()); /* flush children */
 					destroy(_alloc, &option); },
 
 				/* update */
@@ -115,6 +111,7 @@ class Depot_deploy::Children
 			_for_each_child([&] (Child &child) {
 				if (child.apply_launcher(_alloc, name, launcher).progressed)
 					result = PROGRESSED; });
+
 			return result;
 		}
 
@@ -155,7 +152,8 @@ class Depot_deploy::Children
 			Progress result = STALLED;
 			_options.for_each([&] (Option &option) {
 				if (option.name == name)
-					result = option.apply(_dict, _alloc, config); });
+					result = option.apply(_child_dict, _alias_dict, _alloc, config); });
+
 			return result;
 		}
 
@@ -195,6 +193,11 @@ class Depot_deploy::Children
 					child.gen_start_node(g, _resource_types,
 					                     common, prio_levels, affinity_space,
 					                     default_depot_rom); });
+
+			_for_each_alias([&] (Alias const &alias) {
+				g.node("alias", [&] {
+					g.attribute("name",  alias.name);
+					g.attribute("child", alias.to_child); }); });
 		}
 
 		void gen_monitor_policy_nodes(Generator &g) const
@@ -254,7 +257,7 @@ class Depot_deploy::Children
 
 		bool exists(Child::Name const &name) const
 		{
-			return _dict.exists(name);
+			return _child_dict.exists(name) || _alias_dict.exists(name);
 		}
 
 		bool blueprint_needed(Child::Name const &name) const

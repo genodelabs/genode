@@ -33,15 +33,20 @@ namespace Depot_deploy {
 	static constexpr Generator::Max_depth MAX_NODE_DEPTH = { 20 };
 
 	struct Child;
+	struct Alias;
 
 	using Child_name = String<100>;
-	using Dictionary = Dictionary<Child, Child_name>;
+	using Child_dict = Dictionary<Child, Child_name>;
+	using Alias_dict = Dictionary<Alias, Child_name>;
+
+	static inline void with_server_name(Child_name const &name_or_alias,
+	                                    Alias_dict const &, auto const &);
 
 	struct Duplicate_checked
 	{
 		bool const duplicate;
 
-		Duplicate_checked(Dictionary &dict, Child_name const &name)
+		Duplicate_checked(Child_dict &dict, Child_name const &name)
 		:
 			duplicate(dict.exists(name))
 		{
@@ -54,7 +59,7 @@ namespace Depot_deploy {
 
 class Depot_deploy::Child : public Duplicate_checked,
                             public List_model<Child>::Element,
-                            public Dictionary::Element
+                            public Child_dict::Element
 {
 	public:
 
@@ -211,9 +216,9 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 	public:
 
-		Child(Dictionary &dict, Name const &name)
+		Child(Child_dict &dict, Name const &name)
 		:
-			Duplicate_checked(dict, name), Dictionary::Element(dict, name)
+			Duplicate_checked(dict, name), Child_dict::Element(dict, name)
 		{ }
 
 		Progress apply_config(Allocator &alloc, Node const &child_node)
@@ -469,6 +474,32 @@ class Depot_deploy::Child : public Duplicate_checked,
 				}
 			}
 			return node.has_type("child") || node.has_type("start");
+		}
+
+		static Progress update_from_node(List_model<Child> &children,
+		                                 Child_dict &dict,
+		                                 Allocator &alloc, Node const &node)
+		{
+			Progress result { };
+			children.update_from_node(node,
+
+				/* create */
+				[&] (Node const &node) -> Child & {
+					result = PROGRESSED;
+					return *new (alloc)
+						Child(dict, Child::node_name(node)); },
+
+				/* destroy */
+				[&] (Child &child) {
+					result = PROGRESSED;
+					destroy(alloc, &child); },
+
+				/* update */
+				[&] (Child &child, Node const &node) {
+					if (child.apply_config(alloc, node).progressed)
+						result = PROGRESSED; }
+			);
+			return result;
 		}
 };
 
