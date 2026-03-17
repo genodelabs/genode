@@ -161,7 +161,8 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 		update_installation();
 
 		/* apply runtime condition checks */
-		update_child_conditions();
+		if (update_child_conditions())
+			_depot_query.trigger_depot_query();
 
 		_action.refresh_deploy_dialog();
 		_runtime_config_generator.generate_runtime_config();
