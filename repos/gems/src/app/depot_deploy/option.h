@@ -29,7 +29,7 @@ struct Depot_deploy::Option : List_model<Option>::Element
 	List_model<Child> children { };
 	List_model<Alias> aliases  { };
 
-	using Name = String<100>;
+	using Name = Option_name;
 
 	Name const name;
 

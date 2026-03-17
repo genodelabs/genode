@@ -42,9 +42,7 @@ struct Depot_deploy::Main : Option::Action
 
 	struct Attr
 	{
-		using Prio_levels = Child::Prio_levels;
-		using Arch        = String<16>;
-		using Depot_rom   = Child::Depot_rom_server;
+		using Arch = String<16>;
 
 		bool            verbose;
 		Arch            arch;
@@ -58,7 +56,7 @@ struct Depot_deploy::Main : Option::Action
 		 * Child providing depot content as ROM modules.
 		 * If undefined, the ROMs are requested from the parent.
 		 */
-		Depot_rom depot_rom;
+		Depot_rom_server depot_rom;
 
 		static Attr from_config(Node const &config)
 		{
@@ -78,7 +76,7 @@ struct Depot_deploy::Main : Option::Action
 				.blueprint_buffer = config.attribute_value("blueprint_buffer", Num_bytes { }),
 
 				.launchers = config.attribute_value("launchers", false),
-				.depot_rom = config.attribute_value("depot_rom", Depot_rom { }),
+				.depot_rom = config.attribute_value("depot_rom", Depot_rom_server { }),
 			};
 		}
 	};

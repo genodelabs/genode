@@ -130,6 +130,14 @@ struct Depot_deploy::Resource::Types
 		{ dict, "play",        PLAY        },
 		{ dict, "record",      RECORD      },
 	};
+
+	Node_type node_type(Resource const &resource) const
+	{
+		for (auto const &e : _entries)
+			if (e.type == resource.type)
+				return e.name;
+		return "undefined";
+	}
 };
 
 

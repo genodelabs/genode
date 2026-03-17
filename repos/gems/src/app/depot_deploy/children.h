@@ -71,6 +71,20 @@ class Depot_deploy::Children
 
 		Resource::Types const _resource_types { };
 
+		void _update_deps()
+		{
+			_for_each_child([&] (Child &child) { child.reset_deps(); });
+
+			for (;;) { /* iterate until all inter-dependencies are settled */
+				Progress progress = STALLED;
+				_for_each_child([&] (Child &child) {
+					if (child.update_deps(_child_dict, _alias_dict).progressed)
+						progress = PROGRESSED; });
+				if (progress.stalled())
+					break;
+			}
+		}
+
 	public:
 
 		Children(Allocator &alloc) : _alloc(alloc) { }
@@ -102,6 +116,8 @@ class Depot_deploy::Children
 				[&] (Option &, Node const &) { }
 			);
 
+			if (result.progressed) _update_deps();
+
 			return result;
 		}
 
@@ -112,6 +128,8 @@ class Depot_deploy::Children
 				if (child.apply_launcher(_alloc, name, launcher).progressed)
 					result = PROGRESSED; });
 
+			if (result.progressed) _update_deps();
+
 			return result;
 		}
 
@@ -119,15 +137,12 @@ class Depot_deploy::Children
 		{
 			Progress result = STALLED;
 
-			blueprint.for_each_sub_node("pkg", [&] (Node const &pkg) {
+			blueprint.for_each_sub_node([&] (Node const &pkg) {
 				_for_each_child([&] (Child &child) {
 					if (child.apply_blueprint(_alloc, pkg).progressed)
 						result = PROGRESSED; }); });
 
-			blueprint.for_each_sub_node("missing", [&] (Node const &missing) {
-				_for_each_child([&] (Child &child) {
-					if (child.mark_as_incomplete(missing).progressed)
-						result = PROGRESSED; }); });
+			if (result.progressed) _update_deps();
 
 			return result;
 		}
@@ -153,6 +168,8 @@ class Depot_deploy::Children
 			_options.for_each([&] (Option &option) {
 				if (option.name == name)
 					result = option.apply(_child_dict, _alias_dict, _alloc, config); });
+
+			if (result.progressed) _update_deps();
 
 			return result;
 		}
@@ -182,17 +199,31 @@ class Depot_deploy::Children
 				child.reset_incomplete(); });
 		}
 
-		void gen_start_nodes(Generator &g, Node const &common,
-		                     Child::Prio_levels prio_levels,
-		                     Affinity::Space affinity_space,
-		                     Child::Depot_rom_server const &default_depot_rom,
-		                     auto const &cond_fn) const
+		void gen_start_nodes(Generator &g,
+		                     Node             const &common,
+		                     Prio_levels      const prio_levels,
+		                     Affinity::Space  const affinity_space,
+		                     Depot_rom_server const &default_depot_rom,
+		                     auto             const &cond_fn) const
 		{
-			_for_each_child([&] (Child const &child) {
-				if (cond_fn(child.name))
-					child.gen_start_node(g, _resource_types,
-					                     common, prio_levels, affinity_space,
-					                     default_depot_rom); });
+			Global const global {
+				.resource_types    = _resource_types,
+				.child_dict        = _child_dict,
+				.alias_dict        = _alias_dict,
+				.common            = common,
+				.prio_levels       = prio_levels,
+				.affinity_space    = affinity_space,
+				.default_depot_rom = default_depot_rom
+			};
+
+			_immediate_children.for_each([&] (Child const &child) {
+				if (!child.duplicate && cond_fn(child.name))
+					child.gen_start_node(g, Option_name { }, global); });
+
+			_options.for_each([&] (Option const &option) {
+				option.children.for_each([&] (Child const &child) {
+					if (!child.duplicate && cond_fn(child.name))
+						child.gen_start_node(g, option.name, global); }); });
 
 			_for_each_alias([&] (Alias const &alias) {
 				g.node("alias", [&] {
