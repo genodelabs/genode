@@ -478,38 +478,36 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_deferred_depot_query(Duration)
 	{
-		if (_deploy._arch.valid()) {
-			_query_version.value++;
-			_depot_query_reporter.generate([&] (Generator &g) {
-				g.attribute("arch",    _deploy._arch);
-				g.attribute("version", _query_version.value);
+		_query_version.value++;
+		_depot_query_reporter.generate([&] (Generator &g) {
+			g.attribute("arch",    _build_info.arch);
+			g.attribute("version", _query_version.value);
 
-				if (_software_tab_watches_depot() || !_scan_rom.valid())
-					g.node("scan", [&] {
-						g.attribute("users", "yes"); });
+			if (_software_tab_watches_depot() || !_scan_rom.valid())
+				g.node("scan", [&] {
+					g.attribute("users", "yes"); });
 
-				if (_software_tab_watches_depot() || !_image_index_rom.valid())
-					g.node("index", [&] {
-						g.attribute("user",    _index_user);
-						g.attribute("version", _sculpt_version);
-						g.attribute("content", "yes");
-					});
+			if (_software_tab_watches_depot() || !_image_index_rom.valid())
+				g.node("index", [&] {
+					g.attribute("user",    _index_user);
+					g.attribute("version", _sculpt_version);
+					g.attribute("content", "yes");
+				});
 
-				if (_software_tab_watches_depot() || !_image_index_rom.valid())
-					g.node("image_index", [&] {
-						g.attribute("os",    "sculpt");
-						g.attribute("board", _build_info.board);
-						g.attribute("user",  _image_index_user);
-					});
+			if (_software_tab_watches_depot() || !_image_index_rom.valid())
+				g.node("image_index", [&] {
+					g.attribute("os",    "sculpt");
+					g.attribute("board", _build_info.board);
+					g.attribute("user",  _image_index_user);
+				});
 
-				_runtime_state.with_construction([&] (Component const &component) {
-					g.node("blueprint", [&] {
-						g.attribute("pkg", component.path); }); });
+			_runtime_state.with_construction([&] (Component const &component) {
+				g.node("blueprint", [&] {
+					g.attribute("pkg", component.path); }); });
 
-				/* update query for blueprints of all unconfigured start nodes */
-				_deploy.gen_depot_query(g);
-			});
-		}
+			/* update query for blueprints of all unconfigured start nodes */
+			_deploy.gen_depot_query(g);
+		});
 	}
 
 	/**

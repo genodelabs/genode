@@ -24,7 +24,7 @@ struct Sculpt::Build_info
 	using Value   = String<64>;
 	using Version = String<64>;
 
-	Value genode_source, date, depot_user, board;
+	Value genode_source, date, depot_user, arch, board;
 
 	Version image_version() const
 	{
@@ -42,6 +42,7 @@ struct Sculpt::Build_info
 			.genode_source = info.attribute_value("genode_version", Value()),
 			.date          = info.attribute_value("date",           Value()),
 			.depot_user    = info.attribute_value("depot_user",     Value()),
+			.arch          = info.attribute_value("arch",           Value()),
 			.board         = info.attribute_value("board",          Value())
 		};
 	}
