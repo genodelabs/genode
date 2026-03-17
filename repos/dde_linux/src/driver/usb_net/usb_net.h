@@ -23,6 +23,8 @@ int                 lx_user_main_task(void *);
 struct task_struct *lx_user_new_usb_task(int (*func)(void*), void *args,
                                          char const *name);
 
+unsigned lx_emul_handle_config(char const *, unsigned long, unsigned long);
+
 struct lx_wdm
 {
 	unsigned long *data_avail;

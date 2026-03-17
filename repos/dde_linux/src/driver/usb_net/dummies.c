@@ -466,13 +466,6 @@ void usb_create_sysfs_intf_files(struct usb_interface * intf)
 }
 
 
-extern void usb_notify_add_device(struct usb_device * udev);
-void usb_notify_add_device(struct usb_device * udev)
-{
-	lx_emul_trace(__func__);
-}
-
-
 extern void usb_notify_remove_device(struct usb_device * udev);
 void usb_notify_remove_device(struct usb_device * udev)
 {
