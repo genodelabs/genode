@@ -199,6 +199,11 @@ class Depot_deploy::Children
 				child.reset_incomplete(); });
 		}
 
+		void rediscover_blueprints()
+		{
+			_for_each_child([&] (Child &child) { child.rediscover_blueprint(); });
+		}
+
 		void gen_start_nodes(Generator &g,
 		                     Node             const &common,
 		                     Prio_levels      const prio_levels,

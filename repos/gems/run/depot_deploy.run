@@ -84,6 +84,7 @@ config
     + service ROM
   + config | verbose: no
     + policy | label:  depot_deploy -> blueprint | report: depot_query -> blueprint
+    + policy | label:  depot_deploy -> depot     | report: empty
     + policy | label:  depot_query -> query      | report: depot_deploy -> query
     + policy | label:  dynamic -> config         | report: depot_deploy -> runtime
     + policy | label:  dynamic -> clipboard      | report: dynamic -> clipboard
@@ -139,6 +140,7 @@ config
   |   + service Timer                       | + parent
   + route
     + service ROM    | label: deploy    | + parent | label: deploy.config
+    + service ROM    | label: depot     | + child report_rom
     + service ROM    | label: blueprint | + child report_rom
     + service Report | label: query     | + child report_rom
     + service Report | label: clipboard | + child report_rom

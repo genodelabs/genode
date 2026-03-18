@@ -330,6 +330,7 @@ proc prepare_to_run_genode { } {
 		    + policy | label: depot_autopilot -> blueprint | report: depot_query -> blueprint
 		    + policy | label: depot_autopilot -> state     | report: dynamic -> state
 		    + policy | label: depot_deploy -> deploy       | report: depot_autopilot -> deploy
+		    + policy | label: depot_deploy -> depot        | report: empty
 		    + policy | label: depot_deploy -> blueprint    | report: depot_query -> blueprint
 		    + policy | label: depot_query -> query         | report: depot_deploy -> query
 		    + policy | label: dynamic -> config            | report: depot_deploy -> runtime
@@ -404,6 +405,7 @@ proc prepare_to_run_genode { } {
 		  |   + service File_system | label_suffix: gcov_data -> / | + parent
 		  + route
 		    + service ROM    | label: deploy    | + child report_rom
+		    + service ROM    | label: depot     | + child report_rom
 		    + service ROM    | label: blueprint | + child report_rom
 		    + service Report | label: query     | + child report_rom
 		    + service Report | label: runtime   | + child report_rom

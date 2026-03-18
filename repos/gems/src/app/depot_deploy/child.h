@@ -422,6 +422,12 @@ class Depot_deploy::Child : public Duplicate_checked,
 			return { .progressed = (_condition != orig_condition) };
 		}
 
+		void rediscover_blueprint()
+		{
+			if (_pkg != Pkg::NONE)
+				_pkg = Pkg::DISCOVER;
+		}
+
 		void apply_if_unsatisfied(auto const &fn) const
 		{
 			if (_condition == UNSATISFIED)
@@ -468,6 +474,9 @@ class Depot_deploy::Child : public Duplicate_checked,
 		{
 			if (_pkg == Pkg::NONE)
 				return false;
+
+			if (_pkg == Pkg::DISCOVER)
+				return true;
 
 			return _with_node(_child_node, [&] (Node const &child) {
 

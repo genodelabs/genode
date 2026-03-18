@@ -30,6 +30,7 @@ struct Depot_deploy::Main : Option::Action
 
 	Attached_rom_dataspace _config    { _env, "config" },
 	                       _deploy    { _env, "deploy" },
+	                       _depot     { _env, "depot" },
 	                       _blueprint { _env, "blueprint" };
 
 	Constructible<Attached_rom_dataspace> _launchers { };
@@ -37,6 +38,7 @@ struct Depot_deploy::Main : Option::Action
 	Signal_handler<Main>
 		_config_handler    { _env.ep(), *this, &Main::_handle_config },
 		_deploy_handler    { _env.ep(), *this, &Main::_handle_deploy },
+		_depot_handler     { _env.ep(), *this, &Main::_handle_depot },
 		_blueprint_handler { _env.ep(), *this, &Main::_handle_blueprint },
 		_launchers_handler { _env.ep(), *this, &Main::_handle_launchers };
 
@@ -82,6 +84,9 @@ struct Depot_deploy::Main : Option::Action
 	};
 
 	Attr _attr { };
+
+	using Depot_version = String<32>;
+	Depot_version _depot_version { };
 
 	Expanding_reporter _query_reporter   { _env, "query" , "query"};
 	Expanding_reporter _runtime_reporter { _env, "config", "runtime"};
@@ -135,6 +140,18 @@ struct Depot_deploy::Main : Option::Action
 			/* a new option may have appeared in the deploy config */
 			_children.watch_options(_env, *this);
 
+			_update_runtime_and_query();
+		}
+	}
+
+	void _handle_depot()
+	{
+		_depot.update();
+
+		Depot_version const orig = _depot_version;
+		_depot_version = _depot.node().attribute_value("version", Depot_version());
+		if (orig != _depot_version) {
+			_children.rediscover_blueprints();
 			_update_runtime_and_query();
 		}
 	}
@@ -242,6 +259,7 @@ struct Depot_deploy::Main : Option::Action
 	{
 		_config   .sigh(_config_handler);    _handle_config();
 		_deploy   .sigh(_deploy_handler);    _handle_deploy();
+		_depot    .sigh(_depot_handler);     _handle_depot();
 		_blueprint.sigh(_blueprint_handler); _handle_blueprint();
 	}
 };
