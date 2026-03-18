@@ -19,7 +19,7 @@ NIC configuration
 Configuration snippet:
 
 start usb_net | ram: 10M
-+ config | mac: 2e:60:90:0c:4e:01 | configuration: 2
++ config
   + device | vendor_id: 0x0b95 | product_id: 0x1790 | mac:02:00:00:00:01:01
   + device | vendor_id: 0x0bda | product_id: 0x8156 | configuration: 2
 + route
