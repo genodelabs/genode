@@ -75,7 +75,7 @@ struct Sculpt::Main : Input_event_handler,
                       File_browser_dialog::Action,
                       Popup_dialog::Action,
                       Component::Construction_info,
-                      Depot_query,
+                      Blueprint_query,
                       Dir_query::Action,
                       Panel_dialog::State,
                       Screensaver::Action,
@@ -436,7 +436,11 @@ struct Sculpt::Main : Input_event_handler,
 		_prepare_version.value++;
 
 		_download_queue.reset();
-		_deploy.restart();
+
+		_deploy.cached_depot_rom_state  .trigger_restart();
+		_deploy.uncached_depot_rom_state.trigger_restart();
+		_bump_depot_version();
+		_query_depot();
 	}
 
 
@@ -553,7 +557,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Depot query **
 	 *****************/
 
-	Depot_query::Version _query_version { 0 };
+	unsigned _depot_query_version { };
 
 	Depot::Archive::User _image_index_user = _build_info.depot_user;
 
@@ -561,30 +565,17 @@ struct Sculpt::Main : Input_event_handler,
 
 	Expanding_reporter _depot_query_reporter { _env, "query", "depot_query"};
 
-	/**
-	 * Depot_query interface
-	 */
-	Depot_query::Version depot_query_version() const override
-	{
-		return _query_version;
-	}
-
-	Timer::Connection _timer { _env };
-
-	Timer::One_shot_timeout<Main> _deferred_depot_query_handler {
-		_timer, *this, &Main::_handle_deferred_depot_query };
-
 	bool _system_dialog_watches_depot() const
 	{
 		return _system_visible && _system_dialog.update_tab_selected();
 	}
 
-	void _handle_deferred_depot_query(Duration)
+	void _query_depot()
 	{
-		_query_version.value++;
+		_depot_query_version++;
 		_depot_query_reporter.generate([&] (Generator &g) {
 			g.attribute("arch",    _build_info.arch);
-			g.attribute("version", _query_version.value);
+			g.attribute("version", _depot_query_version);
 
 			bool const query_users = _popup_dialog.watches_depot()
 			                      || _system_dialog_watches_depot()
@@ -610,25 +601,28 @@ struct Sculpt::Main : Input_event_handler,
 			_runtime_state.with_construction([&] (Component const &component) {
 				g.node("blueprint", [&] {
 					g.attribute("pkg", component.path); }); });
-
-			/* update query for blueprints of all unconfigured start nodes */
-			_deploy.gen_depot_query(g);
 		});
 	}
 
-	/**
-	 * Depot_query interface
-	 */
-	void trigger_depot_query() override
+	Rom_handler<Main> _depot_query_blueprint_rom {
+		_env, "report -> runtime/depot_query/blueprint", *this, &Main::_handle_depot_query_blueprint };
+
+	void _handle_depot_query_blueprint(Node const &blueprint)
 	{
 		/*
-		 * Defer the submission of the query for a few milliseconds because
-		 * 'trigger_depot_query' may be consecutively called several times
-		 * while evaluating different conditions. Without deferring, the depot
-		 * query component would produce intermediate results that take time
-		 * but are ultimately discarded.
+		 * Drop intermediate results that will be superseded by a newer query.
+		 * This is important because an outdated blueprint would be disregarded
+		 * by 'handle_deploy' anyway while at the same time a new query is
+		 * issued. This can result a feedback loop where blueprints are
+		 * requested but never applied.
 		 */
-		_deferred_depot_query_handler.schedule(Microseconds{5000});
+		if (blueprint.attribute_value("version", 0U) != _depot_query_version)
+			return;
+
+		_runtime_state.apply_to_construction([&] (Component &component) {
+			component.try_apply_blueprint(blueprint); });
+
+		_popup_dialog.refresh();
 	}
 
 
@@ -651,34 +645,7 @@ struct Sculpt::Main : Input_event_handler,
 	void query_index(Depot::Archive::User const &user) override
 	{
 		_index_user = user;
-		trigger_depot_query();
-	}
-
-
-	/*********************
-	 ** Blueprint query **
-	 *********************/
-
-	Rom_handler<Main> _blueprint_rom {
-		_env, "report -> runtime/depot_query/blueprint", *this, &Main::_handle_blueprint };
-
-	void _handle_blueprint(Node const &blueprint)
-	{
-		/*
-		 * Drop intermediate results that will be superseded by a newer query.
-		 * This is important because an outdated blueprint would be disregarded
-		 * by 'handle_deploy' anyway while at the same time a new query is
-		 * issued. This can result a feedback loop where blueprints are
-		 * requested but never applied.
-		 */
-		if (blueprint.attribute_value("version", 0U) != _query_version.value)
-			return;
-
-		_runtime_state.apply_to_construction([&] (Component &component) {
-			component.try_apply_blueprint(blueprint); });
-
-		trigger_redeploy();
-		_popup_dialog.refresh();
+		_query_depot();
 	}
 
 
@@ -736,6 +703,36 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_launcher_and_option_listing(Node const &) { trigger_redeploy(); }
 
+	Blueprint_query::Version _blueprint_query_version { 0 };
+
+	/**
+	 * Blueprint_query interface
+	 */
+	Blueprint_query::Version blueprint_query_version() const override
+	{
+		return _blueprint_query_version;
+	}
+
+	Expanding_reporter _blueprint_query_reporter { _env, "blueprint_query", "blueprint_query"};
+
+	/**
+	 * Query blueprint interface
+	 */
+	void query_blueprint() override
+	{
+		_blueprint_query_version.value++;
+		_blueprint_query_reporter.generate([&] (Generator &g) {
+			g.attribute("arch",    _build_info.arch);
+			g.attribute("version", _blueprint_query_version.value);
+			_deploy.gen_blueprint_query(g);
+		});
+	}
+
+	Rom_handler<Main> _blueprint_rom {
+		_env, "report -> runtime/blueprint_query/blueprint", *this, &Main::_handle_blueprint };
+
+	void _handle_blueprint(Node const &) { trigger_redeploy(); }
+
 	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
 	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
 
@@ -779,7 +776,7 @@ struct Sculpt::Main : Input_event_handler,
 		_depot_version.value = node.attribute_value("version", 0u);
 		if (orig.value != _depot_version.value) {
 			_deploy._children.rediscover_blueprints();
-			trigger_depot_query();
+			query_blueprint();
 		}
 	}
 
@@ -1327,7 +1324,7 @@ struct Sculpt::Main : Input_event_handler,
 	void query_image_index(Depot::Archive::User const &user) override
 	{
 		_image_index_user = user;
-		trigger_depot_query();
+		_query_depot();
 	}
 
 	/**
@@ -1719,7 +1716,7 @@ struct Sculpt::Main : Input_event_handler,
 	                      Component::Info const &info) override
 	{
 		_runtime_state.new_construction(pkg, verify, info, _affinity_space);
-		trigger_depot_query();
+		_query_depot();
 	}
 
 	void _apply_to_construction(Component::Construction_action::Apply_to &fn) override
@@ -2617,7 +2614,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 				/* update depot-user selection after adding new depot URL */
 				if (_system_visible || (_popup.state == Popup::VISIBLE))
-					trigger_depot_query();
+					_query_depot();
 			}
 		}
 	}
@@ -2714,6 +2711,9 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 		chroot("depot", "/depot",  READ_ONLY);
 
 		_deploy.gen_child_nodes(g);
+
+		g.node("child", [&] {
+			gen_depot_query_child_content(g); });
 	}
 
 	if (_storage.any_file_system_inspected())

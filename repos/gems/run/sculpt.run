@@ -714,6 +714,10 @@ set fd [open [file join [initial_config_dir] depot_query] w]
 puts $fd "query\n-"
 close $fd
 
+set fd [open [file join [initial_config_dir] blueprint_query] w]
+puts $fd "query\n-"
+close $fd
+
 set fd [open [file join [initial_config_dir] depot version] w]
 puts $fd "depot | managed: yes | version: 1\n-"
 close $fd

@@ -101,6 +101,7 @@ config
     + service Report | label: usb_config           | + child config_fs_report | label: usb
     + service Report | label: install_config       | + child config_fs_report | label: install
     + service Report | label: depot_query          | + child config_fs_report | label: depot_query
+    + service Report | label: blueprint_query      | + child config_fs_report | label: blueprint_query
     + service Report | label: managed_option       | + child config_fs_report | label: option -> managed
     + service Report                               | + child report_rom
     + service ROM | label_prefix: report ->        | + parent

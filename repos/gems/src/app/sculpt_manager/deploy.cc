@@ -151,7 +151,7 @@ void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 			/* apply blueprint, except when stale */
 				using Version = String<32>;
 				Version const version = blueprint.attribute_value("version", Version());
-				if (version == Version(_depot_query.depot_query_version().value))
+				if (version == Version(_blueprint_query.blueprint_query_version().value))
 					progress = _children.apply_blueprint(blueprint).progressed;
 			});
 		}
@@ -171,14 +171,14 @@ void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 
 		/* update query for blueprints of all unconfigured start nodes */
 		if (!_download_queue.any_active_download())
-			_depot_query.trigger_depot_query();
+			_blueprint_query.query_blueprint();
 
 		/* feed missing packages to install queue */
 		update_install();
 
 		/* apply runtime condition checks */
 		if (update_child_conditions())
-			_depot_query.trigger_depot_query();
+			_blueprint_query.query_blueprint();
 
 		_action.refresh_deploy_dialog();
 		_runtime_config_generator.generate_runtime_config();
@@ -197,7 +197,7 @@ void Sculpt::Deploy::gen_child_nodes(Generator &g) const
 		gen_fs_rom_child_content(g, "depot", uncached_depot_rom_state); });
 
 	g.node("child", [&] {
-		gen_depot_query_child_content(g); });
+		gen_blueprint_query_child_content(g); });
 }
 
 

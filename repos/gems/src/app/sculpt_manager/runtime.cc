@@ -16,6 +16,7 @@
 
 #include <runtime/chroot.cc>
 #include <runtime/depot_query.cc>
+#include <runtime/blueprint_query.cc>
 #include <runtime/launcher_query.cc>
 #include <runtime/config_query.cc>
 #include <runtime/e2fs.cc>

@@ -48,6 +48,7 @@ namespace Sculpt {
 	                              Path const &, Writeable);
 
 	void gen_depot_query_child_content(Generator &);
+	void gen_blueprint_query_child_content(Generator &);
 	void gen_launcher_query_start_content(Generator &);
 	void gen_config_query_child_content(Generator &);
 

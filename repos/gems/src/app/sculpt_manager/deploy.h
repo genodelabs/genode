@@ -29,7 +29,7 @@
 #include <runtime.h>
 #include <managed_config.h>
 #include <view/dialog.h>
-#include <depot_query.h>
+#include <blueprint_query.h>
 
 namespace Sculpt { struct Deploy; }
 
@@ -56,7 +56,7 @@ struct Sculpt::Deploy
 
 	Runtime_config_generator &_runtime_config_generator;
 
-	Depot_query &_depot_query;
+	Blueprint_query &_blueprint_query;
 
 	Rom_data const &_launcher_listing_rom;
 	Rom_data const &_blueprint_rom;
@@ -279,16 +279,7 @@ struct Sculpt::Deploy
 	void gen_runtime_start_nodes(Generator &, Node const &deploy,
 	                             Prio_levels, Affinity::Space) const;
 
-	void restart()
-	{
-		cached_depot_rom_state  .trigger_restart();
-		uncached_depot_rom_state.trigger_restart();
-
-		/* ignore stale query results */
-		_depot_query.trigger_depot_query();
-	}
-
-	void gen_depot_query(Generator &g) const
+	void gen_blueprint_query(Generator &g) const
 	{
 		_children.gen_queries(g);
 	}
@@ -312,7 +303,7 @@ struct Sculpt::Deploy
 	       Runtime_info const &runtime_info,
 	       Action &action,
 	       Runtime_config_generator &runtime_config_generator,
-	       Depot_query &depot_query,
+	       Blueprint_query &blueprint_query,
 	       Rom_data const &launcher_listing_rom,
 	       Rom_data const &blueprint_rom,
 	       Download_queue &download_queue)
@@ -321,7 +312,7 @@ struct Sculpt::Deploy
 		_runtime_info(runtime_info),
 		_action(action),
 		_runtime_config_generator(runtime_config_generator),
-		_depot_query(depot_query),
+		_blueprint_query(blueprint_query),
 		_launcher_listing_rom(launcher_listing_rom),
 		_blueprint_rom(blueprint_rom),
 		_download_queue(download_queue)

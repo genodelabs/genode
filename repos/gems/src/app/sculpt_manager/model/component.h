@@ -17,7 +17,7 @@
 #include <types.h>
 #include <model/route.h>
 #include <depot/archive.h>
-#include <depot_query.h>
+#include <blueprint_query.h>
 
 namespace Sculpt { struct Component; }
 
