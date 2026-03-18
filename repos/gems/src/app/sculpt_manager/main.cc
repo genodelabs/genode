@@ -765,6 +765,30 @@ struct Sculpt::Main : Input_event_handler,
 		_runtime_state.reset_abandoned_and_launched_children();
 	}
 
+	Managed_config<Main> _managed_depot_version {
+		_env, _heap, "depot", "depot_version", *this, &Main::_handle_depot_version };
+
+	struct Depot_version { unsigned value; } _depot_version { };
+
+	void _handle_depot_version(Node const &node)
+	{
+		/* force managed mode regardless if 'deploy' has a 'managed' attribute */
+		_managed_depot_version.managed = true;
+
+		Depot_version const orig = _depot_version;
+		_depot_version.value = node.attribute_value("version", 0u);
+		if (orig.value != _depot_version.value) {
+			_deploy._children.rediscover_blueprints();
+			trigger_depot_query();
+		}
+	}
+
+	void _bump_depot_version()
+	{
+		_managed_depot_version.generate([&] (Generator &g) {
+			g.attribute("version", _depot_version.value + 1); });
+	}
+
 
 	/************
 	 ** Global **
@@ -2429,7 +2453,6 @@ void Sculpt::Main::_handle_gui_mode()
 void Sculpt::Main::_handle_update_state(Node const &update_state)
 {
 	_download_queue.apply_update_state(update_state);
-	bool const any_completed_download = _download_queue.any_completed_download();
 	_download_queue.remove_completed_downloads();
 
 	_index_update_queue.apply_update_state(update_state);
@@ -2437,18 +2460,8 @@ void Sculpt::Main::_handle_update_state(Node const &update_state)
 	bool const installation_complete =
 		!update_state.attribute_value("progress", false);
 
-	if (installation_complete) {
-
-		_blueprint_rom.with_node([&] (Node const &blueprint) {
-			bool const new_depot_query_needed = blueprint_any_missing(blueprint)
-			                                 || blueprint_any_rom_missing(blueprint)
-			                                 || any_completed_download;
-			if (new_depot_query_needed)
-				trigger_depot_query();
-		});
-
-		_deploy.reattempt_after_installation();
-	}
+	if (installation_complete)
+		_bump_depot_version();
 
 	_generate_dialog();
 }

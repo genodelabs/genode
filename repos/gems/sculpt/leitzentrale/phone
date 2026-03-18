@@ -88,30 +88,32 @@ config
   + binary phone_manager
   + provides | + service Gui
   + route
-    + service ROM    | label: config            | + parent | label: config -> manager
-    + service Report | label: runtime_config    | + child config_fs_report | label: init
-    + service Report | label: deploy_config     | + child config_fs_report | label: deploy
-    + service Report | label: system_config     | + child config_fs_report | label: system
-    + service Report | label: wifi_config       | + child config_fs_report | label: wifi
-    + service Report | label: modem_config      | + child config_fs_report | label: modem
-    + service Report | label: audio_config      | + child config_fs_report | label: audio
-    + service Report | label: nic_router_config | + child config_fs_report | label: nic_router
-    + service Report | label: dir_query_config  | + child config_fs_report | label: dir_query
-    + service Report | label: usb_config        | + child config_fs_report | label: usb
-    + service Report | label: install_config    | + child config_fs_report | label: install
-    + service Report | label: depot_query       | + child config_fs_report | label: depot_query
-    + service Report | label: managed_option    | + child config_fs_report | label: option -> managed
-    + service Report                            | + child report_rom
-    + service ROM | label_prefix: report ->     | + parent
-    + service ROM | label: nitpicker_focus      | + parent
-    + service ROM | label: nitpicker_hover      | + parent
-    + service ROM | label: leitzentrale         | + parent | label: leitzentrale_enabled
-    + service ROM | label: menu_hover           | + child report_rom
-    + service ROM | label: window_list          | + child report_rom
-    + service ROM | label: decorator_margins    | + child report_rom
-    + service ROM | label: clicked              | + child report_rom
-    + service Gui                               | + parent | label: manager -> fader ->
-    + any-service                               | + parent
+    + service ROM    | label: config               | + parent | label: config -> manager
+    + service Report | label: runtime_config       | + child config_fs_report | label: init
+    + service Report | label: depot_version_config | + child config_fs_report | label: depot -> version
+    + service Report | label: deploy_config        | + child config_fs_report | label: deploy
+    + service Report | label: system_config        | + child config_fs_report | label: system
+    + service Report | label: wifi_config          | + child config_fs_report | label: wifi
+    + service Report | label: modem_config         | + child config_fs_report | label: modem
+    + service Report | label: audio_config         | + child config_fs_report | label: audio
+    + service Report | label: nic_router_config    | + child config_fs_report | label: nic_router
+    + service Report | label: dir_query_config     | + child config_fs_report | label: dir_query
+    + service Report | label: usb_config           | + child config_fs_report | label: usb
+    + service Report | label: install_config       | + child config_fs_report | label: install
+    + service Report | label: depot_query          | + child config_fs_report | label: depot_query
+    + service Report | label: managed_option       | + child config_fs_report | label: option -> managed
+    + service Report                               | + child report_rom
+    + service ROM | label_prefix: report ->        | + parent
+    + service ROM | label: config -> depot_version | + parent | label: config -> depot/version
+    + service ROM | label: nitpicker_focus         | + parent
+    + service ROM | label: nitpicker_hover         | + parent
+    + service ROM | label: leitzentrale            | + parent | label: leitzentrale_enabled
+    + service ROM | label: menu_hover              | + child report_rom
+    + service ROM | label: window_list             | + child report_rom
+    + service ROM | label: decorator_margins       | + child report_rom
+    + service ROM | label: clicked                 | + child report_rom
+    + service Gui                                  | + parent | label: manager -> fader ->
+    + any-service                                  | + parent
 
 + start fonts_fs | caps: 100 | ram: 4M
   + binary vfs

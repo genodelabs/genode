@@ -288,12 +288,6 @@ struct Sculpt::Deploy
 		_depot_query.trigger_depot_query();
 	}
 
-	void reattempt_after_installation()
-	{
-		_children.reset_incomplete();
-		_action.trigger_redeploy();
-	}
-
 	void gen_depot_query(Generator &g) const
 	{
 		_children.gen_queries(g);
