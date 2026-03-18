@@ -219,8 +219,7 @@ static struct task_struct * usb_task = NULL;
 static int usb_rom_loop(void *arg)
 {
 	for (;;) {
-
-		genode_usb_client_update(register_device, unregister_device);
+		genode_usb_client_update_devices(register_device, unregister_device);
 
 		/* block until lx_emul_task_unblock */
 		lx_emul_task_schedule(true);
@@ -246,6 +245,14 @@ void lx_emul_usb_client_init(void)
 
 void lx_emul_usb_client_rom_update(void)
 {
+	/*
+	 * Update usb_rom immediately so interface drivers cannot use stale data after
+	 * set configuration or alt-setting changes because scheduling the usb_rom_task
+	 * is indeterministic.
+	 */
+	genode_usb_client_update_model();
+
+	/* add/remove devices */
 	if (usb_rom_task) lx_emul_task_unblock(usb_rom_task);
 }
 

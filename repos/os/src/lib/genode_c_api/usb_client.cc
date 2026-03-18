@@ -464,13 +464,13 @@ struct Session
 		_env(env), _alloc(alloc), _handler_cap(io_cap)
 	{
 		_usb.sigh(rom_cap);
+		update_model();
 	}
 
 	~Session() {
 		_model.for_each([&] (Device &dev) { destroy(_alloc, &dev); }); }
 
-	void update(genode_usb_client_dev_add_t add,
-	            genode_usb_client_dev_del_t del)
+	void update_model()
 	{
 		_usb.with_node([&] (Node const &node) {
 			_model.update_from_node(node,
@@ -489,12 +489,9 @@ struct Session
 				},
 
 				/* destroy */
-				[&] (Device &dev)
+				[] (Device &dev)
 				{
 					dev._state = Device::REMOVED;
-					if (dev.driver_data()) del(dev.handle(), dev.driver_data());
-					dev.update(_alloc, Node());
-					destroy(_alloc, &dev);
 				},
 
 				/* update */
@@ -504,12 +501,44 @@ struct Session
 				}
 			);
 		});
+	}
 
-		/* add new devices for C-API client after it got successfully added */
+	/*
+	 * Add/delete devices for a C-API client after they got added/removed by
+	 * update_model
+	 */
+	void update(genode_usb_client_dev_add_t add,
+	            genode_usb_client_dev_del_t del)
+	{
+		/* delete devices marked as removed  */
+		while (true) {
+
+			bool found = false;
+			genode_usb_client_dev_handle_t handle;
+
+			_space.for_each<Device>([&] (Device &dev) {
+				if (dev._state == Device::REMOVED) {
+					handle = dev.handle();
+					found = true;
+				}
+			});
+
+			if (!found) break;
+
+			auto remove = [&] (Device &dev)
+			{
+				if (dev.driver_data()) del(dev.handle(), dev.driver_data());
+				dev.update(_alloc, Node());
+				destroy(_alloc, &dev);
+			};
+
+			_space.apply<Device>({ handle }, remove, [] (){});
+		}
+
+		/* add new devices */
 		_model.for_each([&] (Device &dev) {
 			if (!dev.driver_data())
-				dev.driver_data(add(dev.handle(), dev.name().string(),
-				                    dev.speed()));
+				dev.driver_data(add(dev.handle(), dev.name().string(), dev.speed()));
 		});
 	}
 };
@@ -559,8 +588,15 @@ void Genode_c_api::initialize_usb_client(Env                      &env,
 
 
 extern "C"
-void genode_usb_client_update(genode_usb_client_dev_add_t add,
-                              genode_usb_client_dev_del_t del)
+void genode_usb_client_update_model(void)
+{
+	if (_usb_session) _usb_session->update_model();
+}
+
+
+extern "C"
+void genode_usb_client_update_devices(genode_usb_client_dev_add_t add,
+                                      genode_usb_client_dev_del_t del)
 {
 	if (_usb_session) _usb_session->update(add, del);
 }

@@ -110,5 +110,24 @@ int usb_hcd_unlink_urb (struct urb *urb, int status)
 		atomic_set(&urb->use_count, 0);
 	}
 
+	/*
+	 * This function is only called from usb_kill_urb/usb_poison_urb (ENOENT), and
+	 * usb_unlink_urb (ECONNRESET). Set status, call complete function, and set to
+	 * unused. The urb is in packet stream, it will be freed by urb_complete in
+	 * virt/usb_client.c
+	 */
+	if ((status == -ENOENT || status == -ECONNRESET) &&
+	    udev->state == USB_STATE_CONFIGURED) {
+		ret = 0;
+
+		urb->status = status;
+		if (urb->complete) urb->complete(urb);
+		urb->complete = NULL;
+
+		atomic_set(&urb->use_count, 0);
+
+		/* don't call usb_put_urb since the urb is pending in packet stream */
+	}
+
 	return ret;
 }

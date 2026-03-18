@@ -1249,6 +1249,15 @@ void Session_component::set_configuration(genode_usb_device::Label label,
 					if (c.active != (c.desc.config_value == num)) {
 						c.active = (c.desc.config_value == num);
 						changed = true;
+
+						/* activate all interfaces with alt_setting 0 */
+						c.interfaces.for_each(
+							[&] (genode_usb_interface & i) {
+							if (c.active)
+								i.active = (i.desc.alt_settings == 0);
+							else
+								i.active = false;
+						});
 					}
 			});
 	});

@@ -42,8 +42,13 @@ typedef void* (*genode_usb_client_dev_add_t)
 typedef void (*genode_usb_client_dev_del_t)
 	(genode_usb_client_dev_handle_t handle, void *opaque_data);
 
-void genode_usb_client_update(genode_usb_client_dev_add_t add,
-                              genode_usb_client_dev_del_t del);
+/**
+ * Update the internal list model only (can be called from EP)
+ */
+void genode_usb_client_update_model(void);
+
+void genode_usb_client_update_devices(genode_usb_client_dev_add_t add,
+                                      genode_usb_client_dev_del_t del);
 
 /******************************************
  ** USB device and interface interaction **
