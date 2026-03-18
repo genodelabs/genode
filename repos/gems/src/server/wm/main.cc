@@ -68,7 +68,7 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 		g.attribute("height", _screen_area.h);
 	}
 
-	Gui::Root _gui_root { _env, *this, _window_registry, *this, _focus_gui_session };
+	Gui::Root _gui_root { _env, *this, _window_registry, *this };
 
 	static void _with_win_id_from_node(Node const &window, auto const &fn)
 	{

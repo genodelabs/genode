@@ -1425,11 +1425,6 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 
 		List<Decorator_gui_session> _decorator_sessions { };
 
-		/**
-		 * GUI session used to perform session-control operations
-		 */
-		Gui::Connection &_focus_gui_session;
-
 		Touch::State _touch_state { _pointer_tracker };
 
 	public:
@@ -1439,13 +1434,11 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 		 */
 		Root(Env &env, Session_component::Action &action,
 		     Window_registry  &window_registry,
-		     Pointer::Tracker &pointer_tracker,
-		     Gui::Connection  &focus_gui_session)
+		     Pointer::Tracker &pointer_tracker)
 		:
 			_env(env), _action(action),
 			_pointer_tracker(pointer_tracker),
-			_window_registry(window_registry),
-			_focus_gui_session(focus_gui_session)
+			_window_registry(window_registry)
 		{
 			_window_layouter_input.event_queue().enabled(true);
 
