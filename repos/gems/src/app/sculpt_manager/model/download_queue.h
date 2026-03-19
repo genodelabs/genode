@@ -16,6 +16,7 @@
 
 #include <depot/archive.h>
 #include <base/registry.h>
+#include <util/progress.h>
 #include <types.h>
 
 namespace Sculpt { struct Download_queue; }
@@ -23,6 +24,8 @@ namespace Sculpt { struct Download_queue; }
 
 struct Sculpt::Download_queue : Noncopyable
 {
+	using Progress = Genode::Progress;
+
 	struct Download : Interface
 	{
 		Path const path;
@@ -82,7 +85,7 @@ struct Sculpt::Download_queue : Noncopyable
 		return result;
 	}
 
-	void add(Path const &path, Verify const verify)
+	Progress add(Path const &path, Verify const verify)
 	{
 		bool already_exists = false;
 		_downloads.for_each([&] (Download const &download) {
@@ -90,9 +93,10 @@ struct Sculpt::Download_queue : Noncopyable
 				already_exists = true; });
 
 		if (already_exists)
-			return;
+			return STALLED;
 
 		new (_alloc) Registered<Download>(_downloads, path, verify);
+		return PROGRESSED;
 	}
 
 	void with_download(Path const &path, auto const &fn) const

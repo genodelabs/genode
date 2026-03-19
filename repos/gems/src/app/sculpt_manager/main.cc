@@ -530,7 +530,22 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _update_state_rom {
 		_env, "report -> runtime/update/state", *this, &Main::_handle_update_state };
 
+	Managed_config<Main> _install {
+		_env, _heap, "install", "install", *this, &Main::_handle_install };
+
+	void _handle_install(Node const &)
+	{
+		/* enable update component when manually managing /config/install */
+		if (!_install.managed)
+			generate_runtime_config();
+	}
+
 	void _handle_update_state(Node const &);
+
+	bool _update_needed() const
+	{
+		return !_install.managed || _download_queue.any_active_download();
+	}
 
 	/**
 	 * Condition for spawning the update subsystem
@@ -540,7 +555,7 @@ struct Sculpt::Main : Input_event_handler,
 		return _storage._selected_target.valid()
 		    && !_prepare_in_progress()
 		    && _network.ready()
-		    && _deploy.update_needed();
+		    && _update_needed();
 	}
 
 	Download_queue _download_queue { _heap };
@@ -551,6 +566,14 @@ struct Sculpt::Main : Input_event_handler,
 
 	Index_update_queue _index_update_queue {
 		_heap, _file_operation_queue, _download_queue };
+
+	void _update_install()
+	{
+		if (_install.managed)
+			_install.generate([&] (Generator &g) {
+				g.attribute("arch", _build_info.arch);
+				_download_queue.gen_install_entries(g); });
+	}
 
 
 	/*****************
@@ -919,7 +942,7 @@ struct Sculpt::Main : Input_event_handler,
 				if (_main._manually_managed_runtime)
 					return;
 
-				bool const network_missing = _main._deploy.update_needed()
+				bool const network_missing = _main._update_needed()
 				                         && !_main._network._nic_state.ready();
 
 				bool const show_diagnostics = _main._deploy.any_unsatisfied_child()
@@ -1015,15 +1038,27 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_init_config(Node const &init_config)
 	{
-		_cached_init_config.update_from_node(init_config);
+		if (_cached_init_config.update_from_node(init_config).stalled())
+			return;
 
-		if (_dir_query.update(_heap, _cached_init_config).runtime_reconfig_needed)
-			generate_runtime_config();
+		bool download_added = false;
+		_cached_init_config.for_each_missing_pkg([&] (Depot::Archive::Path const &path) {
+			if (_download_queue.add(path, Verify { true }).progressed)
+				download_added = true; });
+
+		if (download_added)
+			_update_install();
+
+		bool const reconfigure_runtime =
+			_dir_query.update(_heap, _cached_init_config).runtime_reconfig_needed;
 
 		_graph_view.refresh();
 
 		if (_selected_tab == Panel_dialog::Tab::FILES)
 			_file_browser_dialog.refresh();
+
+		if (reconfigure_runtime || download_added)
+			generate_runtime_config();
 	}
 
 
@@ -1334,7 +1369,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_download_queue.remove_inactive_downloads();
 		_download_queue.add(path, verify);
-		_deploy.update_install();
+		_update_install();
 		generate_runtime_config();
 	}
 
@@ -1733,7 +1768,7 @@ struct Sculpt::Main : Input_event_handler,
 			_download_queue.add(c.path, c.verify); });
 
 		/* incorporate new download-queue content into update */
-		_deploy.update_install();
+		_update_install();
 
 		generate_runtime_config();
 	}
@@ -2610,7 +2645,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 				unsigned const orig_download_count = _index_update_queue.download_count;
 				_index_update_queue.try_schedule_downloads();
 				if (_index_update_queue.download_count != orig_download_count)
-					_deploy.update_install();
+					_update_install();
 
 				/* update depot-user selection after adding new depot URL */
 				if (_system_visible || (_popup.state == Popup::VISIBLE))
@@ -2730,7 +2765,6 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 	if (_update_running())
 		g.node("child", [&] {
 			gen_update_child_content(g); });
-
 }
 
 

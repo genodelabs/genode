@@ -169,13 +169,6 @@ void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 	                   || blueprint_affected_child;
 	if (progress) {
 
-		/* update query for blueprints of all unconfigured start nodes */
-		if (!_download_queue.any_active_download())
-			_blueprint_query.query_blueprint();
-
-		/* feed missing packages to install queue */
-		update_install();
-
 		/* apply runtime condition checks */
 		if (update_child_conditions())
 			_blueprint_query.query_blueprint();

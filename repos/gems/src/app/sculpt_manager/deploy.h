@@ -208,25 +208,7 @@ struct Sculpt::Deploy
 		_reset_interactive_option_changes();
 	}
 
-	bool _manual_install_scheduled = false;
-
-	Managed_config<Deploy> _install {
-		_env, _alloc, "install", "install", *this, &Deploy::_handle_install };
-
-	void _handle_install(Node const &config)
-	{
-		_manual_install_scheduled = config.type() != "empty"
-		                        && !config.attribute_value("managed", false);
-		_action.trigger_redeploy();
-	}
-
 	Depot_deploy::Children _children { _alloc };
-
-	bool update_needed() const
-	{
-		return _manual_install_scheduled
-		    || _download_queue.any_active_download();
-	}
 
 	void _process_deploy(Node const &);
 
@@ -282,21 +264,6 @@ struct Sculpt::Deploy
 	void gen_blueprint_query(Generator &g) const
 	{
 		_children.gen_queries(g);
-	}
-
-	void update_install()
-	{
-		if (!_install.managed)
-			return;
-
-		/* feed missing packages to install queue */
-		_children.for_each_missing_pkg_path([&] (Depot::Archive::Path const path) {
-			_download_queue.add(path, Verify { true }); });
-
-		_install.generate([&] (Generator &g) {
-			g.attribute("arch", _arch);
-			_download_queue.gen_install_entries(g);
-		});
 	}
 
 	Deploy(Env &env, Allocator &alloc, Registry<Child_state> &child_states,

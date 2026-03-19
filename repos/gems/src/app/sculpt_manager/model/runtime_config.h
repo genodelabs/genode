@@ -15,10 +15,11 @@
 #define _MODEL__RUNTIME_CONFIG_H_
 
 /* Genode includes */
-#include <util/list_model.h>
 #include <util/dictionary.h>
+#include <util/progress.h>
 #include <base/registry.h>
 #include <dialog/types.h>
+#include <depot/archive.h>
 
 /* local includes */
 #include <types.h>
@@ -30,6 +31,8 @@ namespace Sculpt { class Runtime_config; }
 class Sculpt::Runtime_config
 {
 	private:
+
+		using Progress = Genode::Progress;
 
 		Allocator &_alloc;
 
@@ -232,6 +235,8 @@ class Sculpt::Runtime_config
 
 			List_model<Child_service> _child_services { };
 
+			Constructible<Buffered_node> _stalled { };
+
 			Component(Start_name const &name, Graph_ids &graph_ids, Dialog::Id const &id)
 			:
 				name(name), graph_id(graph_ids, name, id)
@@ -242,48 +247,73 @@ class Sculpt::Runtime_config
 				_child_services.for_each(fn);
 			}
 
-			void update_route_from_node(Allocator &alloc, Node const &route)
+			Progress update_route_from_node(Allocator &alloc, Node const &route)
 			{
+				Progress result = STALLED;
 				deps.update_from_node(route,
 
 					/* create */
 					[&] (Node const &node) -> Dep & {
+						result = PROGRESSED;
 						return *new (alloc) Dep(_to_name(node)); },
 
 					/* destroy */
-					[&] (Dep &e) { destroy(alloc, &e); },
+					[&] (Dep &e) { result = PROGRESSED; destroy(alloc, &e); },
 
 					/* update */
 					[&] (Dep &, Node const &) { }
 				);
+				return result;
 			}
 
-			void update_provides_from_node(Allocator &alloc, Node const &provides)
+			Progress update_provides_from_node(Allocator &alloc, Node const &provides)
 			{
+				Progress result = STALLED;
 				_child_services.update_from_node(provides,
 
 					/* create */
 					[&] (Node const &node) -> Child_service & {
-						return *new (alloc)
-							Child_service(name, node); },
+						result = PROGRESSED;
+						return *new (alloc) Child_service(name, node); },
 
 					/* destroy */
-					[&] (Child_service &e) { destroy(alloc, &e); },
+					[&] (Child_service &e) { result = PROGRESSED; destroy(alloc, &e); },
 
 					/* update */
 					[&] (Child_service &, Node const &) { }
 				);
+				return result;
 			}
 
-			void update_from_node(Allocator &alloc, Node const &node)
+			static bool stalled(Node const &n) { return n.has_type("stalled"); }
+
+			Progress update_from_node(Allocator &alloc, Node const &node)
 			{
+				Progress result = STALLED;
+
+				auto const orig_primary_dependency = primary_dependency;
 				primary_dependency = _primary_dependency(node);
+				if (orig_primary_dependency != primary_dependency)
+					result = PROGRESSED;
 
 				node.with_optional_sub_node("route", [&] (Node const &route) {
-					update_route_from_node(alloc, route); });
+					if (update_route_from_node(alloc, route).progressed)
+						result = PROGRESSED; });
 
 				node.with_optional_sub_node("provides", [&] (Node const &provides) {
-					update_provides_from_node(alloc, provides); });
+					if (update_provides_from_node(alloc, provides).progressed)
+						result = PROGRESSED; });
+
+				bool const stalled_differs =
+					stalled(node) ? !_stalled.constructed() || _stalled->differs_from(node)
+					              :  _stalled.constructed();
+				if (stalled_differs) {
+					_stalled.destruct();
+					if (stalled(node))
+						_stalled.construct(alloc, node);
+					result = PROGRESSED;
+				}
+				return result;
 			}
 
 			bool matches(Node const &node) const
@@ -293,7 +323,7 @@ class Sculpt::Runtime_config
 
 			static bool type_matches(Node const &node)
 			{
-				return node.has_type("start");
+				return node.has_type("start") || stalled(node);
 			}
 		};
 
@@ -356,16 +386,26 @@ class Sculpt::Runtime_config
 		                                 Service::Type::FS,
 		                                 { }, "used file system" };
 
+		void _for_each_stalled(auto const &fn) const
+		{
+			_components.for_each([&] (Component const &component) {
+				if (component._stalled.constructed()) {
+					Node const &stalled = *component._stalled;
+					fn(stalled); } });
+		}
+
 	public:
 
 		Runtime_config(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_node(Node const &config)
+		Progress update_from_node(Node const &config)
 		{
+			Progress result = STALLED;
 			_components.update_from_node(config,
 
 				/* create */
 				[&] (Node const &node) -> Component & {
+					result = PROGRESSED;
 					return *new (_alloc)
 						Component(node.attribute_value("name", Start_name()),
 						          _graph_ids,
@@ -380,12 +420,16 @@ class Sculpt::Runtime_config
 					e.update_provides_from_node(_alloc, Node());
 
 					destroy(_alloc, &e);
+					result = PROGRESSED;
 				},
 
 				/* update */
 				[&] (Component &e, Node const &node) {
-					e.update_from_node(_alloc, node); }
+					if (e.update_from_node(_alloc, node).progressed)
+						result = PROGRESSED;
+				}
 			);
+			return result;
 		}
 
 		bool present_in_runtime(Start_name const &name) const
@@ -412,6 +456,14 @@ class Sculpt::Runtime_config
 		}
 
 		void for_each_component(auto const &fn) const { _components.for_each(fn); }
+
+		void for_each_missing_pkg(auto const &fn) const
+		{
+			_for_each_stalled([&] (Node const &stalled) {
+				stalled.with_optional_sub_node("deploy", [&] (Node const &deploy) {
+					deploy.with_optional_sub_node("pkg_missing", [&] (Node const &) {
+						fn(deploy.attribute_value("pkg", Depot::Archive::Path())); }); }); });
+		}
 
 		/**
 		 * Call 'fn' with the name of each dependency of component 'name'
