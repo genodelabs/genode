@@ -1,5 +1,5 @@
 /*
- * \brief  Interface for querying blueprints about the depot
+ * \brief  Utilities for accssing blueprint content
  * \author Norman Feske
  * \date   2026-03-18
  */
@@ -11,30 +11,18 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _BLUEPRINT_QUERY_H_
-#define _BLUEPRINT_QUERY_H_
+#ifndef _BLUEPRINT_H_
+#define _BLUEPRINT_H_
 
 #include "types.h"
 
 namespace Sculpt {
-
-	struct Blueprint_query;
 
 	static inline bool blueprint_missing        (Node const &, Path const &);
 	static inline bool blueprint_any_missing    (Node const &);
 	static inline bool blueprint_rom_missing    (Node const &, Path const &);
 	static inline bool blueprint_any_rom_missing(Node const &);
 }
-
-
-struct Sculpt::Blueprint_query : Interface
-{
-	struct Version { unsigned value; };
-
-	virtual Version blueprint_query_version() const = 0;
-
-	virtual void query_blueprint() = 0;
-};
 
 
 static inline bool Sculpt::blueprint_missing(Node const &blueprint, Path const &path)
@@ -91,4 +79,4 @@ static inline bool Sculpt::blueprint_any_rom_missing(Node const &blueprint)
 	return blueprint_rom_missing(blueprint, Path());
 }
 
-#endif /* _BLUEPRINT_QUERY_H_ */
+#endif /* _BLUEPRINT_H_ */

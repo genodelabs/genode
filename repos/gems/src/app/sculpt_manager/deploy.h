@@ -14,57 +14,21 @@
 #ifndef _DEPLOY_H_
 #define _DEPLOY_H_
 
-/* Genode includes */
-#include <base/attached_rom_dataspace.h>
-#include <os/reporter.h>
-
-/* included from depot_deploy tool */
-#include <children.h>
-
 /* local includes */
-#include <model/options.h>
-#include <model/launchers.h>
-#include <model/download_queue.h>
 #include <types.h>
 #include <runtime.h>
-#include <managed_config.h>
-#include <view/dialog.h>
-#include <blueprint_query.h>
+#include <model/options.h>
 
 namespace Sculpt { struct Deploy; }
 
 
 struct Sculpt::Deploy
 {
-	using Prio_levels = Depot_deploy::Child::Prio_levels;
-
-	Env &_env;
-
 	Allocator &_alloc;
 
 	Registry<Child_state> &_child_states;
 
 	Runtime_info const &_runtime_info;
-
-	struct Action : Interface
-	{
-		virtual void refresh_deploy_dialog() = 0;
-		virtual void trigger_redeploy() = 0;
-	};
-
-	Action &_action;
-
-	Runtime_config_generator &_runtime_config_generator;
-
-	Blueprint_query &_blueprint_query;
-
-	Rom_data const &_launcher_listing_rom;
-	Rom_data const &_blueprint_rom;
-
-	Download_queue &_download_queue;
-
-	using Arch = String<16>;
-	Arch _arch { };
 
 	Child_state cached_depot_rom_state {
 		_child_states, { .name      = "depot_rom",
@@ -118,8 +82,6 @@ struct Sculpt::Deploy
 
 	void handle_deploy_config(Generator &g, Node const &deploy)
 	{
-		_process_deploy(deploy);
-
 		/*
 		 * Ignore intermediate states that may occur when manually updating
 		 * the config/deploy configuration. Depending on the tool used,
@@ -129,13 +91,8 @@ struct Sculpt::Deploy
 		if (deploy.type() == "empty")
 			return;
 
-		Arch const arch = deploy.attribute_value("arch", Arch());
-		if (arch.valid())
-			g.attribute("arch", arch);
-
-		/* copy <common_routes> from manual deploy config */
-		deploy.for_each_sub_node("common_routes", [&] (Node const &node) {
-			(void)g.append_node(node, Generator::Max_depth { 10 }); });
+		Progress progress = enabled_options.update_from_deploy(deploy);
+		(void)progress;
 
 		/*
 		 * Copy the <start> node from manual deploy config, unless the
@@ -208,64 +165,24 @@ struct Sculpt::Deploy
 		_reset_interactive_option_changes();
 	}
 
-	Depot_deploy::Children _children { _alloc };
-
-	void _process_deploy(Node const &);
-
-	/**
-	 * Call 'fn' for each unsatisfied dependency of the child's 'start' node
-	 */
-	void _for_each_missing_server(Node const &start, auto const &fn) const
+	void gen_child_nodes(Generator &g) const
 	{
-		start.for_each_sub_node("route", [&] (Node const &route) {
-			route.for_each_sub_node("service", [&] (Node const &service) {
-				service.for_each_sub_node("child", [&] (Node const &child) {
-					Start_name const name = child.attribute_value("name", Start_name());
+		/* depot-ROM instance for regular (immutable) depot content */
+		g.node("child", [&] {
+			gen_fs_rom_child_content(g, "depot", cached_depot_rom_state); });
 
-					/*
-					 * The dependency to the default-fs alias is always
-					 * satisfied during the deploy phase. But it does not
-					 * appear in the runtime-state report.
-					 */
-					if (name == "default_fs_rw")
-						return;
+		/* depot-ROM instance for mutable content (/depot/local/) */
+		g.node("child", [&] {
+			gen_fs_rom_child_content(g, "depot", uncached_depot_rom_state); });
 
-					if (!_runtime_info.present_in_runtime(name) || _children.blueprint_needed(name))
-						fn(name);
-				});
-			});
-		});
+		g.node("child", [&] {
+			gen_blueprint_query_child_content(g); });
 	}
 
-	Progress update_child_conditions();
-
-	void gen_child_nodes(Generator &) const;
-
-	void gen_runtime_start_nodes(Generator &, Node const &deploy,
-	                             Prio_levels, Affinity::Space) const;
-
-	void gen_blueprint_query(Generator &g) const
-	{
-		_children.gen_queries(g);
-	}
-
-	Deploy(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
-	       Runtime_info const &runtime_info,
-	       Action &action,
-	       Runtime_config_generator &runtime_config_generator,
-	       Blueprint_query &blueprint_query,
-	       Rom_data const &launcher_listing_rom,
-	       Rom_data const &blueprint_rom,
-	       Download_queue &download_queue)
+	Deploy(Allocator &alloc,
+	       Registry<Child_state> &child_states, Runtime_info const &runtime_info)
 	:
-		_env(env), _alloc(alloc), _child_states(child_states),
-		_runtime_info(runtime_info),
-		_action(action),
-		_runtime_config_generator(runtime_config_generator),
-		_blueprint_query(blueprint_query),
-		_launcher_listing_rom(launcher_listing_rom),
-		_blueprint_rom(blueprint_rom),
-		_download_queue(download_queue)
+		_alloc(alloc), _child_states(child_states), _runtime_info(runtime_info)
 	{ }
 };
 

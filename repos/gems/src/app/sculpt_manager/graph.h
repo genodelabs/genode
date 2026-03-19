@@ -18,9 +18,6 @@
 #include <os/reporter.h>
 #include <depot/archive.h>
 
-/* included from depot_deploy tool */
-#include <children.h>
-
 /* local includes */
 #include <types.h>
 #include <view/storage_widget.h>
@@ -38,16 +35,15 @@ namespace Sculpt { struct Graph; }
 
 struct Sculpt::Graph : Widget<Depgraph>
 {
-	Runtime_state                &_runtime_state;
-	Runtime_config         const &_runtime_config;
-	Storage_devices        const &_storage_devices;
-	Storage_target         const &_selected_target;
-	Ram_fs_state           const &_ram_fs_state;
-	Fb_connectors          const &_fb_connectors;
-	Fb_config              const &_fb_config;
-	Fb_connectors::Name    const &_hovered_display;
-	Popup::State           const &_popup_state;
-	Depot_deploy::Children const &_deploy_children;
+	Runtime_state             &_runtime_state;
+	Runtime_config      const &_runtime_config;
+	Storage_devices     const &_storage_devices;
+	Storage_target      const &_selected_target;
+	Ram_fs_state        const &_ram_fs_state;
+	Fb_connectors       const &_fb_connectors;
+	Fb_config           const &_fb_config;
+	Fb_connectors::Name const &_hovered_display;
+	Popup::State        const &_popup_state;
 
 	Hosted<Depgraph, Toggle_button> _plus { Id { "+" } };
 
@@ -91,14 +87,13 @@ struct Sculpt::Graph : Widget<Depgraph>
 	      Fb_connectors          const &fb_connectors,
 	      Fb_config              const &fb_config,
 	      Fb_connectors::Name    const &hovered_display,
-	      Popup::State           const &popup_state,
-	      Depot_deploy::Children const &deploy_children)
+	      Popup::State           const &popup_state)
 	:
 		_runtime_state(runtime_state), _runtime_config(runtime_config),
 		_storage_devices(storage_devices), _selected_target(selected_target),
 		_ram_fs_state(ram_fs_state), _fb_connectors(fb_connectors),
 		_fb_config(fb_config), _hovered_display(hovered_display),
-		_popup_state(popup_state), _deploy_children(deploy_children)
+		_popup_state(popup_state)
 	{ }
 
 	void view(Scope<Depgraph> &) const;

@@ -4,6 +4,6 @@ SRC_CC  += $(addprefix view/,   $(notdir $(wildcard $(PRG_DIR)/view/*.cc)))
 SRC_CC  += $(addprefix dialog/, $(notdir $(wildcard $(PRG_DIR)/dialog/*.cc)))
 SRC_CC  += dialog.cc
 LIBS    += base
-INC_DIR += $(PRG_DIR) $(REP_DIR)/src/app/depot_deploy
+INC_DIR += $(PRG_DIR)
 
 vpath dialog.cc $(REP_DIR)/src/lib/dialog

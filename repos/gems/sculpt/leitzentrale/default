@@ -185,6 +185,7 @@ config | prio_levels: 4
     + service Report | label: blueprint_query      | + child config_fs_report | label: blueprint_query
     + service Report | label: managed_option       | + child config_fs_report | label: option -> managed
     + service Report                               | + child report_rom
+    + service ROM | label: runtime_init_config     | + parent | label: runtime_init_config
     + service ROM | label_prefix: report ->        | + parent
     + service ROM | label: config -> depot_version | + parent | label: config -> depot/version
     + service ROM | label: nitpicker_focus         | + parent

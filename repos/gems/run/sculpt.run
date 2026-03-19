@@ -306,6 +306,12 @@ config | prio_levels: 2
     + service Report
     + service ROM
   + config | verbose: no
+    + policy | label: deploy -> blueprint                        | report: runtime -> blueprint
+    + policy | label: deploy -> launchers                        | report: runtime -> launchers
+    + policy | label: runtime -> config                          | report: deploy -> runtime
+    + policy | label: runtime -> query                           | report: deploy -> query
+    + policy | label: report_fs -> init                          | report: deploy -> runtime
+    + policy | label: leitzentrale -> runtime_init_config        | report: deploy -> runtime
     + policy | label: leitzentrale -> leitzentrale_enabled       | report: global_keys_handler -> leitzentrale
     + policy | label: pointer -> hover                           | report: nitpicker -> hover
     + policy | label: pointer -> xray                            | report: global_keys_handler -> leitzentrale
@@ -358,9 +364,13 @@ config | prio_levels: 2
 + start report_fs | ram: 16M | priority: -1
   + binary vfs
   + provides | + service File_system
+  + route
+    + service ROM | label: init | + child report_rom
+    + any-service               | + parent
   + config
     + vfs
     | + ram_log log | limit: 1M
+    | + rom init | binary: no
     | + ram
     | + import
     |   + dir runtime
@@ -544,6 +554,7 @@ config | prio_levels: 2
   + route
     } [log_route] {
     + service ROM | label: config                      | + child config_fs_rom | label: leitzentrale
+    + service ROM | label: runtime_init_config         | + child report_rom
     + service ROM | label_prefix: report ->            | + child report_fs_rom
     + service ROM | label_prefix: manager -> report -> | + child report_fs_rom
     + service ROM | label_prefix: manager -> config -> | + child config_fs_rom
@@ -562,10 +573,25 @@ config | prio_levels: 2
   + binary terminal_crosslink
   + provides | + service Terminal
 
++ start deploy
+  + binary depot_deploy
+  + route
+    + service ROM | label: config           | + child config_fs_rom | label: runtime
+    + service ROM | label: deploy           | + child config_fs_rom | label: deploy
+    + service ROM | label: depot            | + child config_fs_rom | label: depot/version
+    + service ROM | label: blueprint        | + child report_rom
+    + service ROM | label: launchers        | + child report_rom
+    + service ROM | label_prefix: option -> | + child config_fs_rom | prepend_resource: option/
+    + service Report                        | + child report_rom
+    + any-service                           | + parent
+
 + start runtime | caps: 50000 | ram: 32G | priority: -1 | managing_system: yes
   + binary monitor
   + route
-    + service ROM | label: config                    | + child config_fs_rom | label: init
+    + service ROM    | label: config                 | + child report_rom
+    + service ROM    | label: query                  | + child report_rom
+    + service Report | label: blueprint              | + child report_rom
+    + service Report | label: launchers              | + child report_rom
     + service ROM | label_prefix: config ->          | + child config_fs_rom
     + service ROM | label_prefix: report ->          | + child report_fs_rom
     + service ROM | label: capslock                  | + child report_rom
@@ -613,6 +639,15 @@ config | prio_levels: 2
 ## Initial content of the config file system
 ##
 
+proc install_hid { path args } {
+	set content ""
+	append content {*}$args
+	set fd [open $path w]
+	puts $fd [string trim $content]
+	close $fd
+}
+
+
 #
 # The directory structure for the initial content is created at the run
 # directory, which is imported as 'initial_config.tar' into the config fs.
@@ -624,6 +659,49 @@ foreach subdir { launcher option depot keyboard } {
 
 if {[llength [ingredients_of_type presets]] > 0} {
 	file mkdir [file join [initial_config_dir] presets] }
+
+install_hid [initial_config_file runtime] w] {
+config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8
+       | depot_rom: depot_rom | launchers: yes
++ report | init_ram: yes | init_caps: yes | child_ram: yes | child_caps: yes
+         | requested: no | provided: no | delay_ms: 2000 | buffer: 1M
++ heartbeat | rate_ms: 2000
++ static
+  + parent-provides
+    + service ROM
+    + service CPU
+    + service PD
+    + service RM
+    + service LOG
+    + service VM
+    + service Timer
+    + service Report
+    + service Platform
+    + service Block
+    + service Usb
+    + service File_system
+    + service Gui
+    + service Rtc
+    + service TRACE
+    + service IO_MEM
+    + service IO_PORT
+    + service IRQ
+    + service Event
+    + service Capture
+    + service Gpu
+    + service Pin_state
+    + service Pin_control
+    + service I2c
+    + service Terminal
++ common_routes
+  + service ROM | label_last: ld.lib.so | + parent
+  + service ROM | label_last: init      | + parent
+  + service CPU                         | + parent
+  + service PD                          | + parent
+  + service LOG                         | + parent
+  + service Timer                       | + parent
+-
+}
 
 # configs that are managed by the sculpt manager if absent
 set optional_configs {

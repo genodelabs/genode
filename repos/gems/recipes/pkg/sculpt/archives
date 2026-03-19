@@ -5,6 +5,7 @@ _/src/report_rom
 _/src/clipboard
 _/src/init
 _/src/monitor
+_/src/depot_deploy
 _/src/terminal_crosslink
 _/src/fs_rom
 _/src/cached_fs_rom

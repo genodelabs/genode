@@ -81,20 +81,10 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
                                         Start_name const &name,
                                         Runtime_state::Info const &info) const
 {
-	if (_deploy_children.exists(name)) {
-
-		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-			s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox> &s) {
-				s.widget(_remove);
-				s.widget(_restart); }); });
-
-	} else if (name == "nic" ||
-	           name == "wifi") {
-
-		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-			s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox> &s) {
-				s.widget(_restart); }); });
-	}
+	s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
+		s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox> &s) {
+			s.widget(_remove);
+			s.widget(_restart); }); });
 
 	if (name == "ram_fs")
 		s.widget(_ram_fs_widget, _selected_target, _ram_fs_state);

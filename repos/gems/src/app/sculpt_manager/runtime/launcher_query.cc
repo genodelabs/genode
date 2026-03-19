@@ -13,13 +13,10 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_launcher_query_start_content(Generator &g)
+void Sculpt::gen_launcher_query_child_content(Generator &g)
 {
-	gen_common_start_content(g, "launcher_query",
-	                         Cap_quota{200}, Ram_quota{2*1024*1024},
-	                         Priority::STORAGE);
-
-	gen_named_node(g, "binary", "fs_query");
+	gen_child_attr(g, Child_name { "launcher_query" }, Binary_name { "fs_query" },
+	               Cap_quota{200}, Ram_quota{2*1024*1024}, Priority::STORAGE);
 
 	g.node("config", [&] {
 		g.attribute("query", "rom");
@@ -27,28 +24,16 @@ void Sculpt::gen_launcher_query_start_content(Generator &g)
 			g.node("fs", [&] {}); });
 
 		g.node("query", [&] {
-			g.attribute("path", "/option");
-			g.attribute("content", "yes");
-		});
-
-		g.node("query", [&] {
 			g.attribute("path", "/launcher");
 			g.attribute("content", "yes");
 		});
 	});
 
-	g.tabular_node("route", [&] {
-		gen_parent_rom_route(g, "fs_query");
-		gen_parent_rom_route(g, "ld.lib.so");
-		gen_parent_rom_route(g, "vfs.lib.so");
-
-		gen_parent_route<Cpu_session>     (g);
-		gen_parent_route<Pd_session>      (g);
-		gen_parent_route<Log_session>     (g);
-		gen_parent_route<Report::Session> (g);
-
-		gen_service_node<::File_system::Session>(g, [&] {
-			g.node("parent", [&] {
-				g.attribute("identity", "config"); }); });
+	g.tabular_node("connect", [&] {
+		connect_parent_rom(g, "vfs.lib.so");
+		g.node("fs", [&] {
+			g.node("parent", [&] { g.attribute("identity", "config"); }); });
+		g.node("report", [&] {
+			g.node("parent", [&] { g.attribute("label", "launchers"); }); });
 	});
 }

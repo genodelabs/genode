@@ -29,9 +29,6 @@
 #include <pin_control_session/pin_control_session.h>
 #include <dialog/distant_runtime.h>
 
-/* included from depot_deploy tool */
-#include <children.h>
-
 /* local includes */
 #include <model/runtime_state.h>
 #include <model/child_exit_state.h>
@@ -63,7 +60,6 @@ namespace Sculpt { struct Main; }
 
 struct Sculpt::Main : Input_event_handler,
                       Runtime_config_generator,
-                      Deploy::Action,
                       Storage_device::Action,
                       Ram_fs_widget::Action,
                       Network::Action,
@@ -76,7 +72,6 @@ struct Sculpt::Main : Input_event_handler,
                       File_browser_dialog::Action,
                       Popup_dialog::Action,
                       Component::Construction_info,
-                      Blueprint_query,
                       Dir_query::Action,
                       Panel_dialog::State,
                       Screensaver::Action,
@@ -677,8 +672,6 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Deploy **
 	 ************/
 
-	Deploy::Prio_levels const _prio_levels { 8 };
-
 	Rom_handler<Main> _scan_rom {
 		_env, "report -> runtime/depot_query/scan", *this, &Main::_handle_scan };
 
@@ -725,55 +718,14 @@ struct Sculpt::Main : Input_event_handler,
 		_env, "report -> /runtime/launcher_query/listing", *this,
 		&Main::_handle_launcher_and_option_listing };
 
-	void _handle_launcher_and_option_listing(Node const &) { trigger_redeploy(); }
+	void _handle_launcher_and_option_listing(Node const &) { _deploy_config.trigger_update(); }
 
-	Blueprint_query::Version _blueprint_query_version { 0 };
-
-	/**
-	 * Blueprint_query interface
-	 */
-	Blueprint_query::Version blueprint_query_version() const override
-	{
-		return _blueprint_query_version;
-	}
-
-	Expanding_reporter _blueprint_query_reporter { _env, "blueprint_query", "blueprint_query"};
-
-	/**
-	 * Query blueprint interface
-	 */
-	void query_blueprint() override
-	{
-		_blueprint_query_version.value++;
-		_blueprint_query_reporter.generate([&] (Generator &g) {
-			g.attribute("arch",    _build_info.arch);
-			g.attribute("version", _blueprint_query_version.value);
-			_deploy.gen_blueprint_query(g);
-		});
-	}
-
-	Rom_handler<Main> _blueprint_rom {
-		_env, "report -> runtime/blueprint_query/blueprint", *this, &Main::_handle_blueprint };
-
-	void _handle_blueprint(Node const &) { trigger_redeploy(); }
-
-	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
-	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
+	Deploy _deploy { _heap, _child_states, _runtime_state };
 
 	Managed_config<Main> _deploy_config {
 		_env, _heap, "deploy", "deploy", *this, &Main::_handle_deploy_config };
 
 	Expanding_reporter _managed_option { _env, "option", "managed_option" };
-
-	/**
-	 * Deploy::Action interface
-	 */
-	void refresh_deploy_dialog() override { _generate_dialog(); }
-
-	/**
-	 * Deploy::Action interface
-	 */
-	void trigger_redeploy() override { _deploy_config.trigger_update(); }
 
 	void _handle_deploy_config(Node const &deploy)
 	{
@@ -793,15 +745,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_depot_version(Node const &node)
 	{
-		/* force managed mode regardless if 'deploy' has a 'managed' attribute */
-		_managed_depot_version.managed = true;
-
-		Depot_version const orig = _depot_version;
 		_depot_version.value = node.attribute_value("version", 0u);
-		if (orig.value != _depot_version.value) {
-			_deploy._children.rediscover_blueprints();
-			query_blueprint();
-		}
 	}
 
 	void _bump_depot_version()
@@ -940,9 +884,6 @@ struct Sculpt::Main : Input_event_handler,
 		{
 			s.sub_scope<Vbox>([&] (Scope<Vbox> &s) {
 
-				if (_main._manually_managed_runtime)
-					return;
-
 				bool const network_missing = _main._update_needed()
 				                         && !_main._network._nic_state.ready();
 
@@ -995,18 +936,6 @@ struct Sculpt::Main : Input_event_handler,
 
 	Runtime_state _runtime_state { _heap, _storage._selected_target };
 
-	Managed_config<Main> _runtime_config {
-		_env, _heap, "config", "runtime", *this, &Main::_handle_runtime };
-
-	bool _manually_managed_runtime = false;
-
-	void _handle_runtime(Node const &config)
-	{
-		_manually_managed_runtime = !config.has_type("empty");
-		generate_runtime_config();
-		_generate_dialog();
-	}
-
 	void _generate_runtime_config(Generator &) const;
 	void _generate_managed_option(Generator &) const;
 
@@ -1017,10 +946,6 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_managed_option.generate([&] (Generator &g) {
 			_generate_managed_option(g); });
-
-		if (_runtime_config.managed)
-			_runtime_config.generate([&] (Generator &g) {
-				_generate_runtime_config(g); });
 	}
 
 
@@ -1034,7 +959,7 @@ struct Sculpt::Main : Input_event_handler,
 	 * part decoupled from the lower-level runtime configuration generator.
 	 */
 	Rom_handler<Main> _init_config_rom {
-		_env, "config -> init", *this, &Main::_handle_init_config };
+		_env, "runtime_init_config", *this, &Main::_handle_init_config };
 
 	Runtime_config _cached_init_config { _heap };
 
@@ -1258,9 +1183,7 @@ struct Sculpt::Main : Input_event_handler,
 	void remove_deployed_component(Start_name const &name) override
 	{
 		_runtime_state.abandon(name);
-
-		/* update config/deploy with the component 'name' removed */
-		trigger_redeploy();
+		_deploy_config.trigger_update();
 	}
 
 	/*
@@ -1281,9 +1204,7 @@ struct Sculpt::Main : Input_event_handler,
 		else {
 
 			_runtime_state.restart(name);
-
-			/* update config/deploy with new version of the component 'name' */
-			trigger_redeploy();
+			_deploy_config.trigger_update();
 		}
 	}
 
@@ -1425,7 +1346,7 @@ struct Sculpt::Main : Input_event_handler,
 	void enable_option(Options::Name const &name) override
 	{
 		_deploy.enable_option(name);
-		trigger_redeploy();
+		_deploy_config.trigger_update();
 	}
 
 	/**
@@ -1434,7 +1355,7 @@ struct Sculpt::Main : Input_event_handler,
 	void disable_option(Options::Name const &name) override
 	{
 		_deploy.disable_option(name);
-		trigger_redeploy();
+		_deploy_config.trigger_update();
 	}
 
 	/**
@@ -1444,7 +1365,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_state.launch(launcher, launcher);
 
-		trigger_redeploy();
+		_deploy_config.trigger_update();
 		_download_queue.remove_inactive_downloads();
 	}
 
@@ -1455,7 +1376,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_state.abandon(launcher);
 
-		trigger_redeploy();
+		_deploy_config.trigger_update();
 		_download_queue.remove_inactive_downloads();
 	}
 
@@ -1783,7 +1704,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		_close_popup_dialog();
 
-		trigger_redeploy();
+		_deploy_config.trigger_update();
 	}
 
 	/**
@@ -2009,7 +1930,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Graph _graph { _runtime_state, _cached_init_config, _storage._storage_devices,
 	               _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
-	               _fb_config_model, _hovered_display, _popup.state, _deploy._children };
+	               _fb_config_model, _hovered_display, _popup.state };
 
 	struct Graph_dialog : Dialog::Top_level_dialog
 	{
@@ -2682,11 +2603,6 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		}
 	});
 
-	if (_deploy.update_child_conditions().progressed) {
-		reconfigure_runtime = true;
-		regenerate_dialog   = true;
-	}
-
 	if (_dialog_runtime.apply_runtime_state(state).progressed)
 		reconfigure_runtime = true;
 
@@ -2722,6 +2638,9 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 
 	g.node("child", [&] {
 		gen_config_query_child_content(g); });
+
+	g.node("child", [&] {
+		gen_launcher_query_child_content(g); });
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition
@@ -2767,64 +2686,6 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 	if (_update_running())
 		g.node("child", [&] {
 			gen_update_child_content(g); });
-}
-
-
-void Sculpt::Main::_generate_runtime_config(Generator &g) const
-{
-	g.attribute("verbose", "yes");
-
-	g.attribute("prio_levels", _prio_levels.value);
-
-	g.node("report", [&] {
-		g.attribute("init_ram",   "yes");
-		g.attribute("init_caps",  "yes");
-		g.attribute("child_ram",  "yes");
-		g.attribute("child_caps", "yes");
-		g.attribute("delay_ms",   4*500);
-		g.attribute("buffer",     "1M");
-	});
-
-	g.node("heartbeat", [&] { g.attribute("rate_ms", 2000); });
-
-	g.node("parent-provides", [&] {
-		gen_parent_service<Rom_session>(g);
-		gen_parent_service<Cpu_session>(g);
-		gen_parent_service<Pd_session>(g);
-		gen_parent_service<Rm_session>(g);
-		gen_parent_service<Log_session>(g);
-		gen_parent_service<Vm_session>(g);
-		gen_parent_service<Timer::Session>(g);
-		gen_parent_service<Report::Session>(g);
-		gen_parent_service<Platform::Session>(g);
-		gen_parent_service<Block::Session>(g);
-		gen_parent_service<Usb::Session>(g);
-		gen_parent_service<::File_system::Session>(g);
-		gen_parent_service<Gui::Session>(g);
-		gen_parent_service<Rtc::Session>(g);
-		gen_parent_service<Trace::Session>(g);
-		gen_parent_service<Io_mem_session>(g);
-		gen_parent_service<Io_port_session>(g);
-		gen_parent_service<Irq_session>(g);
-		gen_parent_service<Event::Session>(g);
-		gen_parent_service<Capture::Session>(g);
-		gen_parent_service<Gpu::Session>(g);
-		gen_parent_service<Pin_state::Session>(g);
-		gen_parent_service<Pin_control::Session>(g);
-		gen_parent_service<I2c::Session>(g);
-		gen_parent_service<Terminal::Session>(g);
-	});
-
-	g.node("affinity-space", [&] {
-		g.attribute("width",  _affinity_space.width());
-		g.attribute("height", _affinity_space.height());
-	});
-
-	g.node("start", [&] {
-		gen_launcher_query_start_content(g); });
-
-	_deploy_config.with_node([&] (Node const &deploy) {
-		_deploy.gen_runtime_start_nodes(g, deploy, _prio_levels, _affinity_space); });
 }
 
 

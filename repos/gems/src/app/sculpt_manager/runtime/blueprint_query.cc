@@ -29,7 +29,9 @@ void Sculpt::gen_blueprint_query_child_content(Generator &g)
 	g.tabular_node("connect", [&] {
 		connect_fs(g, "depot");
 		connect_parent_rom(g, "vfs.lib.so");
-		connect_config_rom(g, "query", "blueprint_query");
-		connect_report(g);
+		connect_parent_rom(g, "query");
+		g.node("report", [&] {
+			g.attribute("label", "blueprint");
+			g.node("parent", [&] { g.attribute("label", "blueprint"); }); });
 	});
 }
