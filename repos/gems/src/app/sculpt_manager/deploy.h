@@ -237,13 +237,7 @@ struct Sculpt::Deploy
 		});
 	}
 
-	/**
-	 * Re-evaluate child dependencies
-	 *
-	 * \return true if any condition has changed and new children may have
-	 *              become able to start
-	 */
-	bool update_child_conditions();
+	Progress update_child_conditions();
 
 	void gen_child_nodes(Generator &) const;
 

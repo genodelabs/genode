@@ -241,24 +241,24 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		Progress update_from_state_report(Node const &state)
 		{
-			Progress result { };
+			Progress result = STALLED;
 			_children.update_from_node(state,
 
 				/* create */
 				[&] (Node const &node) -> Child & {
-					result.progress = true;
+					result = PROGRESSED;
 					return *new (_alloc)
 						Child(node.attribute_value("name", Start_name())); },
 
 				/* destroy */
 				[&] (Child &child) {
-					result.progress = true;
+					result = PROGRESSED;
 					destroy(_alloc, &child); },
 
 				/* update */
 				[&] (Child &child, Node const &node) {
-					if (child.update_from_node(node).progress)
-						result.progress = true; }
+					if (child.update_from_node(node).progressed)
+						result = PROGRESSED; }
 			);
 			return result;
 		}

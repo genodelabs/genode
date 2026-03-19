@@ -326,7 +326,7 @@ struct Sculpt::Main : Input_event_handler,
 			progress = false;
 			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
 				_config.with_node([&] (Node const &config) {
-					progress = _storage.update(config, devices).progress; }); });
+					progress = _storage.update(config, devices).progressed; }); });
 
 			/* update USB policies for storage devices */
 			_drivers.update_usb();
@@ -2468,12 +2468,12 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		}
 	});
 
-	if (_deploy.update_child_conditions()) {
+	if (_deploy.update_child_conditions().progressed) {
 		reconfigure_runtime = true;
 		regenerate_dialog   = true;
 	}
 
-	if (_dialog_runtime.apply_runtime_state(state))
+	if (_dialog_runtime.apply_runtime_state(state).progressed)
 		reconfigure_runtime = true;
 
 	if (_software_title_bar.selected() && _software_tabs_widget.hosted.options_selected())

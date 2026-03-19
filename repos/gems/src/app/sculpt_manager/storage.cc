@@ -21,10 +21,10 @@ Progress Storage::update(Node const &config, Drivers::Storage_devices const &dev
 {
 	bool progress = false;
 
-	progress |= _storage_devices.update_ahci(_env, _alloc, devices.ahci.report).progress;
-	progress |= _storage_devices.update_nvme(_env, _alloc, devices.nvme.report).progress;
-	progress |= _storage_devices.update_mmc (_env, _alloc, devices.mmc .report).progress;
-	progress |= _storage_devices.update_usb (_env, _alloc, devices.usb .report).progress;
+	progress |= _storage_devices.update_ahci(_env, _alloc, devices.ahci.report).progressed;
+	progress |= _storage_devices.update_nvme(_env, _alloc, devices.nvme.report).progressed;
+	progress |= _storage_devices.update_mmc (_env, _alloc, devices.mmc .report).progressed;
+	progress |= _storage_devices.update_usb (_env, _alloc, devices.usb .report).progressed;
 
 	_storage_devices.for_each([&] (Storage_device &dev) {
 		Storage_device::State const orig_state = dev.state;

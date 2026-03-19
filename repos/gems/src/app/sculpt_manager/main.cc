@@ -146,7 +146,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_system_config(Node const &state)
 	{
-		if (_system_state.apply_config(state).progress)
+		if (_system_state.apply_config(state).progressed)
 			_broadcast_system_state();
 	}
 
@@ -409,7 +409,7 @@ struct Sculpt::Main : Input_event_handler,
 			progress = false;
 			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
 				_config.with_node([&] (Node const &config) {
-					progress = _storage.update(config, devices).progress; }); });
+					progress = _storage.update(config, devices).progressed; }); });
 
 			/* update USB policies for storage devices */
 			_drivers.update_usb();
@@ -1927,7 +1927,7 @@ struct Sculpt::Main : Input_event_handler,
 	void fb_connectors_changed() override
 	{
 		_drivers.with_fb_connectors([&] (Node const &node) {
-			if (_fb_connectors.update(_heap, node).progress) {
+			if (_fb_connectors.update(_heap, node).progressed) {
 				_fb_config_model.apply_connectors(_fb_connectors);
 				_generate_fb_config();
 				_handle_gui_mode();
@@ -2507,7 +2507,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 	bool regenerate_dialog   = false;
 	bool refresh_storage     = false;
 
-	if (_runtime_state.update_from_state_report(state).progress)
+	if (_runtime_state.update_from_state_report(state).progressed)
 		regenerate_dialog = true;
 
 	/* check for completed storage operations */
@@ -2682,12 +2682,12 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		}
 	});
 
-	if (_deploy.update_child_conditions()) {
+	if (_deploy.update_child_conditions().progressed) {
 		reconfigure_runtime = true;
 		regenerate_dialog   = true;
 	}
 
-	if (_dialog_runtime.apply_runtime_state(state))
+	if (_dialog_runtime.apply_runtime_state(state).progressed)
 		reconfigure_runtime = true;
 
 	/* power-management features depend on optional acpi_support subsystem */

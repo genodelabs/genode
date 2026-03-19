@@ -16,7 +16,7 @@
 #include <string.h>
 
 
-bool Sculpt::Deploy::update_child_conditions()
+Genode::Progress Sculpt::Deploy::update_child_conditions()
 {
 	/* return true if any condition changed */
 	return _children.apply_condition([&] (Node const &start, Node const &launcher) {
@@ -29,111 +29,90 @@ bool Sculpt::Deploy::update_child_conditions()
 			condition = false; });
 
 		return condition;
-	}).progressed;
+	});
 }
 
 
 void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 {
 	/* determine CPU architecture of deployment */
-	Arch const orig_arch = _arch;
 	_arch = managed_deploy.attribute_value("arch", Arch());
 	if ((managed_deploy.type() != "empty") && !_arch.valid())
 		warning("managed deploy config lacks 'arch' attribute");
 
-	bool const arch_changed = (orig_arch != _arch);
-
 	auto apply_config = [&]
 	{
-		try { return _children.apply_deploy(managed_deploy).progressed; }
+		try { return _children.apply_deploy(managed_deploy); }
 		catch (...) {
 			error("spurious exception during deploy update (apply_config)"); }
-		return false;
+		return STALLED;
 	};
 
-	bool const option_toggled = enabled_options.update_from_deploy(managed_deploy).progress;
+	Progress progress = enabled_options.update_from_deploy(managed_deploy);
 
-	bool const config_affected_child = apply_config();
+	if (apply_config().progressed)
+		progress = PROGRESSED;
 
-	auto apply_options_and_launchers = [&]
-	{
-		bool any_child_affected = false;
+	_launcher_listing_rom.with_node([&] (Node const &listing) {
+		listing.for_each_sub_node("dir", [&] (Node const &dir) {
 
-		_launcher_listing_rom.with_node([&] (Node const &listing) {
-			listing.for_each_sub_node("dir", [&] (Node const &dir) {
+			using Path = String<20>;
+			Path const path = dir.attribute_value("path", Path());
 
-				using Path = String<20>;
-				Path const path = dir.attribute_value("path", Path());
+			if (path == "/launcher") {
 
-				if (path == "/launcher") {
+				dir.for_each_sub_node("file", [&] (Node const &file) {
 
-					dir.for_each_sub_node("file", [&] (Node const &file) {
+					if (file.attribute_value("xml", false) == false)
+						return;
 
-						if (file.attribute_value("xml", false) == false)
-							return;
+					using Name = Depot_deploy::Child::Launcher_name;
+					Name const name = file.attribute_value("name", Name());
 
-						using Name = Depot_deploy::Child::Launcher_name;
-						Name const name = file.attribute_value("name", Name());
+					file.for_each_sub_node("launcher", [&] (Node const &launcher) {
+						if (_children.apply_launcher(name, launcher).progressed)
+							progress = PROGRESSED; });
+				});
+			}
 
-						file.for_each_sub_node("launcher", [&] (Node const &launcher) {
-							if (_children.apply_launcher(name, launcher).progressed)
-								any_child_affected = true; });
-					});
-				}
+			if (path == "/option") {
 
-				if (path == "/option") {
+				dir.for_each_sub_node("file", [&] (Node const &file) {
 
-					dir.for_each_sub_node("file", [&] (Node const &file) {
+					using Name = Options::Name;
+					Name const name = file.attribute_value("name", Name());
 
-						using Name = Options::Name;
-						Name const name = file.attribute_value("name", Name());
-
-						file.for_each_sub_node("option", [&] (Node const &option) {
-							if (_children.apply_option(name, option).progressed)
-								any_child_affected = true; });
-					});
-				}
-			});
+					file.for_each_sub_node("option", [&] (Node const &option) {
+						if (_children.apply_option(name, option).progressed)
+							progress = PROGRESSED; });
+				});
+			}
 		});
-		return any_child_affected;
-	};
+	});
 
-	bool const option_or_launcher_affected_child = apply_options_and_launchers();
+	try {
+		_blueprint_rom.with_node([&] (Node const &blueprint) {
 
-	auto apply_blueprint = [&]
-	{
-		bool progress = false;
-		try {
-			_blueprint_rom.with_node([&] (Node const &blueprint) {
-
-			/* apply blueprint, except when stale */
-				using Version = String<32>;
-				Version const version = blueprint.attribute_value("version", Version());
-				if (version == Version(_blueprint_query.blueprint_query_version().value))
-					progress = _children.apply_blueprint(blueprint).progressed;
-			});
-		}
-		catch (...) {
-			error("spurious exception during deploy update (apply_blueprint)"); }
-		return progress;
-	};
-
-	bool const blueprint_affected_child = apply_blueprint();
-
-	bool const progress = arch_changed
-	                   || option_toggled
-	                   || config_affected_child
-	                   || option_or_launcher_affected_child
-	                   || blueprint_affected_child;
-	if (progress) {
-
-		/* apply runtime condition checks */
-		if (update_child_conditions())
-			_blueprint_query.query_blueprint();
-
-		_action.refresh_deploy_dialog();
-		_runtime_config_generator.generate_runtime_config();
+		/* apply blueprint, except when stale */
+			using Version = String<32>;
+			Version const version = blueprint.attribute_value("version", Version());
+			if (version == Version(_blueprint_query.blueprint_query_version().value))
+				if (_children.apply_blueprint(blueprint).progressed)
+					progress = PROGRESSED;
+		});
 	}
+	catch (...) {
+		error("spurious exception during deploy update (apply_blueprint)"); }
+
+	if (progress.stalled())
+		return;
+
+	/* apply runtime condition checks */
+	if (update_child_conditions().progressed)
+		_blueprint_query.query_blueprint();
+
+	_action.refresh_deploy_dialog();
+	_runtime_config_generator.generate_runtime_config();
 }
 
 

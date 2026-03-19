@@ -15,6 +15,7 @@
 #define _TYPES_H_
 
 #include <util/list_model.h>
+#include <util/progress.h>
 #include <base/env.h>
 #include <base/attached_rom_dataspace.h>
 #include <platform_session/platform_session.h>
@@ -71,8 +72,6 @@ namespace Sculpt {
 	 * Argument type for controlling the verification of downloads
 	 */
 	struct Verify { bool value; };
-
-	struct Progress { bool progress; };
 
 	/**
 	 * Call 'fn' with the two strings preceeding and following the character 'c'

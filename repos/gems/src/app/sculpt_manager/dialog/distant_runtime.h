@@ -16,6 +16,7 @@
 
 #include <os/reporter.h>
 #include <base/attached_rom_dataspace.h>
+#include <util/progress.h>
 #include <util/dictionary.h>
 #include <util/color.h>
 #include <dialog/types.h>
@@ -97,28 +98,28 @@ class Dialog::Distant_runtime : Noncopyable
 		 * \return true if runtime must be reconfigured so that the changes
 		 *         can take effect
 		 */
-		bool _apply_child_state_report(Node const &child)
+		Progress _apply_child_state_report(Node const &child)
 		{
-			bool result = false;
+			Progress result = STALLED;
 
 			if (child.attribute_value("name", Start_name()) != _child_name)
-				return false;
+				return STALLED;
 
 			child.with_optional_sub_node("ram", [&] (Node const &node) {
 				if (node.has_attribute("requested")) {
 					_ram.value = min(2*_ram.value, 128*1024*1024u);
-					result = true; } });
+					result = PROGRESSED; } });
 
 			child.with_optional_sub_node("caps", [&] (Node const &node) {
 				if (node.has_attribute("requested")) {
 					_caps.value = min(_caps.value + 100, 2000u);
-					result = true; } });
+					result = PROGRESSED; } });
 
 			if (child.attribute_value("skipped_heartbeats", 0U) > 2) {
 				_version++;
 				_ram  = _initial_ram;
 				_caps = _initial_caps;
-				result = true;
+				result = PROGRESSED;
 			}
 
 			return result;
@@ -133,12 +134,7 @@ class Dialog::Distant_runtime : Noncopyable
 		 */
 		void route_input_event(Event::Seq_number, Input::Event const &);
 
-		/**
-		 * Respond to runtime-init state changes
-		 *
-		 * \return true  if the runtime-init configuration needs to be updated
-		 */
-		bool apply_runtime_state(Node const &);
+		Progress apply_runtime_state(Node const &);
 
 		void gen_child_nodes(Generator &) const;
 };

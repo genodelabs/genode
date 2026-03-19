@@ -26,15 +26,14 @@ static bool clack(Input::Event const &event) {
 	return Input::Seq_number_generator::clack(event); }
 
 
-bool Distant_runtime::apply_runtime_state(Node const &state)
+Progress Distant_runtime::apply_runtime_state(Node const &state)
 {
-	bool reconfiguration_needed = false;
+	Progress result = STALLED;
 	state.for_each_sub_node("child", [&] (Node const &child) {
-		if (_apply_child_state_report(child))
-			reconfiguration_needed = true;
-	});
+		if (_apply_child_state_report(child).progressed)
+			result = PROGRESSED; });
 
-	return reconfiguration_needed;
+	return result;
 }
 
 
