@@ -33,48 +33,6 @@ bool Sculpt::Deploy::update_child_conditions()
 }
 
 
-void Sculpt::Deploy::view_diag(Scope<> &s) const
-{
-	/*
-	 * Collect messages in registry, avoiding duplicates
-	 */
-	using Message = String<64>;
-	using Registered_message = Registered_no_delete<Message>;
-	Registry<Registered_message> messages { };
-
-	auto gen_missing_dependencies = [&] (Node const &start, Start_name const &name)
-	{
-		_for_each_missing_server(start, [&] (Start_name const &server) {
-
-			Message const new_message(Pretty(name), " requires ", Pretty(server));
-
-			bool already_exists = false;
-			messages.for_each([&] (Registered_message const &message) {
-				if (message == new_message)
-					already_exists = true; });
-
-			if (!already_exists)
-				new (_alloc) Registered_message(messages, new_message);
-		});
-	};
-
-	_children.for_each_unsatisfied_child([&] (Node       const &start,
-	                                          Node       const &launcher,
-	                                          Start_name const &name) {
-		gen_missing_dependencies(start,    name);
-		gen_missing_dependencies(launcher, name);
-	});
-
-	/*
-	 * Generate dialog elements, drop consumed messages from the registry
-	 */
-	messages.for_each([&] (Registered_message &message) {
-		s.sub_scope<Left_annotation>(message);
-		destroy(_alloc, &message);
-	});
-}
-
-
 void Sculpt::Deploy::_process_deploy(Node const &managed_deploy)
 {
 	/* determine CPU architecture of deployment */

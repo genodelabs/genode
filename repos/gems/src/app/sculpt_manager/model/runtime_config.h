@@ -196,6 +196,8 @@ class Sculpt::Runtime_config
 
 		unsigned _graph_id_count = 0;
 
+		unsigned _num_stalled = 0;
+
 	public:
 
 		struct Component : List_model<Component>::Element
@@ -386,14 +388,6 @@ class Sculpt::Runtime_config
 		                                 Service::Type::FS,
 		                                 { }, "used file system" };
 
-		void _for_each_stalled(auto const &fn) const
-		{
-			_components.for_each([&] (Component const &component) {
-				if (component._stalled.constructed()) {
-					Node const &stalled = *component._stalled;
-					fn(stalled); } });
-		}
-
 	public:
 
 		Runtime_config(Allocator &alloc) : _alloc(alloc) { }
@@ -401,6 +395,7 @@ class Sculpt::Runtime_config
 		Progress update_from_node(Node const &config)
 		{
 			Progress result = STALLED;
+			_num_stalled = 0;
 			_components.update_from_node(config,
 
 				/* create */
@@ -425,6 +420,7 @@ class Sculpt::Runtime_config
 
 				/* update */
 				[&] (Component &e, Node const &node) {
+					if (node.has_type("stalled")) _num_stalled++;
 					if (e.update_from_node(_alloc, node).progressed)
 						result = PROGRESSED;
 				}
@@ -457,9 +453,19 @@ class Sculpt::Runtime_config
 
 		void for_each_component(auto const &fn) const { _components.for_each(fn); }
 
+		void for_each_stalled(auto const &fn) const
+		{
+			_components.for_each([&] (Component const &component) {
+				if (component._stalled.constructed()) {
+					Node const &stalled = *component._stalled;
+					fn(stalled); } });
+		}
+
+		bool any_stalled() const { return _num_stalled > 0; }
+
 		void for_each_missing_pkg(auto const &fn) const
 		{
-			_for_each_stalled([&] (Node const &stalled) {
+			for_each_stalled([&] (Node const &stalled) {
 				stalled.with_optional_sub_node("deploy", [&] (Node const &deploy) {
 					deploy.with_optional_sub_node("pkg_missing", [&] (Node const &) {
 						fn(deploy.attribute_value("pkg", Depot::Archive::Path())); }); }); });

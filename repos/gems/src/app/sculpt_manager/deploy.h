@@ -245,17 +245,6 @@ struct Sculpt::Deploy
 	 */
 	bool update_child_conditions();
 
-	bool any_unsatisfied_child() const
-	{
-		bool all_satisfied = true;
-		_children.for_each_unsatisfied_child(
-			[&] (Node const &, Node const &, Start_name const &) {
-				all_satisfied = false; });
-		return !all_satisfied;
-	}
-
-	void view_diag(Scope<> &) const;
-
 	void gen_child_nodes(Generator &) const;
 
 	void gen_runtime_start_nodes(Generator &, Node const &deploy,

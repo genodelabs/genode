@@ -49,6 +49,7 @@
 #include <view/settings_widget.h>
 #include <view/system_dialog.h>
 #include <view/file_browser_dialog.h>
+#include <view/runtime_diag.h>
 #include <drivers.h>
 #include <gui.h>
 #include <keyboard_focus.h>
@@ -945,7 +946,7 @@ struct Sculpt::Main : Input_event_handler,
 				bool const network_missing = _main._update_needed()
 				                         && !_main._network._nic_state.ready();
 
-				bool const show_diagnostics = _main._deploy.any_unsatisfied_child()
+				bool const show_diagnostics = _main._cached_init_config.any_stalled()
 				                           || network_missing;
 				if (show_diagnostics) {
 
@@ -955,7 +956,8 @@ struct Sculpt::Main : Input_event_handler,
 						if (network_missing)
 							s.sub_scope<Left_annotation>("network needed for installation");
 
-						s.as_new_scope([&] (Scope<> &s) { _main._deploy.view_diag(s); });
+						s.as_new_scope([&] (Scope<> &s) {
+							view_runtime_diag(s, _alloc, _main._cached_init_config); });
 					});
 				}
 

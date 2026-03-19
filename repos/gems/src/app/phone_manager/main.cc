@@ -59,6 +59,7 @@
 #include <view/software_version_widget.h>
 #include <view/download_status_widget.h>
 #include <view/conditional_float_widget.h>
+#include <view/runtime_diag.h>
 #include <runtime/touch_keyboard.h>
 #include <dialog/distant_runtime.h>
 
@@ -739,7 +740,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	struct Software_status_widget : Widget<Float>
 	{
-		void view(Scope<Float> &s, Main const &main) const
+		void view(Scope<Float> &s, Main const &main, Allocator &alloc) const
 		{
 			s.sub_scope<Vbox>([&] (Scope<Float, Vbox> &s) {
 
@@ -754,7 +755,8 @@ struct Sculpt::Main : Input_event_handler,
 						if (main._network_missing())
 							s.sub_scope<Left_annotation>("network needed for installation");
 
-						s.as_new_scope([&] (Scope<> &s) { main._deploy.view_diag(s); });
+						s.as_new_scope([&] (Scope<> &s) {
+							view_runtime_diag(s, alloc, main._cached_init_config); });
 					});
 				}
 
@@ -889,7 +891,7 @@ struct Sculpt::Main : Input_event_handler,
 		                  _network._wifi_connection, _network._nic_state,
 		                  _network.wpa_passphrase, _network._wlan_config_policy };
 
-	void _view_main_dialog(Scope<> &s) const
+	void _view_main_dialog(Scope<> &s, Allocator &alloc) const
 	{
 		/* skip generating the dialog at boot time */
 		if (!_gui_mode_ready)
@@ -1016,7 +1018,7 @@ struct Sculpt::Main : Input_event_handler,
 
 			s.widget(_software_status_widget, _software_title_bar.selected()
 			                               && _software_tabs_widget.hosted.status_selected(),
-			         *this);
+			         *this, alloc);
 
 			/*
 			 * Whenever the touch keyboard is visible, enforce some space at
@@ -1259,7 +1261,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		Main_dialog(Main &main) : Top_level_dialog("main"), _main(main) { }
 
-		void view(Scope<> &s) const override { _main._view_main_dialog(s); }
+		void view(Scope<> &s) const override { _main._view_main_dialog(s, _main._heap); }
 
 		void click(Clicked_at const &at) override { _main._click(at); }
 		void clack(Clacked_at const &at) override { _main._clack(at); }
@@ -1519,7 +1521,7 @@ struct Sculpt::Main : Input_event_handler,
 		return _update_needed() && !_network._nic_state.ready(); }
 
 	bool _diagnostics_available() const {
-		return _deploy.any_unsatisfied_child() || _network_missing(); }
+		return _cached_init_config.any_stalled() || _network_missing(); }
 
 	bool _software_status_available() const
 	{
