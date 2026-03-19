@@ -172,9 +172,11 @@ void usb_notify_add_device(struct usb_device * udev)
 	for (unsigned i = 0; i < interfaces; i++) {
 
 		struct usb_interface *intf = usb_ifnum_to_if(udev, i);
-		char const           *name = intf->dev.driver->name;
+		if (!intf->dev.driver) continue;
 
-		if (strncmp(name, "qmi_wwan", 8) == 0) {
+		char const  *name = intf->dev.driver->name;
+
+		if (name && strncmp(name, "qmi_wwan", 8) == 0) {
 			struct usbnet *dev = usb_get_intfdata(intf);
 
 			printk("found 'qmi_wwan' driver for interface %u\n", i);
