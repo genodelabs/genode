@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,14 +19,18 @@ class Ac : Acpica::Callback<Ac> {
 		UINT64 _ac_state = 0;
 		UINT64 _ac_count = 0;
 
+		ACPI_HANDLE const _ac;
+
 	public:
 
-		Ac(void * report)
-			: _report(reinterpret_cast<Acpica::Reportstate *>(report))
+		Ac(Acpica::Reportstate * report, ACPI_HANDLE const ac)
+		: _report(report), _ac(ac)
 		{
 			if (_report)
 				_report->add_notify(this);
 		}
+
+		void trigger_update() { handle(_ac, 0); }
 
 		void handle(ACPI_HANDLE ac, UINT32 value)
 		{
@@ -53,7 +57,7 @@ class Ac : Acpica::Callback<Ac> {
 		static ACPI_STATUS detect(ACPI_HANDLE ac, UINT32, void * m, void **)
 		{
 			Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
-			Ac * obj = new (main->heap) Ac(main->report);
+			Ac * obj = new (main->heap) Ac(main->report, ac);
 
 			ACPI_STATUS res = AcpiInstallNotifyHandler (ac, ACPI_DEVICE_NOTIFY,
 			                                            handler, obj);

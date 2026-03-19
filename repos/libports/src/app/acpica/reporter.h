@@ -59,6 +59,9 @@ class Acpica::Reportstate {
 		Callback<Fixed>                 * _fixed;
 		Callback<Lid>                   * _lid;
 
+		void for_each(auto &list, auto const &fn) {
+			for (auto e = list.first(); e; e = e->next()) fn(*e); }
+
 	public:
 
 		Reportstate(Genode::Env &env)
@@ -92,6 +95,8 @@ class Acpica::Reportstate {
 
 			if (_changed_ec || force) {
 				if (_lid) _lid->trigger_update();
+
+				for_each(_list_ac, [&](auto &ac) { ac.trigger_update(); });
 			}
 
 			if (_changed_lid || force) {
@@ -104,8 +109,8 @@ class Acpica::Reportstate {
 			if (_changed_ac || force) {
 				_changed_ac = false;
 				_reporter_ac.generate([&] (Generator &g) {
-					for (Callback<Ac> * ac = _list_ac.first(); ac; ac = ac->next())
-						g.node("ac", [&] { ac->generate(g); }); });
+					for_each(_list_ac, [&](auto &ac) {
+						g.node("ac", [&] { ac.generate(g); }); }); });
 			}
 
 			if (_changed_ec || force) {
