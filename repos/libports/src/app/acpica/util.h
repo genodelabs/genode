@@ -61,6 +61,8 @@ class Acpica::Callback : public Genode::List<Acpica::Callback<T> >::Element
 		void generate(Genode::Generator &g) {
 			reinterpret_cast<T *>(this)->generate(g);
 		}
+
+		void trigger_update() { reinterpret_cast<T *>(this)->trigger_update(); }
 };
 
 

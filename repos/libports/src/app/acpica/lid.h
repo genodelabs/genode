@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,14 +19,18 @@ class Lid : Acpica::Callback<Lid> {
 		UINT64 _lid_state = 0;
 		UINT64 _lid_count = 0;
 
+		ACPI_HANDLE const _lid;
+
 	public:
 
-		Lid(void * report)
-			: _report(reinterpret_cast<Acpica::Reportstate *>(report))
+		Lid(Acpica::Reportstate * report, ACPI_HANDLE lid)
+		: _report(report), _lid(lid)
 		{
 			if (_report)
 				_report->add_notify(this);
 		}
+
+		void trigger_update() { handle(_lid, 0); }
 
 		void handle(ACPI_HANDLE lid, UINT32 value)
 		{
@@ -53,7 +57,7 @@ class Lid : Acpica::Callback<Lid> {
 		static ACPI_STATUS detect(ACPI_HANDLE lid, UINT32, void * m, void **)
 		{
 			Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
-			Lid * obj = new (main->heap) Lid(main->report);
+			Lid * obj = new (main->heap) Lid(main->report, lid);
 
 			ACPI_STATUS res = AcpiInstallNotifyHandler (lid, ACPI_DEVICE_NOTIFY,
 			                                            handler, obj);

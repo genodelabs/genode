@@ -90,6 +90,10 @@ class Acpica::Reportstate {
 			bool const changed = _changed_sb  || _changed_ec ||
 			                     _changed_fixed || _changed_lid || _changed_ac;
 
+			if (_changed_ec || force) {
+				if (_lid) _lid->trigger_update();
+			}
+
 			if (_changed_lid || force) {
 				_changed_lid = false;
 				if (_lid)
