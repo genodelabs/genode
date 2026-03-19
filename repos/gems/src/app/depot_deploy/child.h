@@ -218,9 +218,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 			   && (_config_pkg_path(child) == _blueprint_pkg_path);
 		}
 
-		inline void _gen_routes(Generator &,
-		                        Resource::Types const &resource_types,
-		                        Node const &, Node const &,
+		inline void _gen_routes(Generator &, Global const &, Node const &,
 		                        Depot_rom_server const &) const;
 
 		/*
@@ -803,7 +801,7 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 				});
 			}
 
-			_gen_routes(g, global.resource_types, global.common, child,
+			_gen_routes(g, global, child,
 			            _custom_depot_rom.length() > 1 ? _custom_depot_rom
 			                                           : global.default_depot_rom);
 		});
@@ -837,9 +835,7 @@ void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 
 
 void Depot_deploy::Child::_gen_routes(Generator &g,
-                                      Resource::Types  const &resource_types,
-                                      Node             const &common,
-                                      Node             const &child,
+                                      Global const &global, Node const &child,
                                       Depot_rom_server const &depot_rom) const
 {
 	if (_pkg != Pkg::NONE && !_pkg_node.constructed())
@@ -849,7 +845,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 
 	child.with_optional_sub_node("connect", [&] (Node const &connect) {
 		connect.for_each_sub_node([&] (Node const &conn) {
-			Resource const resource = Resource::from_node(resource_types, conn);
+			Resource const resource = Resource::from_node(global.resource_types, conn);
 			if (resource.type == Resource::PD)
 				route_binary_to_shim = true; }); });
 
@@ -872,7 +868,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 
 	auto route_from_connection = [&] (Node const &conn)
 	{
-		Resource const resource = Resource::from_node(resource_types, conn);
+		Resource const resource = Resource::from_node(global.resource_types, conn);
 		if (resource.type == Resource::UNDEFINED) {
 			warning(name, ": unknown resource type: ", conn);
 			return;
@@ -928,18 +924,40 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 	}
 
 	/*
-	 * Add routes given in the start node (deprecated)
+	 * Helper for detecting and skipping broken dependencies
 	 */
-	child.with_optional_sub_node("route", [&] (Node const &route) {
-		route.for_each_sub_node("service", [&] (Node const &service) {
-			copy_route(service); }); });
+	bool const stalled = !runnable();
+
+	auto target_exists = [&] (Node const &conn)
+	{
+		if (!stalled) /* cheap check first */
+			return true;
+
+		bool result = true;
+		conn.for_each_sub_node([&] (Node const &target) {
+			Name const &child_or_alias = target.attribute_value("name", Name());
+			if (target.has_type("child")) {
+				with_server_name(child_or_alias, global.alias_dict, [&] (Name const &name) {
+					if (!global.child_dict.exists(name))
+						result = false; }); } });
+		return result;
+	};
 
 	/*
 	 * Add routes according to the child's connect node
 	 */
 	child.with_optional_sub_node("connect", [&] (Node const &connect) {
 		connect.for_each_sub_node([&] (Node const &connection) {
-			route_from_connection(connection); }); });
+			if (target_exists(connection))
+				route_from_connection(connection); }); });
+
+	/*
+	 * Add routes given in the start node (deprecated)
+	 */
+	child.with_optional_sub_node("route", [&] (Node const &route) {
+		route.for_each_sub_node("service", [&] (Node const &service) {
+			if (target_exists(service))
+				copy_route(service); }); });
 
 	/*
 	 * Add routes given in the launcher definition (deprecated)
@@ -947,7 +965,8 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 	_with_node(_launcher_node, [&] (Node const &launcher) {
 		launcher.with_optional_sub_node("route", [&] (Node const &route) {
 			route.for_each_sub_node([&] (Node const &service) {
-				copy_route(service); }); }); }, [&] { });
+				if (target_exists(service))
+					copy_route(service); }); }); }, [&] { });
 
 	/*
 	 * Redirect config ROM request to label as given in the 'config' attribute,
@@ -985,7 +1004,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 	/*
 	 * Add common routes as defined in our config.
 	 */
-	common.for_each_sub_node([&] (Node const &service) {
+	global.common.for_each_sub_node([&] (Node const &service) {
 		copy_route(service); });
 
 	/*
