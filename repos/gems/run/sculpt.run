@@ -971,18 +971,18 @@ proc versioned_pkg { pkg } {
 }
 
 
-proc augment_option_child_node_pkg_versions { path } {
+proc augment_child_node_pkg_versions { toplevel path } {
 
 	set cmd [genode_dir]/tool/hid
 	if {[looks_like_xml $path]} { lappend cmd --import-xml --output-xml }
 
 	if {[catch {
-		set names [split [exec {*}$cmd get "option | + child | : name" $path] "\n"]
+		set names [split [exec {*}$cmd get "$toplevel | + child | : name" $path] "\n"]
 
 		foreach name $names {
-			set pkg [exec {*}$cmd get "option | + child $name | : pkg" $path]
+			set pkg [exec {*}$cmd get "$toplevel | + child $name | : pkg" $path]
 			if {$pkg != ""} { # skip children deployed from ROM
-				exec {*}$cmd -i set "option | + child $name | : pkg: [versioned_pkg $pkg]" $path
+				exec {*}$cmd -i set "$toplevel | + child $name | : pkg: [versioned_pkg $pkg]" $path
 			}
 		}
 	}]} {
@@ -1029,7 +1029,7 @@ proc augment_start_node_pkg_versions { path } {
 
 # options
 foreach option [ingredients_of_type option] {
-	augment_option_child_node_pkg_versions [file join [initial_config_dir] option $option] }
+	augment_child_node_pkg_versions "option" [file join [initial_config_dir] option $option] }
 
 # launcher snippets
 foreach launcher [ingredients_of_type launcher] {
@@ -1037,22 +1037,13 @@ foreach launcher [ingredients_of_type launcher] {
 
 # presets
 foreach preset [ingredients_of_type presets] {
-	augment_start_node_pkg_versions [file join [initial_config_dir] presets $preset] }
-
-# deploy config
-augment_start_node_pkg_versions [initial_config_file deploy]
-
-# update arch attribute of deploy config and presets
-proc augment_arch_attribute { file } {
-	set cmd [genode_dir]/tool/hid
-	if {[looks_like_xml $file]} { lappend cmd --import-xml --output-xml }
-	exec {*}$cmd -i set "config | : arch: [depot_spec]" $file
+	augment_child_node_pkg_versions "deploy" [file join [initial_config_dir] presets $preset]
+	augment_start_node_pkg_versions          [file join [initial_config_dir] presets $preset]
 }
 
-foreach preset [ingredients_of_type presets] {
-	augment_arch_attribute [file join [initial_config_dir] presets $preset] }
-
-augment_arch_attribute [initial_config_file deploy]
+# deploy config
+augment_child_node_pkg_versions "deploy" [initial_config_file deploy]
+augment_start_node_pkg_versions          [initial_config_file deploy]
 
 
 ##
