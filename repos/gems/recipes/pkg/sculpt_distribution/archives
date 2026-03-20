@@ -22,7 +22,7 @@ _/pkg/test-capture
 _/pkg/themed_decorator
 _/pkg/themed_wm
 _/pkg/trace_logger
-_/pkg/unconfigured_nano3d
+_/pkg/nano3d
 _/pkg/usb_webcam
 _/pkg/window_layouter
 _/pkg/wm

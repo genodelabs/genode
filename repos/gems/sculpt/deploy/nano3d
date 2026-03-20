@@ -38,7 +38,7 @@ config | arch: | info: software-rendering example
       + inline | description: texturing      | + config | painter: textured | shape: cube
       + sleep  | milliseconds: 1000
 
-+ start nano3d | pkg: unconfigured_nano3d
++ start nano3d | pkg: nano3d | config: no
   + affinity | xpos: 1 | width: 1
   + route
     + service Gui                 | + parent | label: follow_touch

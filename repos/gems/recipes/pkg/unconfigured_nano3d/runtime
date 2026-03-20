@@ -1,5 +1,0 @@
-runtime | ram: 6M | caps: 200 | binary: nano3d
-+ requires
-  + gui
-  + timer
--
