@@ -355,24 +355,28 @@ void User_state::_handle_input_event(Input::Event ev)
 			receiver->submit_input_event(ev);
 	}
 
+	ev.handle_press([&] (Keycode key, Codepoint) {
+		/*
+		 * deliver current pointer position to input receiver if it was not
+		 * hovered at start of the key sequence and no motion event has occured
+		 * since (i.e. not dragging)
+		 */
+		if (_mouse_button(key) && !_drag)
+			if (_input_receiver && (_hovered != _input_receiver))
+				_pointer.with_result(
+					[&] (Point at) {
+						Absolute_motion motion { at.x, at.y };
+						_input_receiver->submit_input_event(motion); },
+					[&] (Nowhere) { });
+	});
+
 	/*
 	 * Deliver press/release event to focused session or the receiver of global
 	 * key.
 	 */
-	ev.handle_press([&] (Keycode key, Codepoint) {
-
-		if (!_input_receiver)
-			return;
-
-		if (!_mouse_button(key) || _global_key_sequence
-		 || _takes_input(_hovered, _focused))
+	if (ev.press() || ev.release())
+		if (_input_receiver)
 			_input_receiver->submit_input_event(ev);
-		else
-			_input_receiver = nullptr;
-	});
-
-	if (ev.release() && _input_receiver)
-		_input_receiver->submit_input_event(ev);
 
 	/*
 	 * Detect end of key sequence
