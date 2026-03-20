@@ -922,10 +922,12 @@ proc referenced_pkg_values { } {
 	foreach preset [ingredients_of_type presets] {
 		set path [file join [initial_config_dir] presets $preset]
 		lappend values {*}[pkg_attribute_values $path "config | + start"]
+		lappend values {*}[pkg_attribute_values $path "deploy | + child"]
 	}
 
 	# scan deploy config
 	lappend values {*}[pkg_attribute_values [initial_config_file deploy] "config | + start"]
+	lappend values {*}[pkg_attribute_values [initial_config_file deploy] "deploy | + child"]
 
 	return [lsort -unique $values]
 }

@@ -100,7 +100,7 @@ struct Sculpt::Deploy
 		 */
 		deploy.for_each_sub_node([&] (Node const &node) {
 
-			if (node.type() == "start") {
+			if (node.type() == "start" || node.type() == "child") {
 				Start_name const name = node.attribute_value("name", Start_name());
 				if (_runtime_info.abandoned_by_user(name))
 					return;
