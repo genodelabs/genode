@@ -108,12 +108,13 @@ struct Sculpt::Deploy
 				g.node("start", [&] {
 
 					/*
-					 * Copy attributes
+					 * Copy attributes while overriding the version, which is
+					 * incremented when restarting a child.
 					 */
+					node.for_each_attribute([&] (Node::Attribute const &a) {
+						if (a.name != "version")
+							g.attribute(a.name.string(), a.value.start, a.value.num_bytes); });
 
-					g.attribute("name", name);
-
-					/* override version with restarted version, after restart */
 					using Version = Child_state::Version;
 					Version version = _runtime_info.restarted_version(name);
 					if (version.value == 0)
@@ -121,21 +122,6 @@ struct Sculpt::Deploy
 
 					if (version.value > 0)
 						g.attribute("version", version.value);
-
-					auto copy_attribute = [&] (auto attr)
-					{
-						if (node.has_attribute(attr)) {
-							using Value = String<128>;
-							g.attribute(attr, node.attribute_value(attr, Value()));
-						}
-					};
-
-					copy_attribute("caps");
-					copy_attribute("ram");
-					copy_attribute("cpu");
-					copy_attribute("priority");
-					copy_attribute("pkg");
-					copy_attribute("managing_system");
 
 					/* copy start-node content */
 					if (!g.append_node_content(node, Generator::Max_depth { 20 }))
