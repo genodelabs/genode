@@ -297,6 +297,11 @@ class Depot_deploy::Child : public Duplicate_checked,
 			});
 		}
 
+		static bool _config_overridden(Node const &child)
+		{
+			return !child.attribute_value("config", true);
+		}
+
 	public:
 
 		Child(Child_dict &dict, Name const &name)
@@ -752,12 +757,14 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 					_gen_copy_of_sub_node(g, launcher, "heartbeat"); }, [&] { });
 
 		/*
-		 * Insert inline '<config>' node if provided by the start node,
+		 * Unless overridden by a manually routed config,
+		 * insert inline '<config>' node if provided by the child node,
 		 * the launcher definition (if a launcher is used), or the
 		 * blueprint. The former is preferred over the latter.
 		 */
-		bool config_defined = false;
-		if (child.has_sub_node("config")) {
+		bool config_defined = _config_overridden(child);
+
+		if (!config_defined && child.has_sub_node("config")) {
 			_gen_copy_of_sub_node(g, child, "config");
 			config_defined = true; }
 
@@ -974,7 +981,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 	 * matching ROM module to rewrite the label with the configuration's path
 	 * within the depot.
 	 */
-	if (_pkg_node.constructed() && _config_name.valid()) {
+	if (!_config_overridden(child) && _pkg_node.constructed() && _config_name.valid()) {
 		_pkg_node->for_each_sub_node("rom", [&] (Node const &rom) {
 
 			if (!rom.has_attribute("path"))
@@ -1021,6 +1028,10 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 			Path  const path = rom.attribute_value("path", Path());
 			Label const name = rom.attribute_value("name", Label());
 			Label const as   = rom.attribute_value("as",   name);
+
+			/* drop route to "config" ROM if config is manually routed */
+			if (as == "config" && _config_overridden(child))
+				return;
 
 			g.node("service", [&] {
 				g.attribute("name", "ROM");
