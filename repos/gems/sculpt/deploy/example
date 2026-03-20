@@ -1,50 +1,8 @@
-config | arch:
-
+deploy
 + option managed
-
-+ common_routes
-  + service ROM | label_last: ld.lib.so | + parent
-  + service ROM | label_last: init      | + parent
-  + service CPU                         | + parent
-  + service PD                          | + parent
-  + service LOG                         | + parent
-  + service Timer                       | + parent
-
-+ start recall_fs | pkg: chroot
-  + route | + service File_system | + child default_fs_rw
-  + config
-    + default-policy | path_prefix: /recall | writeable: yes
-
-+ start wm | pkg: wm
-  + route
-    + service ROM    | label_last: clipboard | + parent
-    + service Report | label_last: clipboard | + parent
-    + service Report | label_last: shape     | + parent
-    + service Gui    | label: focus          | + parent | label: focus
-    + service Gui                            | + parent
-
-+ start window_layouter | pkg: window_layouter
-  + route
-    + service ROM | label: window_list              | + child wm
-    + service ROM | label: focus_request            | + child wm
-    + service ROM | label: hover                    | + child wm
-    + service ROM | label: decorator_margins        | + child wm
-    + service ROM | label: rules                    | + child wm
-    + service Report                                | + child wm
-    + service Gui                                   | + child wm
-    + service File_system | label_prefix: recall -> | + child recall_fs
-
-+ start themed_decorator | pkg: themed_decorator
-  + route
-    + service ROM | label: window_layout | + child wm
-    + service ROM | label: pointer       | + child wm
-    + service Report                     | + child wm
-    + service Gui                        | + child wm
-
-+ start fonts_fs | pkg: fonts_fs
-  + route
-    + service ROM | label: config | + parent | label: config -> fonts
-
++ option recall_fs
++ option window_manager
++ option fonts_fs
 + option sticks_blue_backdrop
 + option nano3d
 + option system_shell

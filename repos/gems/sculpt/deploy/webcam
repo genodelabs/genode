@@ -1,30 +1,16 @@
-config | arch: | info: webcam example
-
-+ common_routes
-  + service ROM | label_last: ld.lib.so | + parent
-  + service ROM | label_last: init      | + parent
-  + service CPU                         | + parent
-  + service PD                          | + parent
-  + service LOG                         | + parent
-  + service Timer                       | + parent
-  + service Capture                     | + parent
-  + service Gui                         | + parent
+deploy | info: webcam example
 
 + option managed
 
-+ start internal | ram: 64M | pkg: usb_webcam
-  + route
-    + service Usb | + child usb
-    + any-service | + parent
++ child internal | ram: 64M | pkg: usb_webcam
+  + connect | + usb | + child usb
   + provides
-    + service Capture
-    + service Report
+    + capture
+    + report
 
-+ start external | ram: 64M | pkg: usb_webcam
-  + route
-    + service Usb | + child usb
-    + any-service | + parent
++ child external | ram: 64M | pkg: usb_webcam
+  + connect | + usb | + child usb
   + provides
-    + service Capture
-    + service Report
+    + capture
+    + report
 -

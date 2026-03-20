@@ -1,60 +1,14 @@
-config | arch: | info: simple desktop environment
-
-+ common_routes
-  + service ROM | label_last: ld.lib.so | + parent
-  + service CPU                         | + parent
-  + service PD                          | + parent
-  + service LOG                         | + parent
-  + service Timer                       | + parent
+deploy | info: simple desktop environment
 
 + option managed
-
 + option recall_fs
++ option window_manager
++ option fonts_fs
 + option black_hole
++ option system_shell
 
-+ start system_shell | priority: -3 | pkg: system_shell
-  + route
-    + service Gui                                   | + child wm
-    + service File_system | label_prefix: config -> | + parent | identity: config
-    + service File_system | label_prefix: report -> | + parent | identity: report
-    + service File_system | label_prefix: target -> | + child default_fs_rw
-    + service File_system | label_prefix: fonts ->  | + child fonts_fs
-    + service ROM    | label: vimrc                 | + parent | label: config -> vimrc
-    + service ROM    | label: clipboard             | + child wm
-    + service Report | label: clipboard             | + child wm
-    + service RM                                    | + parent
-
-+ start window_layouter | priority: -2 | pkg: window_layouter
-  + route
-    + service Gui                                   | + child wm
-    + service ROM | label: window_list              | + child wm
-    + service ROM | label: focus_request            | + child wm
-    + service ROM | label: hover                    | + child wm
-    + service ROM | label: decorator_margins        | + child wm
-    + service Report                                | + child wm
-    + service File_system | label_prefix: recall -> | + child recall_fs
-
-+ start themed_decorator | priority: -2 | pkg: themed_decorator
-  + route
-    + service ROM | label: window_layout | + child wm
-    + service ROM | label: pointer       | + child wm
-    + service Report                     | + child wm
-    + service Gui                        | + child wm
-
-+ start wm | priority: -2 | pkg: wm
-  + route
-    + service Gui | label: focus             | + parent | label: focus
-    + service Gui                            | + parent
-    + service Report | label_last: shape     | + parent
-    + service Report | label_last: clipboard | + parent
-    + service ROM    | label_last: clipboard | + parent
-
-+ start fonts_fs | priority: -3 | pkg: fonts_fs
-  + route
-    + service ROM | label: config | + parent | label: config -> fonts
-
-+ start wm_backdrop | priority: -3 | pkg: sticks_blue_backdrop
-  + route | + service Gui | + parent | label: backdrop
++ child wm_backdrop | pkg: sticks_blue_backdrop
+  + connect | + gui | + parent | label: backdrop
   + config
     + libc
     + vfs

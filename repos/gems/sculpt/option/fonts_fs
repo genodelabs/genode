@@ -1,0 +1,5 @@
+option
++ child fonts_fs | pkg: fonts_fs
+  + connect
+    + rom config | + parent | label: config -> fonts
+-

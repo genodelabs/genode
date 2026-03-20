@@ -1469,7 +1469,7 @@ struct Sculpt::Main : Input_event_handler,
 				if (dir.attribute_value("path", Path()) == "/presets") {
 					dir.for_each_sub_node("file", [&] (Node const &file) {
 						if (file.attribute_value("name", Presets::Info::Name()) == name) {
-							file.with_optional_sub_node("config", [&] (Node const &config) {
+							file.with_optional_sub_node("deploy", [&] (Node const &config) {
 								_handle_deploy_config(config); }); } }); } }); });
 	}
 

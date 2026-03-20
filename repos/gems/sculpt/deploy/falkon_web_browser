@@ -1,50 +1,17 @@
-config | arch: | info: disposable web browser
-
-+ common_routes
-  + service ROM | label_last: ld.lib.so | + parent
-  + service CPU                         | + parent
-  + service PD                          | + parent
-  + service LOG                         | + parent
-  + service Timer                       | + parent
+deploy | info: disposable web browser
 
 + option managed
-
++ option recall_fs
++ option window_manager
 + option black_hole
 + option mixer
 + option system_clock
-+ option recall_fs
 
-+ start mesa_gpu-cpu | priority: -2 | pkg: mesa_gpu-cpu
-  + route
-    + service RM | + parent
++ child mesa_gpu-cpu | pkg: mesa_gpu-cpu
+  + connect | + rm | + parent
 
-+ start window_layouter | priority: -2 | pkg: window_layouter
-  + route
-    + service Gui                                   | + child wm
-    + service ROM | label: window_list              | + child wm
-    + service ROM | label: focus_request            | + child wm
-    + service ROM | label: hover                    | + child wm
-    + service ROM | label: decorator_margins        | + child wm
-    + service Report                                | + child wm
-    + service File_system | label_prefix: recall -> | + child recall_fs
-
-+ start motif_decorator | priority: -2 | pkg: motif_decorator
-  + route
-    + service ROM | label: window_layout | + child wm
-    + service ROM | label: pointer       | + child wm
-    + service Report                     | + child wm
-    + service Gui                        | + child wm
-
-+ start wm | priority: -2 | pkg: wm
-  + route
-    + service Gui | label: focus             | + parent | label: focus
-    + service Gui                            | + parent
-    + service Report | label_last: shape     | + parent
-    + service Report | label_last: clipboard | + parent
-    + service ROM    | label_last: clipboard | + parent
-
-+ start falkon_backdrop | pkg: sticks_blue_backdrop
-  + route | + service Gui | + parent | label: backdrop
++ child falkon_backdrop | pkg: sticks_blue_backdrop
+  + connect | + gui | + parent | label: backdrop
   + config
     + libc
     + vfs
@@ -55,20 +22,20 @@ config | arch: | info: disposable web browser
     + image | png: genode_logo.png | alpha:  50 | anchor: bottom_right
                                      xpos:  -20 | ypos:  -20
 
-+ start falkon_qt6-jemalloc | pkg: cproc/pkg/falkon_qt6-jemalloc/2025-10-27
-  + route
-    + service RM                                       | + parent
-    + service Nic                                      | + child nic_router
-    + service Rtc                                      | + child system_clock
-    + service Play                                     | + child mixer
-    + service Record                                   | + child mixer
-    + service Capture                                  | + child black_hole
-    + service File_system | label_prefix: config ->    | + child ram_fs
-    + service File_system | label_prefix: downloads -> | + child ram_fs
-    + service Gui                                      | + child wm
-    + service Report | label: shape                    | + child wm
-    + service Report | label: clipboard                | + child wm
-    + service ROM    | label: clipboard                | + child wm
-    + service ROM    | label: mesa_gpu.lib.so          | + child mesa_gpu-cpu
-    + service Gpu                                      | + child black_hole
++ child falkon_qt6-jemalloc | pkg: cproc/pkg/falkon_qt6-jemalloc/2025-10-27
+  + connect
+    + rm                  | + parent
+    + nic                 | + child nic_router
+    + rtc                 | + child system_clock
+    + play                | + child mixer
+    + record              | + child mixer
+    + capture             | + child black_hole
+    + fs config           | + child ram_fs
+    + fs downloads        | + child ram_fs
+    + gui                 | + child wm
+    + report shape        | + child wm
+    + report clipboard    | + child wm
+    + rom clipboard       | + child wm
+    + rom mesa_gpu.lib.so | + child mesa_gpu-cpu
+    + gpu                 | + child black_hole
 -

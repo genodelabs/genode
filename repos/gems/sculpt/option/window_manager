@@ -1,0 +1,27 @@
+option
+
++ child window_layouter | priority: -2 | pkg: window_layouter
+  + connect
+    + gui                   | + child wm
+    + rom window_list       | + child wm
+    + rom focus_request     | + child wm
+    + rom hover             | + child wm
+    + rom decorator_margins | + child wm
+    + report                | + child wm
+    + fs recall             | + child recall_fs
+
++ child themed_decorator | priority: -2 | pkg: themed_decorator
+  + connect
+    + rom window_layout | + child wm
+    + rom pointer       | + child wm
+    + report            | + child wm
+    + gui               | + child wm
+
++ child wm | priority: -2 | pkg: wm
+  + connect
+    + gui focus                      | + parent | label: focus
+    + gui                            | + parent
+    + report | label_last: shape     | + parent
+    + report | label_last: clipboard | + parent
+    + rom    | label_last: clipboard | + parent
+-
