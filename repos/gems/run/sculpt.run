@@ -777,6 +777,8 @@ proc deploy_options { } {
 	# gather options used in presets and deploy
 	foreach path [deploy_files] {
 
+		validate_hid [genode_dir]/repos/gems/src/app/depot_deploy/deploy.hsd $path
+
 		set cmd [genode_dir]/tool/hid
 		if {[looks_like_xml $path]} { lappend cmd --import-xml --output-xml }
 
@@ -801,9 +803,6 @@ proc deploy_options { } {
 }
 
 # selection of depot users (pubkey and download files), options, and presets
-foreach ingredient [ingredients_of_type presets] {
-	check_syntax [ingredient_path deploy $ingredient] }
-
 foreach ingredient [ingredients_of_type depot] {
 	set from [ingredient_path depot $ingredient]
 	set to   [file join [initial_config_dir] depot $ingredient]
