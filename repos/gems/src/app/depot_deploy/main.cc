@@ -5,14 +5,13 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
 /* Genode includes */
-#include <util/reconstructible.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
@@ -47,7 +46,6 @@ struct Depot_deploy::Main : Option::Action
 		Arch            arch;
 		Prio_levels     prio_levels;
 		Affinity::Space affinity_space;
-		bool            state_reporter;
 		Num_bytes       blueprint_buffer;
 
 		/*
@@ -67,10 +65,6 @@ struct Depot_deploy::Main : Option::Action
 					[&] (Node const &node) { return Affinity::Space::from_node(node); },
 					[&]                    { return Affinity::Space(1, 1); }),
 
-				.state_reporter = config.with_sub_node("report",
-					[] (Node const &node) { return node.attribute_value("state", false); },
-					[]                    { return false; }),
-
 				.blueprint_buffer = config.attribute_value("blueprint_buffer", Num_bytes { }),
 
 				.depot_rom = config.attribute_value("depot_rom", Depot_rom_server { }),
@@ -86,18 +80,12 @@ struct Depot_deploy::Main : Option::Action
 	Expanding_reporter _query_reporter   { _env, "query" , "query"};
 	Expanding_reporter _runtime_reporter { _env, "config", "runtime"};
 
-	Constructible<Expanding_reporter> _state_reporter { };
-
 	Heap _heap { _env.ram(), _env.rm() };
 
 	Children _children { _heap };
 
 	void _update_runtime_and_query()
 	{
-		if (_state_reporter.constructed())
-			_state_reporter->generate([&] (Generator &g) {
-				g.attribute("running", true); });
-
 		/* generate init config containing all configured start nodes */
 		_runtime_reporter.generate([&] (Generator &g) {
 			_gen_runtime(g, _config.node()); });
@@ -109,17 +97,6 @@ struct Depot_deploy::Main : Option::Action
 				if (_attr.blueprint_buffer > 0u)
 					g.attribute("blueprint_buffer", _attr.blueprint_buffer);
 				_children.gen_queries(g);
-			});
-		}
-
-		if ((_children.count() > 0UL)
-		 && !_children.any_incomplete()
-		 && !_children.any_blueprint_needed()
-		 && _state_reporter.constructed()) {
-
-			_state_reporter->generate([&] (Generator &g) {
-				g.attribute("running", false);
-				g.attribute("count", _children.count());
 			});
 		}
 	}
@@ -165,8 +142,6 @@ struct Depot_deploy::Main : Option::Action
 
 		if (!_attr.arch.valid())
 			warning("config lacks 'arch' attribute");
-
-		_state_reporter.conditional(_attr.state_reporter, _env, "state", "state");
 
 		_update_runtime_and_query();
 	}

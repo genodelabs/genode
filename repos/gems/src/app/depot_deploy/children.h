@@ -14,11 +14,6 @@
 #ifndef _CHILDREN_H_
 #define _CHILDREN_H_
 
-/* Genode includes */
-#include <util/list_model.h>
-#include <base/service.h>
-#include <depot/archive.h>
-
 /* local includes */
 #include "option.h"
 
@@ -162,31 +157,6 @@ class Depot_deploy::Children
 			return result;
 		}
 
-		Progress apply_condition(auto const &cond_fn)
-		{
-			Progress result = STALLED;
-			_for_each_child([&] (Child &child) {
-				if (child.apply_condition(cond_fn).progressed)
-					result = PROGRESSED; });
-			return result;
-		}
-
-		/**
-		 * Call 'fn' with 'Node' of each child that has an
-		 * unsatisfied start condition.
-		 */
-		void for_each_unsatisfied_child(auto const &fn) const
-		{
-			_for_each_child([&] (Child const &child) {
-				child.apply_if_unsatisfied(fn); });
-		}
-
-		void reset_incomplete()
-		{
-			_for_each_child([&] (Child &child) {
-				child.reset_incomplete(); });
-		}
-
 		void rediscover_blueprints()
 		{
 			_for_each_child([&] (Child &child) { child.rediscover_blueprint(); });
@@ -234,63 +204,6 @@ class Depot_deploy::Children
 		{
 			_for_each_child([&] (Child const &child) {
 				child.gen_query(g); });
-		}
-
-		void gen_installation_entries(Generator &g) const
-		{
-			_for_each_child([&] (Child const &child) {
-				child.gen_installation_entry(g); });
-		}
-
-		void for_each_missing_pkg_path(auto const &fn) const
-		{
-			_for_each_child([&] (Child const &child) {
-				child.with_missing_pkg_path(fn); });
-		}
-
-		size_t count() const
-		{
-			size_t count = 0;
-			_for_each_child([&] (Child const &) {
-				++count; });
-			return count;
-		}
-
-		bool any_incomplete() const
-		{
-			bool result = false;
-			_for_each_child([&] (Child const &child) {
-				result |= child.incomplete(); });
-			return result;
-		}
-
-		void for_each_incomplete(auto const &fn) const
-		{
-			_for_each_child([&] (Child const &child) {
-				if (child.incomplete())
-					fn(child.name); });
-		}
-
-		bool any_blueprint_needed() const
-		{
-			bool result = false;
-			_for_each_child([&] (Child const &child) {
-				result |= child.blueprint_needed(); });
-			return result;
-		}
-
-		bool exists(Child::Name const &name) const
-		{
-			return _child_dict.exists(name) || _alias_dict.exists(name);
-		}
-
-		bool blueprint_needed(Child::Name const &name) const
-		{
-			bool result = false;
-			_for_each_child([&] (Child const &child) {
-				if (child.name == name && child.blueprint_needed())
-					result = true; });
-			return result;
 		}
 };
 

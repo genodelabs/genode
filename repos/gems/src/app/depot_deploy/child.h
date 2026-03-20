@@ -18,9 +18,6 @@
 #include <util/list_model.h>
 #include <util/dictionary.h>
 #include <util/progress.h>
-#include <base/service.h>
-#include <base/node.h>
-#include <os/reporter.h>
 #include <depot/archive.h>
 
 /* local includes */
@@ -91,8 +88,6 @@ class Depot_deploy::Child : public Duplicate_checked,
 		using Binary_name = String<80>;
 		using Config_name = String<80>;
 
-		using Prio_levels = Depot_deploy::Prio_levels; /* deprecated, needed only by sculpt_manager */
-
 		static Name node_name(Node const &node)
 		{
 			return node.attribute_value("name", Name());
@@ -103,13 +98,13 @@ class Depot_deploy::Child : public Duplicate_checked,
 		Constructible<Buffered_node> _child_node { };  /* from config */
 		Constructible<Buffered_node> _pkg_node   { };  /* from blueprint */
 
-		static auto _with_node(auto &constructible_node,
-		                       auto const &fn, auto const &missing_fn) -> decltype(missing_fn())
+		static auto _with_node(auto &constructible, auto const &fn,
+		                       auto const &missing_fn) -> decltype(missing_fn())
 		{
-			if (!constructible_node.constructed())
+			if (!constructible.constructed())
 				return missing_fn();
 
-			Node const &node = *constructible_node;
+			Node const &node = *constructible;
 			return fn(node);
 		}
 
@@ -120,17 +115,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 				[&]                    { return false; });
 		}
 
-		/*
-		 * State of the condition check for generating the start node of
-		 * the child. I.e., if the child is complete and configured but
-		 * a used server component is missing, we need to suppress the start
-		 * node until the condition is satisfied.
-		 */
-		enum Condition { UNCHECKED, SATISFIED, UNSATISFIED };
-
-		Condition _condition { UNCHECKED };
-
-		Archive::Path _config_pkg_path(Node const &child) const
+		Archive::Path _pkg_path(Node const &child) const
 		{
 			return child.attribute_value("pkg", Archive::Path());
 		}
@@ -193,7 +178,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 			/* pkg attribute changed */
 			return _pkg_node.constructed()
-			   && (_config_pkg_path(child) == _blueprint_pkg_path);
+			   && (_pkg_path(child) == _blueprint_pkg_path);
 		}
 
 		inline void _gen_routes(Generator &, Global const &, Node const &,
@@ -297,7 +282,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 			/* import new child node */
 			_child_node.construct(alloc, child);
 
-			_blueprint_pkg_path = _config_pkg_path(child);
+			_blueprint_pkg_path = _pkg_path(child);
 
 			/* invalidate blueprint if 'pkg' path changed */
 			if (orig_pkg_path != _blueprint_pkg_path) {
@@ -371,74 +356,24 @@ class Depot_deploy::Child : public Duplicate_checked,
 			return PROGRESSED;
 		}
 
-		Progress apply_condition(auto const &cond_fn)
-		{
-			Condition const orig_condition = _condition;
-
-			_with_node(_child_node, [&] (Node const &start) {
-				bool const satisfied = cond_fn(start, Node());
-				_condition = satisfied ? SATISFIED : UNSATISFIED;
-			}, [&] { });
-			return { .progressed = (_condition != orig_condition) };
-		}
-
 		void rediscover_blueprint()
 		{
 			if (_pkg != Pkg::NONE)
 				_pkg = Pkg::DISCOVER;
 		}
 
-		void apply_if_unsatisfied(auto const &fn) const
-		{
-			if (_condition == UNSATISFIED)
-				_with_node(_child_node, [&] (Node const &child) {
-					fn(child, Node(), name); }, [&] { });
-		}
-
-		Progress mark_as_incomplete(Node const &missing)
-		{
-			if (_pkg == Pkg::NONE)
-				return STALLED;
-
-			/* print error message only once */
-			if (_pkg == Pkg::CORRUPT)
-				return STALLED;
-
-			Archive::Path const path = missing.attribute_value("path", Archive::Path());
-			if (path != _blueprint_pkg_path)
-				return STALLED;
-
-			log(path, " incomplete or missing, name=", name, " state=", (int)_pkg);
-
-			Pkg const orig_state = _pkg;
-			_pkg = Pkg::CORRUPT;
-
-			return { .progressed = (orig_state != _pkg) };
-		}
-
-		/**
-		 * Reconsider deployment of child after installing missing archives
-		 */
-		void reset_incomplete()
-		{
-			if (_pkg == Pkg::MISSING || _pkg == Pkg::CORRUPT) {
-				_pkg = Pkg::DISCOVER;
-				_pkg_node.destruct();
-			}
-		}
-
-		bool blueprint_needed() const
-		{
-			if (_pkg == Pkg::NONE)     return false;
-			if (_pkg == Pkg::DISCOVER) return true;
-
-			return _with_node(_child_node,
-				[&] (Node const &child) { return !_discovered(child); },
-				[&]                     { return false; });
-		}
-
 		void gen_query(Generator &g) const
 		{
+			auto blueprint_needed = [&]
+			{
+				if (_pkg == Pkg::NONE)     return false;
+				if (_pkg == Pkg::DISCOVER) return true;
+
+				return _with_node(_child_node,
+					[&] (Node const &child) { return !_discovered(child); },
+					[&]                     { return false; });
+			};
+
 			if (blueprint_needed())
 				g.node("blueprint", [&] {
 					g.attribute("pkg", _blueprint_pkg_path); });
@@ -454,33 +389,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 		inline void gen_monitor_policy_node(Generator &) const;
 
-		void with_missing_pkg_path(auto const &fn) const
-		{
-			_with_node(_child_node, [&] (Node const &child) {
-				if (_pkg == Pkg::MISSING)
-					fn(_config_pkg_path(child)); }, [&] { });
-		}
-
-		/**
-		 * Generate installation entry needed for the completion of the child
-		 */
-		void gen_installation_entry(Generator &g) const
-		{
-			with_missing_pkg_path([&] (Archive::Path const &path) {
-				g.node("archive", [&] {
-					g.attribute("path", path);
-					g.attribute("source", "no"); }); });
-		}
-
-		bool incomplete() const { return _pkg == Pkg::CORRUPT || _pkg == Pkg::MISSING; }
-
-		bool runnable() const
-		{
-			if (_condition == UNSATISFIED)
-				return false;
-
-			return _pkg_satisfied() && _deps_satisfied();
-		};
+		bool runnable() const { return _pkg_satisfied() && _deps_satisfied(); };
 
 		/**
 		 * List_model::Element
@@ -618,7 +527,7 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 			g.node("deploy", [&] {
 
 				if (_blueprint_pkg_path.length() > 1)
-					g.attribute("pkg", _config_pkg_path(child));
+					g.attribute("pkg", _pkg_path(child));
 
 				if (option.length() > 1)
 					g.attribute("option", option);
@@ -628,7 +537,7 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 
 				if (_pkg == Pkg::CORRUPT)
 					g.node("pkg_corrupt", [&] {
-						g.attribute("name", _config_pkg_path(child));
+						g.attribute("name", _pkg_path(child));
 						_for_each_missing_rom([&] (Name const &rom) {
 							g.node("missing_rom", [&] {
 								g.attribute("name", rom); }); });
@@ -711,18 +620,9 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 		g.tabular_node("route", [&] {
 
 			if (child.has_sub_node("monitor")) {
-				g.node("service", [&] {
-					g.attribute("name", "PD");
-					g.node("local");
-				});
-				g.node("service", [&] {
-					g.attribute("name", "CPU");
-					g.node("local");
-				});
-				g.node("service", [&] {
-					g.attribute("name", "VM");
-					g.node("local");
-				});
+				g.node("service", [&] { g.attribute("name", "PD");  g.node("local"); });
+				g.node("service", [&] { g.attribute("name", "CPU"); g.node("local"); });
+				g.node("service", [&] { g.attribute("name", "VM");  g.node("local"); });
 			}
 
 			_gen_routes(g, global, child,
@@ -737,7 +637,7 @@ void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 {
 	_with_node(_child_node, [&] (Node const &child) {
 
-		if (!_discovered(child) || _condition == UNSATISFIED)
+		if (!_discovered(child))
 			return;
 
 		if (_pkg != Pkg::NONE && _pkg_node.constructed() && !_pkg_node->has_sub_node("runtime"))
