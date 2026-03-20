@@ -153,17 +153,10 @@ class Sculpt::Runtime_state : public Runtime_info
 		struct Launched_child : Interface
 		{
 			Start_name const name;
-			Path       const launcher;
 
 			Constructible<Component> construction { };
 
 			bool launched;
-
-			/**
-			 * Constructor used for child started via launcher
-			 */
-			Launched_child(Start_name const &name, Path const &launcher)
-			: name(name), launcher(launcher), launched(true) { };
 
 			/**
 			 * Constructor used for interactively configured child
@@ -174,7 +167,7 @@ class Sculpt::Runtime_state : public Runtime_info
 			               Component::Info const &info,
 			               Affinity::Space const space)
 			:
-				name(name), launcher(), launched(false)
+				name(name), launched(false)
 			{
 				construction.construct(alloc, name, pkg_path, verify, info, space);
 			}
@@ -205,12 +198,6 @@ class Sculpt::Runtime_state : public Runtime_info
 
 							construction->routes.for_each([&] (Route const &route) {
 								route.generate(g); }); });
-					}
-
-					/* created via launcher */
-					else {
-						if (name != launcher)
-							g.attribute("launcher", launcher);
 					}
 				});
 			}
@@ -451,11 +438,6 @@ class Sculpt::Runtime_state : public Runtime_info
 			if (!already_restarted)
 				new (_alloc)
 					Registered<Restarted_child>(_restarted_children, name, next_version);
-		}
-
-		void launch(Start_name const &name, Path const &launcher)
-		{
-			new (_alloc) Registered<Launched_child>(_launched_children, name, launcher);
 		}
 
 		Start_name new_construction(Component::Path const  pkg,

@@ -687,9 +687,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_image_index(Node const &) { _system_dialog.refresh(); }
 
-	Options   _options   { _heap };
-	Launchers _launchers { _heap };
-	Presets   _presets   { _heap };
+	Options _options { _heap };
+	Presets _presets { _heap };
 
 	Rom_handler<Main> _config_listing_rom {
 		_env, "report -> /runtime/config_query/listing", *this,
@@ -703,22 +702,12 @@ struct Sculpt::Main : Input_event_handler,
 
 			/* iterate over <file> nodes */
 
-			if (dir_path == "/option")   _options  .update_from_node(dir);
-			if (dir_path == "/launcher") _launchers.update_from_node(dir);
-			if (dir_path == "/presets")  _presets  .update_from_node(dir);
+			if (dir_path == "/option")  _options.update_from_node(dir);
+			if (dir_path == "/presets") _presets.update_from_node(dir);
 		});
 
 		_generate_dialog();
 	}
-
-	/*
-	 * Watch launchers and options for deploy
-	 */
-	Rom_handler<Main> _launcher_listing_rom {
-		_env, "report -> /runtime/launcher_query/listing", *this,
-		&Main::_handle_launcher_and_option_listing };
-
-	void _handle_launcher_and_option_listing(Node const &) { _deploy_config.trigger_update(); }
 
 	Deploy _deploy { _heap, _child_states, _runtime_state };
 
@@ -1358,28 +1347,6 @@ struct Sculpt::Main : Input_event_handler,
 		_deploy_config.trigger_update();
 	}
 
-	/**
-	 * Popup_options_widget::Action interface
-	 */
-	void enable_optional_component(Path const &launcher) override
-	{
-		_runtime_state.launch(launcher, launcher);
-
-		_deploy_config.trigger_update();
-		_download_queue.remove_inactive_downloads();
-	}
-
-	/**
-	 * Popup_options_widget::Action interface
-	 */
-	void disable_optional_component(Path const &launcher) override
-	{
-		_runtime_state.abandon(launcher);
-
-		_deploy_config.trigger_update();
-		_download_queue.remove_inactive_downloads();
-	}
-
 	/*
 	 * Panel::Action interface
 	 */
@@ -1728,7 +1695,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Dialog_view<Popup_dialog> _popup_dialog { _dialog_runtime, *this,
 	                                          _build_info, _sculpt_version,
-	                                          _options, _launchers, _network._nic_state,
+	                                          _options, _network._nic_state,
 	                                          _index_update_queue, _index_rom,
 	                                          _download_queue, _deploy.enabled_options,
 	                                          _runtime_state, _cached_init_config,
@@ -2638,9 +2605,6 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 
 	g.node("child", [&] {
 		gen_config_query_child_content(g); });
-
-	g.node("child", [&] {
-		gen_launcher_query_child_content(g); });
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition

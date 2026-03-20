@@ -24,7 +24,6 @@ void Sculpt::gen_config_query_child_content(Generator &g)
 			g.node("fs", [&] {}); });
 
 		g.node("query", [&] { g.attribute("path", "/option"); });
-		g.node("query", [&] { g.attribute("path", "/launcher"); });
 
 		g.node("query", [&] {
 			g.attribute("path", "/presets");

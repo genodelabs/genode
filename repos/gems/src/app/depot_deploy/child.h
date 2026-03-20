@@ -87,10 +87,9 @@ class Depot_deploy::Child : public Duplicate_checked,
 {
 	public:
 
-		using Name          = Child_name;
-		using Binary_name   = String<80>;
-		using Config_name   = String<80>;
-		using Launcher_name = String<100>;
+		using Name        = Child_name;
+		using Binary_name = String<80>;
+		using Config_name = String<80>;
 
 		using Prio_levels = Depot_deploy::Prio_levels; /* deprecated, needed only by sculpt_manager */
 
@@ -101,9 +100,8 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 	private:
 
-		Constructible<Buffered_node> _child_node    { };  /* from config */
-		Constructible<Buffered_node> _launcher_node { };
-		Constructible<Buffered_node> _pkg_node      { };  /* from blueprint */
+		Constructible<Buffered_node> _child_node { };  /* from config */
+		Constructible<Buffered_node> _pkg_node   { };  /* from blueprint */
 
 		static auto _with_node(auto &constructible_node,
 		                       auto const &fn, auto const &missing_fn) -> decltype(missing_fn())
@@ -132,29 +130,9 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 		Condition _condition { UNCHECKED };
 
-		bool _defined_by_launcher(Node const &child) const
-		{
-			return !child.has_attribute("pkg")
-			    && !child.has_attribute("binary");
-		}
-
 		Archive::Path _config_pkg_path(Node const &child) const
 		{
-			if (_defined_by_launcher(child) && _launcher_node.constructed())
-				return _launcher_node->attribute_value("pkg", Archive::Path());
-
 			return child.attribute_value("pkg", Archive::Path());
-		}
-
-		Launcher_name _launcher_name(Node const &child) const
-		{
-			if (!_defined_by_launcher(child))
-				return Launcher_name();
-
-			if (child.has_attribute("launcher"))
-				return child.attribute_value("launcher", Launcher_name());
-
-			return child.attribute_value("name", Launcher_name());
 		}
 
 		/*
@@ -222,7 +200,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 		                        Depot_rom_server const &) const;
 
 		/*
-		 * node is pkg runtime or deploy start (Pkg::NONE)
+		 * node is pkg runtime or deploy child (Pkg::NONE)
 		 */
 		static void _gen_provides(Generator &g, Resource::Types const &types, Node const &node)
 		{
@@ -393,33 +371,12 @@ class Depot_deploy::Child : public Duplicate_checked,
 			return PROGRESSED;
 		}
 
-		Progress apply_launcher(Allocator &alloc,
-		                        Launcher_name const &name, Node const &launcher)
-		{
-			return _with_node(_child_node, [&] (Node const &child) {
-
-				if (!_defined_by_launcher(child))         return STALLED;
-				if (_launcher_name(child) != name)        return STALLED;
-				if (_identical(_launcher_node, launcher)) return STALLED;
-
-				_launcher_node.construct(alloc, launcher);
-
-				_blueprint_pkg_path = _config_pkg_path(child);
-				_pkg = Pkg::DISCOVER;
-
-				return PROGRESSED;
-
-			}, [&] { return STALLED; });
-		}
-
 		Progress apply_condition(auto const &cond_fn)
 		{
 			Condition const orig_condition = _condition;
 
 			_with_node(_child_node, [&] (Node const &start) {
-				bool const satisfied = _with_node(_launcher_node,
-					[&] (Node const &launcher) { return cond_fn(start, launcher); },
-					[&]                        { return cond_fn(start, Node()); });
+				bool const satisfied = cond_fn(start, Node());
 				_condition = satisfied ? SATISFIED : UNSATISFIED;
 			}, [&] { });
 			return { .progressed = (_condition != orig_condition) };
@@ -435,10 +392,7 @@ class Depot_deploy::Child : public Duplicate_checked,
 		{
 			if (_condition == UNSATISFIED)
 				_with_node(_child_node, [&] (Node const &child) {
-					_with_node(_launcher_node,
-						[&] (Node const &launcher) { fn(child, launcher, name); },
-						[&]                        { fn(child, Node(),   name); });
-				}, [&] { });
+					fn(child, Node(), name); }, [&] { });
 		}
 
 		Progress mark_as_incomplete(Node const &missing)
@@ -475,23 +429,12 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 		bool blueprint_needed() const
 		{
-			if (_pkg == Pkg::NONE)
-				return false;
+			if (_pkg == Pkg::NONE)     return false;
+			if (_pkg == Pkg::DISCOVER) return true;
 
-			if (_pkg == Pkg::DISCOVER)
-				return true;
-
-			return _with_node(_child_node, [&] (Node const &child) {
-
-				if (_discovered(child))
-					return false;
-
-				if (_defined_by_launcher(child) && !_launcher_node.constructed())
-					return false;
-
-				return true;
-
-			}, [&] { return false; });
+			return _with_node(_child_node,
+				[&] (Node const &child) { return !_discovered(child); },
+				[&]                     { return false; });
 		}
 
 		void gen_query(Generator &g) const
@@ -533,15 +476,10 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 		bool runnable() const
 		{
-			bool launcher_missing = false;
-			_with_node(_child_node, [&] (Node const &child) {
-				if (_defined_by_launcher(child) && !_launcher_node.constructed())
-					launcher_missing = true; }, [&] { });
-
 			if (_condition == UNSATISFIED)
 				return false;
 
-			return _pkg_satisfied() && _deps_satisfied() && !launcher_missing;
+			return _pkg_satisfied() && _deps_satisfied();
 		};
 
 		/**
@@ -655,11 +593,7 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 			.location = { },
 		};
 
-		/* launcher override pkg runtime */
-		_with_node(_launcher_node, [&] (Node const &launcher) {
-			attr.apply(launcher, global.affinity_space); }, [] { });
-
-		/* start node overrides launcher and pkg runtime */
+		/* child node overrides pkg runtime */
 		attr.apply(child, global.affinity_space);
 
 		g.attribute("ram",  attr.ram);
@@ -740,39 +674,22 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 
 		g.node("binary", [&] { g.attribute("name", binary); });
 
-		/* affinity-location handling */
-		bool affinity_from_launcher = false;
-		_with_node(_launcher_node, [&] (Node const &launcher) {
-			affinity_from_launcher = launcher.has_sub_node("affinity"); }, [&] { });
-
 		/*
-		 * Insert inline '<heartbeat>' node if provided by the start node
-		 * or launcher.
+		 * Insert inline '<heartbeat>' node if provided by the child node
 		 */
 		if (child.has_sub_node("heartbeat"))
 			_gen_copy_of_sub_node(g, child, "heartbeat");
-		else
-			_with_node(_launcher_node, [&] (Node const &launcher) {
-				if (launcher.has_sub_node("heartbeat"))
-					_gen_copy_of_sub_node(g, launcher, "heartbeat"); }, [&] { });
 
 		/*
-		 * Unless overridden by a manually routed config,
-		 * insert inline '<config>' node if provided by the child node,
-		 * the launcher definition (if a launcher is used), or the
-		 * blueprint. The former is preferred over the latter.
+		 * Unless overridden by a manually routed config, insert inline
+		 * '<config>' node if provided by the child node or the blueprint.
+		 * The former is preferred over the latter.
 		 */
 		bool config_defined = _config_overridden(child);
 
 		if (!config_defined && child.has_sub_node("config")) {
 			_gen_copy_of_sub_node(g, child, "config");
 			config_defined = true; }
-
-		if (!config_defined)
-			_with_node(_launcher_node, [&] (Node const &launcher) {
-				if (launcher.has_sub_node("config")) {
-					_gen_copy_of_sub_node(g, launcher, "config");
-					config_defined = true; } }, [&] { });
 
 		/* runtime handling */
 		if (_pkg_node.constructed()) {
@@ -823,12 +740,8 @@ void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 		if (!_discovered(child) || _condition == UNSATISFIED)
 			return;
 
-		if (_defined_by_launcher(child) && !_launcher_node.constructed())
+		if (_pkg != Pkg::NONE && _pkg_node.constructed() && !_pkg_node->has_sub_node("runtime"))
 			return;
-
-		if (_pkg != Pkg::NONE && _pkg_node.constructed() && !_pkg_node->has_sub_node("runtime")) {
-			return;
-		}
 
 		child.with_optional_sub_node("monitor", [&] (Node const &monitor) {
 			g.node("policy", [&] {
@@ -967,15 +880,6 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 				copy_route(service); }); });
 
 	/*
-	 * Add routes given in the launcher definition (deprecated)
-	 */
-	_with_node(_launcher_node, [&] (Node const &launcher) {
-		launcher.with_optional_sub_node("route", [&] (Node const &route) {
-			route.for_each_sub_node([&] (Node const &service) {
-				if (target_exists(service))
-					copy_route(service); }); }); }, [&] { });
-
-	/*
 	 * Redirect config ROM request to label as given in the 'config' attribute,
 	 * if present. We need to search the blueprint's <rom> nodes for the
 	 * matching ROM module to rewrite the label with the configuration's path
@@ -1054,7 +958,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 		});
 
 	/*
-	 * Copy routes of start node deployed directly without a pkg
+	 * Route to the binary if deployed directly without a pkg
 	 */
 	if (_pkg == Pkg::NONE)
 		g.node("service", [&] {

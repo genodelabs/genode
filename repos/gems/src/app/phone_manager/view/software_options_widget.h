@@ -14,7 +14,6 @@
 #ifndef _VIEW__SOFTWARE_OPTIONS_WIDGET_H_
 #define _VIEW__SOFTWARE_OPTIONS_WIDGET_H_
 
-#include <model/launchers.h>
 #include <view/dialog.h>
 #include <string.h>
 
@@ -26,15 +25,13 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 	Runtime_info    const &_runtime_info;
 	Enabled_options const &_enabled_options;
 	Options         const &_options;
-	Launchers       const &_launchers;
 
 	Software_options_widget(Runtime_info    const &runtime_info,
 	                        Enabled_options const &enabled_options,
-	                        Options         const &options,
-	                        Launchers       const &launchers)
+	                        Options         const &options)
 	:
 		_runtime_info(runtime_info), _enabled_options(enabled_options),
-		_options(options), _launchers(launchers)
+		_options(options)
 	{ }
 
 	struct Option : Widget<Frame>
@@ -59,15 +56,9 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 	void view(Scope<Vbox> &s) const
 	{
 		unsigned count = 0;
-
 		_options.for_each([&] (Options::Name const &name) {
 			Hosted_option option { { count++ } };
 			s.widget(option, name, _enabled_options.exists(name));
-		});
-
-		_launchers.for_each([&] (Launchers::Name const &name) {
-			Hosted_option option { { count++ } };
-			s.widget(option, name, _runtime_info.present_in_runtime(name));
 		});
 	}
 
@@ -75,9 +66,6 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 	{
 		virtual void enable_option (Options::Name const &) = 0;
 		virtual void disable_option(Options::Name const &) = 0;
-
-		virtual void enable_optional_component (Path const &launcher) = 0;
-		virtual void disable_optional_component(Path const &launcher) = 0;
 	};
 
 	void click(Clicked_at const &at, Action &action) const
@@ -95,18 +83,6 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 			option.propagate(at, [&] (bool on) {
 				if (on) action.enable_option(name);
 				else    action.disable_option(name);
-			});
-		});
-
-		_launchers.for_each([&] (Launchers::Name const &name) {
-			Id const id { { count++ } };
-			if (clicked_id != id)
-				return;
-
-			Hosted_option const option { id };
-			option.propagate(at, [&] (bool on) {
-				if (on) action.enable_optional_component(name);
-				else    action.disable_optional_component(name);
 			});
 		});
 	}

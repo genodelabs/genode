@@ -307,7 +307,6 @@ config | prio_levels: 2
     + service ROM
   + config | verbose: no
     + policy | label: deploy -> blueprint                        | report: runtime -> blueprint
-    + policy | label: deploy -> launchers                        | report: runtime -> launchers
     + policy | label: runtime -> config                          | report: deploy -> runtime
     + policy | label: runtime -> query                           | report: deploy -> query
     + policy | label: report_fs -> init                          | report: deploy -> runtime
@@ -580,7 +579,6 @@ config | prio_levels: 2
     + service ROM | label: deploy           | + child config_fs_rom | label: deploy
     + service ROM | label: depot            | + child config_fs_rom | label: depot/version
     + service ROM | label: blueprint        | + child report_rom
-    + service ROM | label: launchers        | + child report_rom
     + service ROM | label_prefix: option -> | + child config_fs_rom | prepend_resource: option/
     + service Report                        | + child report_rom
     + any-service                           | + parent
@@ -591,7 +589,6 @@ config | prio_levels: 2
     + service ROM    | label: config                 | + child report_rom
     + service ROM    | label: query                  | + child report_rom
     + service Report | label: blueprint              | + child report_rom
-    + service Report | label: launchers              | + child report_rom
     + service ROM | label_prefix: config ->          | + child config_fs_rom
     + service ROM | label_prefix: report ->          | + child report_fs_rom
     + service ROM | label: capslock                  | + child report_rom
@@ -666,15 +663,14 @@ proc validate_hid { schema file } {
 #
 
 # directory structure
-foreach subdir { launcher option depot keyboard } {
+foreach subdir { option depot keyboard } {
 	file mkdir [file join [initial_config_dir] $subdir] }
 
 if {[llength [ingredients_of_type presets]] > 0} {
 	file mkdir [file join [initial_config_dir] presets] }
 
 install_hid [initial_config_file runtime] w] {
-config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8
-       | depot_rom: depot_rom | launchers: yes
+config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8 | depot_rom: depot_rom
 + report | init_ram: yes | init_caps: yes | child_ram: yes | child_caps: yes
          | requested: no | provided: no | delay_ms: 2000 | buffer: 1M
 + heartbeat | rate_ms: 2000
@@ -818,11 +814,6 @@ foreach opt [deploy_options] {
 	set to   [file join [initial_config_dir] option $opt]
 	copy_config $from $to }
 
-foreach ingredient [ingredients_of_type launcher] {
-	set from [ingredient_path launcher $ingredient]
-	set to   [file join [initial_config_dir] launcher $ingredient]
-	copy_config $from $to }
-
 foreach ingredient [ingredients_of_type presets] {
 	set from [ingredient_path deploy $ingredient]
 	set to   [file join [initial_config_dir] presets $ingredient]
@@ -915,7 +906,7 @@ proc pkg_attribute_values { file node_path } {
 
 
 ##
-# Return list of pkg archives reference by the launchers, options, and deploy config
+# Return list of pkg archives reference by the options and deploy config
 #
 proc referenced_pkg_values { } {
 
@@ -925,12 +916,6 @@ proc referenced_pkg_values { } {
 	foreach opt [deploy_options] {
 		set path [file join [initial_config_dir] option $opt]
 		lappend values {*}[pkg_attribute_values $path "option | + child"]
-	}
-
-	# scan launchers
-	foreach launcher [ingredients_of_type launcher] {
-		set path [file join [initial_config_dir] launcher $launcher]
-		lappend values {*}[pkg_attribute_values $path launcher]
 	}
 
 	# scan presets
@@ -1001,7 +986,7 @@ if {[depot_archive] == "tar" || [depot_archive] == "list"} {
 
 
 #
-# Augment deploy config, launcher, option file with current package versions
+# Augment deploy config and option files with current package versions
 #
 
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
@@ -1046,21 +1031,6 @@ proc augment_child_node_pkg_versions { toplevel path } {
 }
 
 
-proc augment_launcher_pkg_version { path } {
-
-	set cmd [genode_dir]/tool/hid
-	if {[looks_like_xml $path]} { lappend cmd --import-xml --output-xml }
-
-	if {[catch {
-		set pkg [exec {*}$cmd get "launcher | : pkg" $path]
-		exec {*}$cmd -i set "launcher | : pkg: [versioned_pkg $pkg]" $path
-	}]} {
-		puts stderr "failed to parse $path for augmenting pkg versions"
-		exit
-	}
-}
-
-
 proc augment_start_node_pkg_versions { path } {
 
 	set cmd [genode_dir]/tool/hid
@@ -1071,9 +1041,7 @@ proc augment_start_node_pkg_versions { path } {
 
 		foreach name $names {
 			set pkg [exec {*}$cmd get "config | + start $name | : pkg" $path]
-			if {$pkg != ""} { # skip launchers and children deployed from ROM
-				exec {*}$cmd -i set "config | + start $name | : pkg: [versioned_pkg $pkg]" $path
-			}
+			exec {*}$cmd -i set "config | + start $name | : pkg: [versioned_pkg $pkg]" $path
 		}
 	}]} {
 		puts stderr "failed to parse $path for augmenting pkg versions"
@@ -1084,10 +1052,6 @@ proc augment_start_node_pkg_versions { path } {
 # options
 foreach opt [deploy_options] {
 	augment_child_node_pkg_versions "option" [file join [initial_config_dir] option $opt] }
-
-# launcher snippets
-foreach launcher [ingredients_of_type launcher] {
-	augment_launcher_pkg_version [file join [initial_config_dir] launcher $launcher] }
 
 # presets
 foreach preset [ingredients_of_type presets] {

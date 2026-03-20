@@ -16,7 +16,6 @@
 
 /* local includes */
 #include <types.h>
-#include <model/launchers.h>
 #include <view/popup_tabs_widget.h>
 #include <view/popup_options_widget.h>
 #include <view/software_add_widget.h>
@@ -77,7 +76,6 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 	             Build_info         const &build_info,
 	             Sculpt_version     const &sculpt_version,
 	             Options            const &options,
-	             Launchers          const &launchers,
 	             Nic_state          const &nic_state,
 	             Index_update_queue const &index_update_queue,
 	             Index              const &index,
@@ -93,7 +91,7 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 		_add(Id { "add" }, build_info, sculpt_version, nic_state,
 		     index_update_queue, index, download_queue, runtime_config,
 		     dir_query, construction_info, depot_users),
-		_options(Id { "options" }, runtime_info, enabled_options, options, launchers)
+		_options(Id { "options" }, runtime_info, enabled_options, options)
 	{ }
 
 	bool watches_depot() const { return _tabs.add_selected(); }

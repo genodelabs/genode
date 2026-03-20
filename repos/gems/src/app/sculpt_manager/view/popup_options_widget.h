@@ -14,7 +14,6 @@
 #ifndef _VIEW__POPUP_OPTIONS_WIDGET_H_
 #define _VIEW__POPUP_OPTIONS_WIDGET_H_
 
-#include <model/launchers.h>
 #include <model/options.h>
 #include <view/dialog.h>
 #include <string.h>
@@ -27,15 +26,13 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 	Runtime_info    const &_runtime_info;
 	Enabled_options const &_enabled_options;
 	Options         const &_options;
-	Launchers       const &_launchers;
 
 	Popup_options_widget(Runtime_info    const &runtime_info,
 	                     Enabled_options const &enabled_options,
-	                     Options         const &options,
-	                     Launchers       const &launchers)
+	                     Options         const &options)
 	:
 		_runtime_info(runtime_info), _enabled_options(enabled_options),
-		_options(options), _launchers(launchers)
+		_options(options)
 	{ }
 
 	struct Option : Menu_entry
@@ -55,26 +52,12 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 			Hosted_option option { { count++ } };
 			s.widget(option, name, _enabled_options.exists(name));
 		});
-
-		bool any_launcher = false;
-		_launchers.for_each([&] (Launchers::Name const &) { any_launcher = true; });
-		if (any_launcher)
-			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
-				s.sub_scope<Annotation>("Launchers"); });
-
-		_launchers.for_each([&] (Launchers::Name const &name) {
-			Hosted_option option { { count++ } };
-			s.widget(option, name, _runtime_info.present_in_runtime(name));
-		});
 	}
 
 	struct Action : Interface
 	{
 		virtual void enable_option (Options::Name const &) = 0;
 		virtual void disable_option(Options::Name const &) = 0;
-
-		virtual void enable_optional_component (Path const &launcher) = 0;
-		virtual void disable_optional_component(Path const &launcher) = 0;
 	};
 
 	void click(Clicked_at const &at, Action &action) const
@@ -94,20 +77,6 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 					action.disable_option(name);
 				else
 					action.enable_option(name);
-			});
-		});
-
-		_launchers.for_each([&] (Launchers::Name const &name) {
-			Id const id { { count++ } };
-			if (clicked_id != id)
-				return;
-
-			Hosted_option const option { id };
-			option.propagate(at, [&] {
-				if (_runtime_info.present_in_runtime(name))
-					action.disable_optional_component(name);
-				else
-					action.enable_optional_component(name);
 			});
 		});
 	}

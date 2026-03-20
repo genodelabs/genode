@@ -121,18 +121,6 @@ class Depot_deploy::Children
 			return result;
 		}
 
-		Progress apply_launcher(Child::Launcher_name const &name, Node const &launcher)
-		{
-			Progress result = STALLED;
-			_for_each_child([&] (Child &child) {
-				if (child.apply_launcher(_alloc, name, launcher).progressed)
-					result = PROGRESSED; });
-
-			if (result.progressed) _update_deps();
-
-			return result;
-		}
-
 		Progress apply_blueprint(Node const &blueprint)
 		{
 			Progress result = STALLED;
@@ -184,7 +172,7 @@ class Depot_deploy::Children
 		}
 
 		/**
-		 * Call 'fn' with start 'Node' of each child that has an
+		 * Call 'fn' with 'Node' of each child that has an
 		 * unsatisfied start condition.
 		 */
 		void for_each_unsatisfied_child(auto const &fn) const
