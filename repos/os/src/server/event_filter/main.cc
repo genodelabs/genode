@@ -373,18 +373,19 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 			return *new (_heap) Report_source(owner, node, *this, _heap, _env, _serial);
 
 		if (node.type() == Transform_source::name())
-			return *new (_heap) Transform_source(owner, node, *this);
+			return *new (_heap) Transform_source(owner, node, *this, _include_accessor);
 
 		if (node.type() == Touch_click_source::name())
 			return *new (_heap) Touch_click_source(owner, node, *this);
 
 		if (node.type() == Touch_key_source::name())
-			return *new (_heap) Touch_key_source(owner, node, *this, _heap);
+			return *new (_heap) Touch_key_source(owner, node, *this, _heap,
+			                                     _include_accessor);
 
 		if (node.type() == Touch_gesture_source::name())
 			return *new (_heap) Touch_gesture_source(owner, node, *this,
 			                                         _timer_accessor, *this,
-			                                         _heap);
+			                                         _heap, _include_accessor);
 
 		warning("unknown <", node.type(), "> input-source node type");
 		throw Source::Invalid_config();

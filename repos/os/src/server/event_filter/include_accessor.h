@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <types.h>
+#include <source.h>
 
 namespace Event_filter { struct Include_accessor; }
 
@@ -58,6 +59,36 @@ class Event_filter::Include_accessor : Interface
 			} _functor(fn);
 
 			_apply_include(name, type, _functor);
+		}
+
+		/**
+		 * Call functor 'fn' for each subnode in config and included configs.
+		 *
+		 * \throw Source::Invalid_config
+		 */
+		template <typename FN>
+		void for_each_sub_node(Node const &config, Type const &type, FN const &fn,
+		                       unsigned const max_recursion = 4)
+		{
+			if (max_recursion == 0) {
+				warning("too deeply nested includes");
+				throw Source::Invalid_config();
+			}
+
+			config.for_each_sub_node([&] (Node const &node) {
+				if (node.type() == "include") {
+					try {
+						Include_accessor::Name const rom =
+							node.attribute_value("rom", Include_accessor::Name());
+
+						apply_include(rom, type, [&] (Node const &inc) {
+							for_each_sub_node(inc, type, fn, max_recursion - 1); });
+					} catch (Include_accessor::Include_unavailable) {
+						throw Source::Invalid_config(); }
+				} else {
+					fn(node);
+				}
+			});
 		}
 };
 

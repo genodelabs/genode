@@ -19,6 +19,7 @@
 #define _EVENT_FILTER__TRANSFORM_SOURCE_H_
 
 /* local includes */
+#include <include_accessor.h>
 #include <source.h>
 #include <affine_transform.h>
 
@@ -31,69 +32,63 @@ class Event_filter::Transform_source : public Source, Source::Filter
 
 		Owner _owner;
 
+		Include_accessor &_include_accessor;
+
 		Source &_source;
 
 		Transform::Matrix _transform = Transform::Matrix::identity();
 
-		void _apply_config(Node const &config)
+		void _apply_sub_node(Node const &node)
 		{
-			config.for_each_sub_node([&] (Node const &node) {
-				if (node.has_type("translate")) {
-					_transform = _transform.translate(
-						float(node.attribute_value("x", 0.0)),
-						float(node.attribute_value("y", 0.0)));
-					return;
-				}
-				if (node.has_type("scale")) {
-					_transform = _transform.scale(
-						float(node.attribute_value("x", 1.0)),
-						float(node.attribute_value("y", 1.0)));
-					return;
-				}
-				if (node.has_type("rotate")) {
-					unsigned degrees = node.attribute_value("angle", 0);
-					Transform::Angle angle =
-						Transform::angle_from_degrees(degrees);
-
-					if (angle == Transform::ANGLE_0)
-						warning("invalid transform rotate(", degrees, ")");
-					else
-						_transform = _transform.rotate(angle);
-					return;
-				}
-				if (node.has_type("hflip")) {
-					float width = float(node.attribute_value("width", -1.0));
-
-					if (width <= 0)
-						warning("invalid transform hflip");
-					else
-						_transform = _transform.hflip(width);
-					return;
-				}
-				if (node.has_type("vflip")) {
-					float height = float(node.attribute_value("height", -1.0));
-
-					if (height <= 0)
-						warning("invalid transform vflip");
-					else
-						_transform = _transform.vflip(height);
-					return;
-				}
-				if (node.has_type("reorient")) {
-					float width      = float(node.attribute_value("width",  -1.0));
-					float height     = float(node.attribute_value("height", -1.0));
-					unsigned degrees = node.attribute_value("angle", 0);
-
-					Transform::Angle angle =
-						Transform::angle_from_degrees(degrees);
-
-					if (width <= 0 || height <= 0 || angle == Transform::ANGLE_0)
-						warning("invalid transform reorient");
-					else
-						_transform = _transform.reorient(angle, width, height);
-					return;
-				}
-			});
+			if (node.has_type("translate")) {
+				_transform = _transform.translate(
+					float(node.attribute_value("x", 0.0)),
+					float(node.attribute_value("y", 0.0)));
+				return;
+			}
+			if (node.has_type("scale")) {
+				_transform = _transform.scale(
+					float(node.attribute_value("x", 1.0)),
+					float(node.attribute_value("y", 1.0)));
+				return;
+			}
+			if (node.has_type("rotate")) {
+				unsigned degrees = node.attribute_value("angle", 0);
+				Transform::Angle angle =
+					Transform::angle_from_degrees(degrees);
+				if (angle == Transform::ANGLE_0)
+					warning("invalid transform rotate(", degrees, ")");
+				else
+					_transform = _transform.rotate(angle);
+				return;
+			}
+			if (node.has_type("hflip")) {
+				float width = float(node.attribute_value("width", -1.0));
+				if (width <= 0)
+					warning("invalid transform hflip");
+				else
+					_transform = _transform.hflip(width);
+				return;
+			}
+			if (node.has_type("vflip")) {
+				float height = float(node.attribute_value("height", -1.0));
+				if (height <= 0)
+					warning("invalid transform vflip");
+				else
+					_transform = _transform.vflip(height);
+				return;
+			}
+			if (node.has_type("reorient")) {
+				float width      = float(node.attribute_value("width",  -1.0));
+				float height     = float(node.attribute_value("height", -1.0));
+				unsigned degrees = node.attribute_value("angle", 0);
+				Transform::Angle angle =
+					Transform::angle_from_degrees(degrees);
+				if (width <= 0 || height <= 0 || angle == Transform::ANGLE_0)
+					warning("invalid transform reorient");
+				else
+					_transform = _transform.reorient(angle, width, height);
+			}
 		}
 
 		/**
@@ -123,13 +118,16 @@ class Event_filter::Transform_source : public Source, Source::Filter
 
 		static char const *name() { return "transform"; }
 
-		Transform_source(Owner &owner, Node const &config, Source::Factory &factory)
+		Transform_source(Owner &owner, Node const &config, Source::Factory &factory,
+		                 Include_accessor &include_accessor)
 		:
 			Source(owner),
 			_owner(factory),
+			_include_accessor(include_accessor),
 			_source(factory.create_source_for_sub_node(_owner, config))
 		{
-			_apply_config(config);
+			_include_accessor.for_each_sub_node(config, name(),
+				[&] (Node const &n) { _apply_sub_node(n); });
 		}
 
 		void generate(Sink &destination) override

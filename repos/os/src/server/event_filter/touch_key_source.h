@@ -24,6 +24,7 @@
 #include <base/allocator.h>
 
 /* local includes */
+#include <include_accessor.h>
 #include <source.h>
 
 namespace Event_filter { class Touch_key_source; }
@@ -36,6 +37,8 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 		using Rect = Genode::Rect<>;
 
 		Owner _owner;
+
+		Include_accessor &_include_accessor;
 
 		Source &_source;
 
@@ -97,20 +100,28 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 			});
 		}
 
+		void _apply_sub_node(Node const &node)
+		{
+			if (node.type() == "tap")
+				new (_alloc) Registered<Tap>(_tap_rules, node);
+		}
+
 	public:
 
 		static char const *name() { return "touch-key"; }
 
 		Touch_key_source(Owner &owner, Node const &config,
-		                 Source::Factory &factory, Allocator &alloc)
+		                 Source::Factory &factory, Allocator &alloc,
+		                 Include_accessor &include_accessor)
 		:
 			Source(owner),
 			_owner(factory),
+			_include_accessor(include_accessor),
 			_source(factory.create_source_for_sub_node(_owner, config)),
 			_alloc(alloc)
 		{
-			config.for_each_sub_node("tap", [&] (Node const &node) {
-				new (_alloc) Registered<Tap>(_tap_rules, node); });
+			_include_accessor.for_each_sub_node(config, name(),
+				[&] (Node const &n) { _apply_sub_node(n); });
 		}
 
 		~Touch_key_source()

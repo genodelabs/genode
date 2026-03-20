@@ -96,6 +96,10 @@ one of the following filters:
   rectangular area - using the attributes 'xpos', 'ypos', 'width', and
   'height' - and the name of the tapped key as 'key' attribute.
 
+  A '<touch-key>' node may contain '<include>' nodes, which include further
+  content into the '<touch-key>' node. The included ROM must have a
+  '<touch-key>' top-level node.
+
 :<touch-gesture>:
 
   Triggers artificial key sequences or key combos when (multi-)touch gestures
@@ -117,6 +121,11 @@ one of the following filters:
     Supported values for the 'direction' attribute are: "up", "down", "left",
     "right". The rect in which the gesture is valid can be restricted by
     providing the 'xpos', 'ypos', 'width' and 'height' attributes.
+
+  :<include rom="...">:
+
+    The '<include>' node includes further content into the '<touch-gesture>'
+    node. The included ROM must have an '<touch-gesture>' top-level node.
 
   Key sequences are specified as '<key>' sub-nodes to the gesture
   primitives. Key combos are specified by nesting the '<key>' sub-nodes. The
@@ -168,6 +177,10 @@ one of the following filters:
 
     Flip coordinates horizontally/vertically and translate into
     'width'/'height'.
+
+  :<include rom="...">:
+    The '<include>' node includes further content into the '<transform>' node.
+    The included ROM must have an '<transform>' top-level node.
 
 :<report>:
 

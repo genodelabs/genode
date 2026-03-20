@@ -628,35 +628,8 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 		Source::Trigger &_trigger;
 
-		void _apply_config(Node const &config, unsigned const max_recursion = 4)
+		void _apply_sub_node(Node const &node)
 		{
-			config.for_each_sub_node([&] (Node const &node) {
-				_apply_sub_node(node, max_recursion); });
-		}
-
-		void _apply_sub_node(Node const &node, unsigned const max_recursion)
-		{
-			if (max_recursion == 0) {
-				warning("too deeply nested includes");
-				throw Invalid_config();
-			}
-
-			/*
-			 * Handle includes
-			 */
-			if (node.type() == "include") {
-				try {
-					Include_accessor::Name const rom =
-						node.attribute_value("rom", Include_accessor::Name());
-
-					_include_accessor.apply_include(rom, name(), [&] (Node const &inc) {
-						_apply_config(inc, max_recursion - 1); });
-					return;
-				}
-				catch (Include_accessor::Include_unavailable) {
-					throw Invalid_config(); }
-			}
-
 			/*
 			 * Handle map nodes
 			 */
@@ -737,7 +710,8 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 			_source(factory.create_source_for_sub_node(_owner, config)),
 			_trigger(trigger)
 		{
-			_apply_config(config);
+			_include_accessor.for_each_sub_node(config, name(),
+				[&] (Node const &n) { _apply_sub_node(n); });
 
 			/* assign key types in key map */
 			_modifiers.for_each([&] (Modifier const &mod) {
