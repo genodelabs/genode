@@ -647,6 +647,18 @@ proc install_hid { path args } {
 	close $fd
 }
 
+proc validate_hid { schema file } {
+
+	lappend cmd [genode_dir]/tool/hid check
+	lappend cmd --hsd-dir [run_dir]/genode --schema $schema $file
+
+	if {[catch {exec {*}$cmd } result]} {
+		puts stderr "Error: invalid $file (schema '$schema')"
+		puts stderr $result
+		if {[error_at_any_line $result]} { exit 1 }
+	}
+}
+
 
 #
 # The directory structure for the initial content is created at the run
@@ -743,14 +755,56 @@ foreach config $required_configs {
 	copy_config $from $to
 }
 
+##
+# Return list of deploy files
+#
+proc deploy_files { } {
+
+	set deploy_files [initial_config_file deploy]
+	foreach preset [ingredients_of_type presets] {
+		lappend deploy_files [ingredient_path deploy $preset] }
+	return $deploy_files
+}
+
+##
+# Return list of used deploy options
+#
+proc deploy_options { } {
+
+	global _deploy_options
+
+	if {[info exists _deploy_options]} { return $_deploy_options }
+
+	# explicitely listed options
+	lappend _deploy_options {*}[ingredients_of_type option]
+
+	# gather options used in presets and deploy
+	foreach path [deploy_files] {
+
+		set cmd [genode_dir]/tool/hid
+		if {[looks_like_xml $path]} { lappend cmd --import-xml --output-xml }
+
+		set names {}
+		if {[catch {
+			set names [split [exec {*}$cmd get "deploy | + option | : name" $path] "\n"]
+			lappend _deploy_options {*}$names
+		}]} {
+			puts stderr "failed to parse $path for gathering deploy options"
+			exit 1
+		}
+	}
+
+	# remove duplicates
+	set _deploy_options [lsort -unique $_deploy_options]
+
+	foreach opt $_deploy_options {
+		validate_hid [genode_dir]/repos/gems/src/app/depot_deploy/option.hsd \
+		             [ingredient_path option $opt] }
+
+	return $_deploy_options
+}
 
 # selection of depot users (pubkey and download files), options, and presets
-foreach ingredient [ingredients_of_type option] {
-	check_syntax [ingredient_path option $ingredient] }
-
-foreach ingredient [ingredients_of_type launcher] {
-	check_syntax [ingredient_path launcher $ingredient] }
-
 foreach ingredient [ingredients_of_type presets] {
 	check_syntax [ingredient_path deploy $ingredient] }
 
@@ -759,9 +813,9 @@ foreach ingredient [ingredients_of_type depot] {
 	set to   [file join [initial_config_dir] depot $ingredient]
 	copy_file $from $to }
 
-foreach ingredient [ingredients_of_type option] {
-	set from [ingredient_path option $ingredient]
-	set to   [file join [initial_config_dir] option $ingredient]
+foreach opt [deploy_options] {
+	set from [ingredient_path option $opt]
+	set to   [file join [initial_config_dir] option $opt]
 	copy_config $from $to }
 
 foreach ingredient [ingredients_of_type launcher] {
@@ -868,8 +922,8 @@ proc referenced_pkg_values { } {
 	set values {}
 
 	# scan options
-	foreach option [ingredients_of_type option] {
-		set path [file join [initial_config_dir] option $option]
+	foreach opt [deploy_options] {
+		set path [file join [initial_config_dir] option $opt]
 		lappend values {*}[pkg_attribute_values $path "option | + child"]
 	}
 
@@ -1028,8 +1082,8 @@ proc augment_start_node_pkg_versions { path } {
 }
 
 # options
-foreach option [ingredients_of_type option] {
-	augment_child_node_pkg_versions "option" [file join [initial_config_dir] option $option] }
+foreach opt [deploy_options] {
+	augment_child_node_pkg_versions "option" [file join [initial_config_dir] option $opt] }
 
 # launcher snippets
 foreach launcher [ingredients_of_type launcher] {
@@ -1054,7 +1108,7 @@ proc create_depot_archive { } {
 
 	if {[depot_archive] == "tar"} {
 		create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
-                               {*}[pkg_archive_paths [referenced_pkg_values]]
+		                               {*}[pkg_archive_paths [referenced_pkg_values]]
 
 	} else {
 		create_tar_from_depot_binaries [run_dir]/genode/depot.tar
