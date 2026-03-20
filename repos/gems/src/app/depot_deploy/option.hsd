@@ -1,0 +1,164 @@
+schema option
+
++ type any       | : .*
++ type integer   | : -?\d+
++ type natural   | : \d+
++ type positive  | : \d*[1-9]\d*
++ type num_bytes | : \d+[GMK]?
++ type bool      | : yes|no
+
++ category child_target
+  + node child
+    + attr name             | type: any
+    + attr label            | type: any | default:
+    + attr identity         | type: any | default:
+    + attr resource         | type: any | default:
+    + attr prepend_resource | type: any | default:
+
++ category parent_target
+  + node parent
+    + attr label            | type: any | default:
+    + attr identity         | type: any | default:
+    + attr resource         | type: any | default:
+    + attr prepend_resource | type: any | default:
+
++ category target
+  + node | category: parent_target
+  + node | category: child_target
+
++ category connect
+  + node fs       | + attr name | type: any | default:
+    + node | category: target
+  + node event
+    + node | category: target
+  + node log
+    + node | category: target
+  + node nic      | + attr name | type: any | default:
+    + node | category: target
+  + node uplink   | + attr name | type: any | default:
+    + node | category: target
+  + node block    | + attr name | type: any | default:
+    + node | category: target
+  + node gui      | + attr name | type: any | default:
+    + node | category: target
+  + node report
+    + attr name         | type: any | default:
+    + attr label_last   | type: any | default:
+    + attr label_prefix | type: any | default:
+    + node | category: target
+  + node rom
+    + attr name         | type: any | default:
+    + attr label_last   | type: any | default:
+    + attr label_prefix | type: any | default:
+    + node | category: target
+  + node terminal | + attr name | type: any | default:
+    + node | category: target
+  + node gpu
+    + node | category: target
+  + node usb
+    + node | category: target
+  + node timer
+    + node | category: target
+  + node pd
+    + node | category: target
+  + node cpu
+    + node | category: target
+  + node rtc
+    + node | category: target
+  + node rm
+    + node | category: target
+  + node capture
+    + node | category: target
+  + node play
+    + node | category: target
+  + node record
+    + node | category: target
+  + node platform    | + attr name | type: any | default:
+    + node | category: target
+  + node pin_state   | + attr name | type: any | default:
+    + node | category: target
+  + node pin_control | + attr name | type: any | default:
+    + node | category: target
+  + node io_mem
+    + node | category: target
+  + node io_port
+    + node | category: target
+  + node irq
+    + node | category: target
+  + node trace
+    + node | category: target
+  + node vm
+    + node | category: target
+  + node i2c
+    + node | category: target
+
++ category provided_service
+  + node fs
+    + attr name      | type: any  | default:
+    + attr writeable | type: bool | default:
+  + node event
+  + node log
+  + node nic      | + attr name  | type: any | default:
+  + node uplink   | + attr name  | type: any | default:
+  + node block    | + attr name  | type: any | default:
+  + node gui      | + attr name  | type: any | default:
+  + node report   | + attr name  | type: any | default:
+  + node rom      | + attr name  | type: any | default:
+  + node terminal | + attr name  | type: any | default:
+  + node gpu
+  + node usb
+  + node timer
+  + node pd
+  + node cpu
+  + node rtc
+  + node rm
+  + node capture
+  + node play
+  + node record
+  + node platform | + attr name  | type: any | default:
+  + node pin_state
+  + node pin_control
+  + node io_mem
+  + node io_port
+  + node irq
+  + node trace
+  + node vm
+  + node i2c
+
++ node alias
+  + attr name  | type: any
+  + attr child | type: any
+
++ node child
+  + attr name            | type: any
+  + attr version         | type: any       | default:
+  + attr binary          | type: any       | default:
+  + attr pkg             | type: any       | default:
+  + attr config          | type: bool      | default: yes
+  + attr caps            | type: natural   | default:
+  + attr ram             | type: num_bytes | default:
+  + attr priority        | type: integer   | default: -3
+  + attr managing_system | type: bool      | default: no
+  + attr ld              | type: bool      | default: no
+
+  + node heartbeat | multiple: no
+    + attr restart_after_skipped | type: natural | default: 0
+
+  + node affinity | multiple: no
+    + attr xpos   | type: natural  | default: 0
+    + attr ypos   | type: natural  | default: 0
+    + attr width  | type: positive | default: 1
+    + attr height | type: positive | default: 1
+
+  + node exit | multiple: no
+    + attr propagate | type: bool | default: no
+
+  + node provides
+    + node | category: provided_service
+
+  + node connect | multiple: no
+    + node | category: connect
+
+  + node config
+    + anything
+-
