@@ -1,5 +1,6 @@
 deploy | info: software-rendering example
 
++ option board
 + option sculpt
 + option managed
 

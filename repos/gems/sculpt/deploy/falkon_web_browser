@@ -1,5 +1,6 @@
 deploy | info: disposable web browser
 
++ option board
 + option sculpt
 + option managed
 + option recall_fs

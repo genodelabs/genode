@@ -1,5 +1,6 @@
 deploy | info: Goa testbed
 
++ option board
 + option sculpt
 + option managed
 + option recall_fs

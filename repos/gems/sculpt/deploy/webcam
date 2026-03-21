@@ -1,5 +1,6 @@
 deploy | info: webcam example
 
++ option board
 + option sculpt
 + option managed
 

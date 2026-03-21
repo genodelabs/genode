@@ -1,15 +1,2 @@
 config
-+ parent-provides
-  + service ROM
-  + service PD
-  + service CPU
-  + service LOG
-  + service Timer
-  + service Capture
-  + service Event
-
-+ start fb_sdl | caps: 100 | ram: 32M | ld: no
-  + route
-    + service Event | + parent | label: sdl
-    + any-service   | + parent
 -
