@@ -697,10 +697,12 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 		g.node("service", [&] {
 			g.attribute("name", resource.service_name());
 
+			using Prefix = String<Resource::Name::capacity() + 3>;
+			using Last   = Resource::Name;
+
 			Resource::Name const name = conn.attribute_value("name", Resource::Name());
 			bool const named = (name.length() > 1);
 			if (named) {
-				using Prefix = String<Resource::Name::capacity() + 3>;
 				if (resource.type == Resource::FS)
 					g.attribute("label_prefix", Prefix { name, " ->" });
 				else if (resource.type == Resource::ROM)
@@ -708,11 +710,12 @@ void Depot_deploy::Child::_gen_routes(Generator &g,
 				else
 					g.attribute("label", name);
 			} else {
-				if (conn.has_attribute("label_last")) {
-					using Last = Resource::Name;
-					Last const last = conn.attribute_value("label_last", Last());
-					g.attribute("label_last", last);
-				}
+				if (conn.has_attribute("label_last"))
+					g.attribute("label_last",
+					            conn.attribute_value("label_last", Last()));
+				if (conn.has_attribute("label_prefix"))
+					g.attribute("label_prefix",
+					            conn.attribute_value("label_prefix", Prefix()));
 			}
 
 			if (conn.num_sub_nodes() != 1) {
