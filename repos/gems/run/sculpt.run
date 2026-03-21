@@ -340,6 +340,7 @@ config | prio_levels: 2
   + provides | + service File_system
   + config
     + vfs
+    | + dir orig | + tar initial_config.tar
     | + ram
     | + import
     |   + tar initial_config.tar
