@@ -52,7 +52,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 	Constructible<Driver_info> driver_info { };
 
 	Rom_handler<Usb_storage_device> _report {
-		_env, String<80>("report -> runtime/", driver, "/devices").string(),
+		_env, String<80>("report -> ", driver, "/devices").string(),
 		*this, &Usb_storage_device::_handle_report };
 
 	void _handle_report(Node const &) { _action.storage_device_discovered(); }

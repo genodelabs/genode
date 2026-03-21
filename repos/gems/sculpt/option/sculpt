@@ -10,7 +10,7 @@ option
     + rom config      | + parent | label: config -> gui
     + rom focus       | + child gui_focus
     + report keystate | + child report_logger
-    + report          | + parent
+    + report          | + child report
 
 + child report_logger | binary: report_rom | ram: 1M | caps: 100 | priority: -1
   + provides
@@ -24,8 +24,8 @@ option
   .
   + provides | + rom
   + connect
-    + rom config  | + parent | label: config -> numlock_remap
-    + rom numlock | + parent | label: report -> runtime/global_keys/numlock
+    + rom config  | + parent       | label: config -> numlock_remap
+    + rom numlock | + child report | label: global_keys/numlock
 
 + child event_filter | binary: event_filter | caps: 120 | ram: 2M | priority: -1
   + provides | + event
@@ -33,7 +33,7 @@ option
     + event                         | + child gui
     + rom config                    | + parent | label: config -> event_filter
     + rom numlock.remap             | + child numlock_remap
-    + rom capslock                  | + parent | label: report -> global_keys -> capslock
+    + rom capslock                  | + child report | label: global_keys/capslock
     + rom | label_prefix: keyboard/ | + parent | identity: config
 
 + child gui_focus | binary: rom_filter | ram: 1M | caps: 100 | priority: -1
@@ -57,30 +57,54 @@ option
   |         + else
   |           + attribute label | value: focus
   + connect
-    + rom hover        | + parent | label: report -> runtime/gui/hover
-    + rom leitzentrale | + parent | label: report -> runtime/global_keys/leitzentrale
+    + rom hover        | + child report | label: gui/hover
+    + rom leitzentrale | + child report | label: global_keys/leitzentrale
 
 + child pointer | binary: pointer | ram: 2M | caps: 100 | priority: -1
   + provides | + report
   + config | shapes: yes
   + connect
     + gui       | + child gui
-    + rom hover | + parent | label: report -> runtime/gui/hover
-    + rom xray  | + parent | label: report -> runtime/global_keys/xray
+    + rom hover | + child report | label: gui/hover
+    + rom xray  | + child report | label: global_keys/xray
 
 + child global_keys | binary: global_keys_handler | ram: 1M | caps: 100 | priority: -1
   + connect
     + gui        | + child gui
     + rom config | + parent | label: config -> global_keys
-    + report     | + parent
+    + report     | + child report
 
 + child clipboard | binary: clipboard | ram: 2M | caps: 100 | priority: -1
   + provides
     + rom
     + report
   + connect
-    + rom config | + parent | label: config -> clipboard
-    + rom focus  | + parent | label: report -> runtime/gui/focus
+    + rom config | + parent       | label: config -> clipboard
+    + rom focus  | + child report | label: gui/focus
+
++ child report | binary: init | caps: 1000 | ram: 30M | priority: -1
+  + provides
+    + log
+    + report
+    + rom
+    + fs
+  + connect
+    + rom config             | + parent | label: config -> report
+    + rom runtime_config     | + parent | label: runtime_config
+    + rom runtime_state      | + parent | label: runtime_state
+    + rom kernel_log         | + parent | label: kernel_log
+    + rom core_log           | + parent | label: core_log
+    + rom ld.lib.so          | + parent
+    + rom vfs.lib.so         | + parent
+    + rom vfs_ram_log.lib.so | + parent
+    + rom libc.lib.so        | + parent
+    + rom libm.lib.so        | + parent
+    + rom vfs                | + parent
+    + rom log_core           | + parent
+    + rom file_terminal      | + parent
+    + rom terminal_log       | + parent
+    + rom fs_rom             | + parent
+    + rom fs_report          | + parent
 
 + child leitzentrale | binary: init | caps: 2400 | ram: 203M | priority: -1
   + affinity | xpos: 1 | width: 1 | . decouple leitzentrale from boot CPU
@@ -94,17 +118,17 @@ option
   + connect
     + gui                                      | + child gui
     + rom config                               | + parent | label: config -> leitzentrale
-    + rom focus                                | + parent | label: report -> runtime/gui/focus
-    + rom hover                                | + parent | label: report -> runtime/gui/hover
-    + rom leitzentrale_enabled                 | + parent | label: report -> runtime/global_keys/leitzentrale
-    + rom runtime_init_config                  | + parent | label: runtime_init_config
-    + rom | label_prefix: report ->            | + parent | identity: report
-    + rom | label_prefix: manager -> report -> | + parent | identity: report
+    + rom focus                                | + child report | label: gui/focus
+    + rom hover                                | + child report | label: gui/hover
+    + rom leitzentrale_enabled                 | + child report | label: global_keys/leitzentrale
+    + rom runtime_config                       | + parent | label: runtime_config
+    + rom | label_prefix: manager -> report -> | + child report
+    + rom | label_prefix: report ->            | + child report
     + rom | label_prefix: manager -> config -> | + parent | identity: config
     + rom | label_prefix: config ->            | + parent | identity: config
-    + report                                   | + parent
+    + report                                   | + child report
     + fs config                                | + parent | identity: config -> rw
-    + fs report                                | + parent | identity: report -> ro
+    + fs report                                | + child report
     + rom ld.lib.so                            | + parent
     + rom vfs.lib.so                           | + parent
     + rom libc.lib.so                          | + parent

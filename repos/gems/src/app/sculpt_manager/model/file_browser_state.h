@@ -98,10 +98,6 @@ struct Sculpt::File_browser_state : Noncopyable
 						g.node("parent", [&] {
 							g.attribute("identity", "config"); });
 					}
-					else if (browsed_fs == "report") {
-						g.node("parent", [&] {
-							g.attribute("identity", "report"); });
-					}
 					else {
 						gen_named_node(g, "child", browsed_fs);
 					}
@@ -171,10 +167,6 @@ struct Sculpt::File_browser_state : Noncopyable
 					if (browsed_fs == "config") {
 						g.node("parent", [&] {
 							g.attribute("identity", "config"); });
-					}
-					else if (browsed_fs == "report") {
-						g.node("parent", [&] {
-							g.attribute("identity", "report"); });
 					}
 					else {
 						gen_named_node(g, "child", browsed_fs);

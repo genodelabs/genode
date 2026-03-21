@@ -65,7 +65,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 	} _detected { };
 
 	Rom_handler<Usb_driver> _devices {
-		_env, "report -> runtime/usb/devices", *this, &Usb_driver::_handle_devices };
+		_env, "report -> usb/devices", *this, &Usb_driver::_handle_devices };
 
 	void _handle_devices(Node const &devices)
 	{

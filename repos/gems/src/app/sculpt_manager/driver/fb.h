@@ -175,7 +175,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				                   mode.ram_quota(), Cap_quota { 100 }); });
 
 		if (orig_fb_name != _fb_name()) {
-			Session_label label { "report -> runtime/", _fb_name(), "/connectors" };
+			Session_label label { "report -> ", _fb_name(), "/connectors" };
 			if (_fb_name().length() > 1)
 				_connectors.construct(_env, label,
 				                      *this, &Fb_driver::_handle_connectors);

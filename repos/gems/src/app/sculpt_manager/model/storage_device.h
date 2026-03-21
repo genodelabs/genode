@@ -67,7 +67,7 @@ struct Sculpt::Storage_device
 	Partitions partitions { };
 
 	Rom_handler<Storage_device> _partitions {
-		_env, String<80>("report -> runtime/", part_block_child_name(), "/partitions").string(),
+		_env, String<80>("report -> ", part_block_child_name(), "/partitions").string(),
 		*this, &Storage_device::_handle_partitions };
 
 	unsigned _part_block_version = 0;

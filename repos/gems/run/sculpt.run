@@ -173,14 +173,6 @@ import_from_depot [depot_user]/src/[base_src] \
 ## Static init configuration
 ##
 
-proc log_route { } {
-
-	if {[log_core]} {
-		return {+ service LOG | + parent} }
-
-	return {+ service LOG | + child log}
-}
-
 # each line in the following definitions must be indented with 4 spaces
 
 set driver_routes(pc) {
@@ -262,31 +254,6 @@ proc driver_routes { } {
 }
 
 
-proc log_core_start_node { } { if {![have_board linux]} { return {
-
-+ start log_core | priority: -1
-  + config | period_ms: 2000
-  + route
-    + service ROM | label: log | + parent | label: core_log
-    + service Timer            | + child timer
-    + service LOG | label: log | + child log | label: core
-    + any-service              | + parent
-} } }
-
-
-proc log_kernel_start_node { } { if {[have_spec nova]} { return {
-
-+ start log_kernel | priority: -1
-  + binary log_core
-  + config | period_ms: 2000
-  + route
-    + service ROM | label: log | + parent | label: kernel_log
-    + service Timer            | + child timer
-    + service LOG | label: log | + child log | label: kernel
-    + any-service              | + parent
-} } }
-
-
 install_config {
 config | prio_levels: 2
 
@@ -321,11 +288,12 @@ config | prio_levels: 2
     + service Report
     + service ROM
   + config | verbose: no
-    + policy | label: deploy -> blueprint             | report: runtime -> blueprint
-    + policy | label: runtime -> config               | report: deploy -> runtime
-    + policy | label: runtime -> query                | report: deploy -> query
-    + policy | label: report_fs -> init               | report: deploy -> runtime
-    + policy | label: runtime -> runtime_init_config  | report: deploy -> runtime
+    + policy | label: deploy -> blueprint       | report: runtime -> blueprint
+    + policy | label: runtime -> config         | report: deploy -> runtime
+    + policy | label: runtime -> query          | report: deploy -> query
+    + policy | label: report_fs -> init         | report: deploy -> runtime
+    + policy | label: runtime -> runtime_config | report: deploy -> runtime
+    + policy | label: runtime -> runtime_state  | report: runtime -> state
 
 + start config_fs | caps: 200 | ram: 12M | priority: -1
   + binary vfs
@@ -346,68 +314,6 @@ config | prio_levels: 2
     + service File_system | + child config_fs
     + any-service         | + parent
 
-+ start report_fs_rom | ram: 3M | priority: -1
-  + binary fs_rom
-  + provides | + service ROM
-  + route
-    + service File_system | + child report_fs
-    + any-service         | + parent
-
-+ start report_fs | ram: 16M | priority: -1
-  + binary vfs
-  + provides | + service File_system
-  + route
-    + service ROM | label: init | + child report_rom
-    + any-service               | + parent
-  + config
-    + vfs
-    | + ram_log log | limit: 1M
-    | + rom init | binary: no
-    | + ram
-    | + import
-    |   + dir runtime
-    |     + inline state | + empty
-    |     + dir nic_router  | + inline state     | + empty
-    |     + dir update      | + inline state     | + empty
-    |     + dir depot_query | + inline blueprint | + empty
-    |
-    + policy | label_prefix: fs_report ->     | root: / | writeable: yes
-    + policy | label_prefix: log_terminal ->  | root: / | writeable: yes
-    + policy | label_prefix: report_fs_rom -> | root: /
-    + policy | label_prefix: ro ->            | root: /
-
-+ start log_terminal | ram: 2M | priority: -1
-  + binary file_terminal
-  + provides | + service Terminal
-  + config
-  | + default-policy | filename: log
-  | + vfs
-  |   + dir dev | + log
-  |   + fs
-  | + libc | stdout: /dev/log
-  + route
-    + service File_system | + child report_fs
-    + any-service         | + parent
-
-+ start log | priority: -1
-  + binary terminal_log
-  + provides | + service LOG
-  + config
-  + route
-    + service Terminal | + child log_terminal
-    + service Timer    | + child timer
-    + any-service      | + parent
-
-} [log_core_start_node] {
-} [log_kernel_start_node] {
-
-+ start fs_report | ram: 2M | priority: -1
-  + provides | + service Report
-  + config | + vfs | + fs
-  + route
-    + service File_system | + child report_fs
-    + any-service         | + parent
-
 + start terminal_monitor | ram: 2M | priority: -1
   + binary terminal_crosslink
   + provides | + service Terminal
@@ -426,23 +332,22 @@ config | prio_levels: 2
 + start runtime | caps: 50000 | ram: 32G | priority: -1 | managing_system: yes
   + binary monitor
   + route
-    + service ROM    | label: config                 | + child report_rom
-    + service ROM    | label: query                  | + child report_rom
-    + service Report | label: blueprint              | + child report_rom
-    + service ROM | label_prefix: config ->          | + child config_fs_rom
-    + service ROM | label_prefix: report ->          | + child report_fs_rom
-    + service ROM | label: runtime_init_config       | + child report_rom
-    + service File_system | label_prefix: config ->  | + child config_fs | identity: rw
-    + service File_system | label_prefix: report ->  | + child report_fs | identity: ro
-    + service Timer                                  | + child timer
-    + service Report                                 | + child fs_report
-    + service LOG | label: unlogged                  | + parent
-    } [log_route] {
+    + service ROM    | label: config                | + child report_rom
+    + service ROM    | label: query                 | + child report_rom
+    + service ROM    | label_prefix: config ->      | + child config_fs_rom
+    + service ROM    | label: runtime_config        | + child report_rom
+    + service ROM    | label: runtime_state         | + child report_rom
+    + service ROM    | label: kernel_log            | + parent
+    + service ROM    | label: core_log              | + parent
+    + service Report | label: state                 | + child report_rom
+    + service Report | label: blueprint             | + child report_rom
+    + service TRACE  | label: runtime               | + parent | label: runtime ->
+    + service TRACE  | label: global                | + parent | label:
+    + service File_system | label_prefix: config -> | + child config_fs | identity: rw
+    + service Timer                                 | + child timer
     } [driver_routes] {
-    + service Terminal               | + child terminal_monitor
-    + service TRACE | label: runtime | + parent | label: runtime ->
-    + service TRACE | label: global  | + parent | label:
-    + any-service                    | + parent
+    + service Terminal                              | + child terminal_monitor
+    + any-service                                   | + parent
 -
 }
 
@@ -544,6 +449,7 @@ set required_configs {
 	system
 	ram_fs
 	manager
+	report
 }
 
 foreach config $required_configs {
@@ -653,6 +559,18 @@ close $fd
 set fd [open [file join [initial_config_dir] depot version] w]
 puts $fd "depot | managed: yes | version: 1\n-"
 close $fd
+
+# dummy kernel/core log ROMs for kernels w/o log-export feature
+if {![have_spec nova]} {
+	set fd [open [file join [run_dir] genode kernel_log] w]
+	puts $fd "kernel log not available\n"
+	close $fd
+}
+if {[have_board linux]} {
+	set fd [open [file join [run_dir] genode core_log] w]
+	puts $fd "core log not available\n"
+	close $fd
+}
 
 
 #

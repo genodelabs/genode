@@ -212,7 +212,7 @@ namespace Sculpt {
 
 	static inline void connect_report(Generator &g)
 	{
-		g.node("report", [&] { g.node("parent", [&] { }); });
+		g.node("report", [&] { gen_named_node(g, "child", "report"); });
 	}
 
 	static inline void connect_platform(Generator &g, auto const &label)
@@ -263,9 +263,8 @@ namespace Sculpt {
 	static inline void connect_report_rom(Generator &g, Rom_name const &name, Rom_name const &report_rom)
 	{
 		gen_named_node(g, "rom", name, [&] {
-			g.node("parent", [&] {
-				Session_label const label { "report -> ", report_rom };
-				g.attribute("label", label); }); });
+			gen_named_node(g, "child", "report", [&] {
+				g.attribute("label", report_rom); }); });
 	}
 
 	static inline void connect_fs(Generator &g, Server_name const &server)

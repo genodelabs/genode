@@ -30,7 +30,7 @@ struct Sculpt::Mmc_driver : private Noncopyable
 	Constructible<Child_state> _mmc { };
 
 	Rom_handler<Mmc_driver> _devices {
-		_env, "report -> runtime/mmc/block_devices", *this, &Mmc_driver::_handle_devices };
+		_env, "report -> mmc/block_devices", *this, &Mmc_driver::_handle_devices };
 
 	void _handle_devices(Node const &) { _action.handle_mmc_discovered(); }
 

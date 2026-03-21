@@ -1,0 +1,86 @@
+config | verbose: yes
+
++ parent-provides
+  + service ROM
+  + service PD
+  + service CPU
+  + service LOG
+  + service Timer
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ service LOG         | + default-policy | + child log
++ service Report      | + default-policy | + child fs_report
++ service File_system | + default-policy | + child report_fs
++ service ROM         | + default-policy | + child report_fs_rom
+
++ start log_core
+  + config | period_ms: 2000
+  + route
+    + service ROM | label: log | + parent | label: core_log
+    + service LOG | label: log | + child log | label: core
+    + any-service              | + parent
+
++ start log_kernel
+  + binary log_core
+  + config | period_ms: 2000
+  + route
+    + service ROM | label: log | + parent    | label: kernel_log
+    + service LOG | label: log | + child log | label: kernel
+    + any-service              | + parent
+
++ start report_fs_rom | ram: 3M
+  + binary fs_rom
+  + provides | + service ROM
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
+
++ start report_fs | ram: 16M
+  + binary vfs
+  + provides | + service File_system
+  + route | + any-service | + parent
+  + config
+    + vfs
+    | + ram_log log | limit: 1M
+    | + rom runtime | label: runtime_config | binary: no
+    | + rom state   | label: runtime_state  | binary: no
+    | + ram
+    |
+    + policy | label_prefix: fs_report ->    | root: / | writeable: yes
+    + policy | label_prefix: log_terminal -> | root: / | writeable: yes
+    + default-policy                         | root: /
+
++ start log_terminal | ram: 2M
+  + binary file_terminal
+  + provides | + service Terminal
+  + config
+  | + default-policy | filename: log
+  | + vfs
+  |   + dir dev | + log
+  |   + fs
+  | + libc | stdout: /dev/log
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
+
++ start log
+  + binary terminal_log
+  + provides | + service LOG
+  + config
+  + route
+    + service Terminal | + child log_terminal
+    + any-service      | + parent
+
++ start fs_report | ram: 2M
+  + provides | + service Report
+  + config | + vfs | + fs
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
+-

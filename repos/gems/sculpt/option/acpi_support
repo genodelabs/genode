@@ -6,5 +6,5 @@ option
     + platform          | + child platform | label: acpica
     + rom platform_info | + parent         | label: platform_info
     + rom system        | + parent         | label: config -> system
-    + report            | + parent
+    + report            | + child report
 -

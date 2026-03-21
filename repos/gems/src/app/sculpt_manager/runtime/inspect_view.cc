@@ -248,7 +248,7 @@ void Sculpt::gen_inspect_view(Generator             &g,
 				g.node("parent", [&] { g.attribute("identity", "config"); }); });
 
 			gen_named_node(g, "fs", "report", [&] {
-				g.node("parent", [&] { g.attribute("identity", "report"); }); });
+				gen_named_node(g, "child", "report"); });
 
 			connect_parent_rom(g, "ld.lib.so");
 			connect_parent_rom(g, "init");

@@ -5,7 +5,7 @@ option
     + fs fonts         | + child fonts_fs
     + fs target        | + child default_fs_rw
     + fs config        | + parent | identity: config
-    + fs report        | + parent | identity: report
+    + fs report        | + child report
     + report clipboard | + child wm
     + rom    clipboard | + child wm
     + rom    vimrc     | + parent | label: config -> vimrc

@@ -1,6 +1,6 @@
 config | managed: yes | bios_handoff: no
 .
-. available devices are listed at /report/runtime/usb/devices
+. available devices are listed at /report/usb/devices
 .
 
 + policy | label_prefix: vbox6-dev ->

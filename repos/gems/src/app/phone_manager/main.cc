@@ -421,7 +421,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ************/
 
 	Rom_handler<Main> _update_state_rom {
-		_env, "report -> runtime/update/state", *this, &Main::_handle_update_state };
+		_env, "report -> update/state", *this, &Main::_handle_update_state };
 
 	Managed_config<Main> _install {
 		_env, _heap, "install", "install", *this, &Main::_handle_install };
@@ -522,7 +522,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Rom_handler<Main> _depot_query_blueprint_rom {
-		_env, "report -> runtime/depot_query/blueprint", *this, &Main::_handle_depot_query_blueprint };
+		_env, "report -> depot_query/blueprint", *this, &Main::_handle_depot_query_blueprint };
 
 	void _handle_depot_query_blueprint(Node const &blueprint)
 	{
@@ -548,7 +548,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ******************/
 
 	Rom_handler<Main> _index_rom {
-		_env, "report -> runtime/depot_query/index", *this, &Main::_handle_index };
+		_env, "report -> depot_query/index", *this, &Main::_handle_index };
 
 	void _handle_index(Node const &)
 	{
@@ -573,7 +573,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ************/
 
 	Rom_handler<Main> _scan_rom {
-		_env, "report -> runtime/depot_query/scan", *this, &Main::_handle_scan };
+		_env, "report -> depot_query/scan", *this, &Main::_handle_scan };
 
 	void _handle_scan(Node const &)
 	{
@@ -583,7 +583,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Rom_handler<Main> _image_index_rom {
-		_env, "report -> runtime/depot_query/image_index", *this, &Main::_handle_image_index };
+		_env, "report -> depot_query/image_index", *this, &Main::_handle_image_index };
 
 	void _handle_image_index(Node const &) { _generate_dialog(); }
 
@@ -591,7 +591,7 @@ struct Sculpt::Main : Input_event_handler,
 	Presets _presets { _heap };
 
 	Rom_handler<Main> _config_listing_rom {
-		_env, "report -> /runtime/config_query/listing", *this,
+		_env, "report -> config_query/listing", *this,
 		&Main::_handle_config_listing };
 
 	void _handle_config_listing(Node const &listing)
@@ -984,7 +984,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Rom_handler<Main> _runtime_state_rom {
-		_env, "report -> runtime/state", *this, &Main::_handle_runtime_state };
+		_env, "report -> state", *this, &Main::_handle_runtime_state };
 
 	void _handle_runtime_state(Node const &);
 
@@ -1138,7 +1138,7 @@ struct Sculpt::Main : Input_event_handler,
 	 * part decoupled from the lower-level runtime configuration generator.
 	 */
 	Rom_handler<Main> _init_config_rom {
-		_env, "runtime_init_config", *this, &Main::_handle_init_config };
+		_env, "runtime_config", *this, &Main::_handle_init_config };
 
 	Runtime_config _cached_init_config { _heap };
 
@@ -1825,7 +1825,7 @@ struct Sculpt::Main : Input_event_handler,
 	Modem_config _curr_modem_config { };
 
 	Rom_handler<Main> _modem_state_rom {
-		_env, "report -> runtime/modem/state", *this, &Main::_handle_modem_state };
+		_env, "report -> modem/state", *this, &Main::_handle_modem_state };
 
 	void _handle_modem_state(Node const &modem_state)
 	{

@@ -62,13 +62,13 @@ struct Sculpt::Network : Noncopyable
 	Wpa_passphrase wpa_passphrase { };
 
 	Rom_handler<Network> _wlan_accesspoints_rom {
-		_env, "report -> runtime/wifi/accesspoints", *this, &Network::_handle_wlan_accesspoints };
+		_env, "report -> wifi/accesspoints", *this, &Network::_handle_wlan_accesspoints };
 
 	Rom_handler<Network> _wlan_state_rom {
-		_env, "report -> runtime/wifi/state", *this, &Network::_handle_wlan_state };
+		_env, "report -> wifi/state", *this, &Network::_handle_wlan_state };
 
 	Rom_handler<Network> _nic_router_state_rom {
-		_env, "report -> runtime/nic_router/state", *this, &Network::_handle_nic_router_state };
+		_env, "report -> nic_router/state", *this, &Network::_handle_nic_router_state };
 
 	void _generate_nic_router_config();
 

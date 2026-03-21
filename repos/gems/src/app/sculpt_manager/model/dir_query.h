@@ -83,7 +83,7 @@ struct Sculpt::Dir_query : Noncopyable
 				.location  = { },
 				.initial   = { .ram =  4*1024*1024, .caps = 1000 },
 				.max       = { .ram = 16*1024*1024, .caps = 2000 } }),
-			_listing_handler(env, { "report -> runtime/dir_query/listing" },
+			_listing_handler(env, { "report -> dir_query/listing" },
 			                 *this, &State::_handle_listing)
 		{ }
 	};

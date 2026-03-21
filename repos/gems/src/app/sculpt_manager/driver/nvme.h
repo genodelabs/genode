@@ -30,7 +30,7 @@ struct Sculpt::Nvme_driver : private Noncopyable
 	Constructible<Child_state> _nvme { };
 
 	Rom_handler<Nvme_driver> _namespaces {
-		_env, "report -> runtime/nvme/controller", *this, &Nvme_driver::_handle_namespaces };
+		_env, "report -> nvme/controller", *this, &Nvme_driver::_handle_namespaces };
 
 	void _handle_namespaces(Node const &) { _action.handle_nvme_discovered(); }
 

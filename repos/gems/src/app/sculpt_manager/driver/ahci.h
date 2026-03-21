@@ -30,7 +30,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 	Constructible<Child_state> _ahci { };
 
 	Rom_handler<Ahci_driver> _ports {
-		_env, "report -> runtime/ahci/ports", *this, &Ahci_driver::_handle_ports };
+		_env, "report -> ahci/ports", *this, &Ahci_driver::_handle_ports };
 
 	void _handle_ports(Node const &) { _action.handle_ahci_discovered(); }
 
