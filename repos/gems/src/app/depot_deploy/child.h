@@ -471,45 +471,35 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 
 		struct Attr
 		{
-			using Version = String<64>;
+			using Version  = String<64>;
+			using Location = Affinity::Location;
 
-			unsigned long      caps;
-			Num_bytes          ram;
-			Version            version;
-			long               priority;
-			bool               system;
-			Affinity::Location location;
-
-			void apply(Node const &node, Affinity::Space const &affinity_space)
-			{
-				caps     = node.attribute_value("caps",            caps);
-				ram      = node.attribute_value("ram",             ram);
-				version  = node.attribute_value("version",         version);
-				priority = node.attribute_value("priority",        priority);
-				system   = node.attribute_value("managing_system", system);
-
-				node.with_optional_sub_node("affinity", [&] (Node const &node) {
-					location = Affinity::Location::from_node(affinity_space, node); });
-			}
+			unsigned long caps;
+			Num_bytes     ram;
+			Version       version;
+			long          priority;
+			bool          ld;
+			bool          system;
+			Location      location;
 		};
 
-		Attr attr {
-			.caps     = _pkg_cap_quota,
-			.ram      = _pkg_ram_quota,
-			.version  = { },
-			.priority = global.prio_levels.min_priority(),
-			.system   = false,
-			.location = { },
-		};
+		Attr attr { };
+		attr.caps     = child.attribute_value("caps",     _pkg_cap_quota);
+		attr.ram      = child.attribute_value("ram",      _pkg_ram_quota);
+		attr.version  = child.attribute_value("version",  attr.version);
+		attr.priority = child.attribute_value("priority", global.prio_levels.min_priority());
+		attr.ld       = child.attribute_value("ld",       true);
+		attr.system   = child.attribute_value("managing_system", false);
 
-		/* child node overrides pkg runtime */
-		attr.apply(child, global.affinity_space);
+		child.with_optional_sub_node("affinity", [&] (Node const &node) {
+			attr.location = Attr::Location::from_node(global.affinity_space, node); });
 
 		g.attribute("ram",  attr.ram);
 		g.attribute("caps", attr.caps);
 		if (attr.version.length() > 1) g.attribute("version",  attr.version);
 		if (attr.priority)             g.attribute("priority", attr.priority);
 		if (attr.system)               g.attribute("managing_system", "yes");
+		if (attr.ld == false)          g.attribute("ld", "no");
 
 		if (attr.location.width()*attr.location.height() > 0)
 			g.node("affinity", [&] {
