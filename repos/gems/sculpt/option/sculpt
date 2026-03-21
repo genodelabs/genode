@@ -1,2 +1,55 @@
 option
++ child leitzentrale | binary: init | caps: 2400 | ram: 203M | priority: -1
+  + affinity | xpos: 1 | width: 1 | . decouple leitzentrale from boot CPU
+  + provides
+    + gui
+    + capture
+    + event
+    + fs     | . fonts
+    + rom    | . view dialog ROMs
+    + report | . view hover reports
+  + connect
+    + rom config                               | + parent | label: config -> leitzentrale
+    + rom nitpicker_focus                      | + parent | label: nitpicker_focus
+    + rom nitpicker_hover                      | + parent | label: nitpicker_hover
+    + rom leitzentrale_enabled                 | + parent | label: leitzentrale_enabled
+    + rom runtime_init_config                  | + parent | label: runtime_init_config
+    + rom | label_prefix: report ->            | + parent | identity: report
+    + rom | label_prefix: manager -> report -> | + parent | identity: report
+    + rom | label_prefix: manager -> config -> | + parent | identity: config
+    + rom | label_prefix: config ->            | + parent | identity: config
+    + report                                   | + parent
+    + gui                                      | + parent
+    + fs config                                | + parent | identity: config -> rw
+    + fs report                                | + parent | identity: report -> ro
+    + rom ld.lib.so                            | + parent
+    + rom vfs.lib.so                           | + parent
+    + rom libc.lib.so                          | + parent
+    + rom libm.lib.so                          | + parent
+    + rom posix.lib.so                         | + parent
+    + rom libpng.lib.so                        | + parent
+    + rom zlib.lib.so                          | + parent
+    + rom vfs                                  | + parent
+    + rom vfs_ttf.lib.so                       | + parent
+    + rom backdrop                             | + parent
+    + rom terminal                             | + parent
+    + rom nitpicker                            | + parent
+    + rom gui_fb                               | + parent
+    + rom gui_fader                            | + parent
+    + rom report_rom                           | + parent
+    + rom rom_filter                           | + parent
+    + rom wm                                   | + parent
+    + rom themed_decorator                     | + parent
+    + rom terminal_log                         | + parent
+    + rom fs_report                            | + parent
+    + rom sculpt_manager                       | + parent
+    + rom phone_manager                        | + parent
+    + rom stdin2out                            | + parent
+    + rom Vera.ttf                             | + parent
+    + rom VeraMono.ttf                         | + parent
+    + rom genode_logo.png                      | + parent
+    + rom drop_shadow.png                      | + parent
+    + rom build_info                           | + parent
+    + rom platform_info                        | + parent
+    + rom VERSION                              | + parent
 -

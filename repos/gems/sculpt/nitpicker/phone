@@ -16,16 +16,16 @@ config | focus: rom
 + domain follow_touch   | layer: 3 | label: no | content: client | hover: always | focus: transient | width: 720 | height: 960 | origin: pointer
 + domain camera         | layer: 2 | label: no | content: client | hover: always | focus: transient | xpos:  120 | ypos:   120
 
-+ policy | label_prefix: pointer ->                | domain: invisible
-+ policy | label_prefix: leitzentrale ->           | domain: leitzentrale
-+ policy | label_prefix: runtime -> touch_keyboard | domain: touch_keyboard
-+ policy | label_prefix: runtime -> follow_touch   | domain: follow_touch
-+ policy | label_prefix: runtime -> camera         | domain: camera
-+ policy | label_prefix: runtime -> overlay        | domain: overlay
-+ policy | label_prefix: backdrop                  | domain: background
-+ default-policy                                   | domain: default
++ policy | label_prefix: pointer ->                 | domain: invisible
++ policy | label_prefix: runtime -> leitzentrale -> | domain: leitzentrale
++ policy | label_prefix: runtime -> touch_keyboard  | domain: touch_keyboard
++ policy | label_prefix: runtime -> follow_touch    | domain: follow_touch
++ policy | label_prefix: runtime -> camera          | domain: camera
++ policy | label_prefix: runtime -> overlay         | domain: overlay
++ policy | label_prefix: backdrop                   | domain: background
++ default-policy                                    | domain: default
 
 + global-key KEY_DASHBOARD | label: global_keys_handler -> input
 + global-key KEY_PRINT     | label: runtime -> screenshot -> keys -> input
-+ global-key KEY_POWER     | label: leitzentrale -> manager -> fader ->
++ global-key KEY_POWER     | label: runtime -> leitzentrale -> manager -> fader ->
 -

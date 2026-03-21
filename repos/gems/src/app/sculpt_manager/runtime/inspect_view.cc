@@ -282,8 +282,8 @@ void Sculpt::gen_inspect_view(Generator             &g,
 					gen_named_node(g, "child", "ram_fs"); });
 
 			g.node("gui", [&] {
-				g.node("parent", [&] {
-					g.attribute("label", "leitzentrale -> inspect"); }); });
+				gen_named_node(g, "child", "leitzentrale", [&] {
+					g.attribute("label", "inspect"); }); });
 
 			connect_config_rom(g, "terminal.config", "fonts");
 

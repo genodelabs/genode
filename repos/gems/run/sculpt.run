@@ -306,27 +306,27 @@ config | prio_levels: 2
     + service Report
     + service ROM
   + config | verbose: no
-    + policy | label: deploy -> blueprint                        | report: runtime -> blueprint
-    + policy | label: runtime -> config                          | report: deploy -> runtime
-    + policy | label: runtime -> query                           | report: deploy -> query
-    + policy | label: report_fs -> init                          | report: deploy -> runtime
-    + policy | label: leitzentrale -> runtime_init_config        | report: deploy -> runtime
-    + policy | label: leitzentrale -> leitzentrale_enabled       | report: global_keys_handler -> leitzentrale
-    + policy | label: pointer -> hover                           | report: nitpicker -> hover
-    + policy | label: pointer -> xray                            | report: global_keys_handler -> leitzentrale
-    + policy | label: pointer -> shape                           | report: shape
-    + policy | label: clipboard -> focus                         | report: nitpicker -> focus
-    + policy | label: runtime -> capslock                        | report: global_keys_handler -> capslock
-    + policy | label: runtime -> numlock                         | report: global_keys_handler -> numlock
-    + policy | label: numlock_remap_rom -> numlock               | report: global_keys_handler -> numlock
-    + policy | label: event_filter -> capslock                   | report: global_keys_handler -> capslock
-    + policy | label: runtime -> clicked                         | report: nitpicker -> clicked
-    + policy | label: leitzentrale -> manager -> nitpicker_focus | report: nitpicker -> focus
-    + policy | label: leitzentrale -> manager -> nitpicker_hover | report: nitpicker -> hover
-    + policy | label: nit_focus -> leitzentrale                  | report: global_keys_handler -> leitzentrale
-    + policy | label: nit_focus -> slides                        | report: global_keys_handler -> slides
-    + policy | label: nit_focus -> hover                         | report: nitpicker -> hover
-    + policy | label: slides_gui_fb_config -> slides             | report: global_keys_handler -> slides
+    + policy | label: deploy -> blueprint             | report: runtime -> blueprint
+    + policy | label: runtime -> config               | report: deploy -> runtime
+    + policy | label: runtime -> query                | report: deploy -> query
+    + policy | label: report_fs -> init               | report: deploy -> runtime
+    + policy | label: runtime -> runtime_init_config  | report: deploy -> runtime
+    + policy | label: runtime -> leitzentrale_enabled | report: global_keys_handler -> leitzentrale
+    + policy | label: pointer -> hover                | report: nitpicker -> hover
+    + policy | label: pointer -> xray                 | report: global_keys_handler -> leitzentrale
+    + policy | label: pointer -> shape                | report: shape
+    + policy | label: clipboard -> focus              | report: nitpicker -> focus
+    + policy | label: runtime -> capslock             | report: global_keys_handler -> capslock
+    + policy | label: runtime -> numlock              | report: global_keys_handler -> numlock
+    + policy | label: numlock_remap_rom -> numlock    | report: global_keys_handler -> numlock
+    + policy | label: event_filter -> capslock        | report: global_keys_handler -> capslock
+    + policy | label: runtime -> clicked              | report: nitpicker -> clicked
+    + policy | label: runtime -> nitpicker_focus      | report: nitpicker -> focus
+    + policy | label: runtime -> nitpicker_hover      | report: nitpicker -> hover
+    + policy | label: nit_focus -> leitzentrale       | report: global_keys_handler -> leitzentrale
+    + policy | label: nit_focus -> slides             | report: global_keys_handler -> slides
+    + policy | label: nit_focus -> hover              | report: nitpicker -> hover
+    + policy | label: slides_gui_fb_config -> slides  | report: global_keys_handler -> slides
 
 + start report_logger | priority: -1
   + binary report_rom
@@ -497,7 +497,7 @@ config | prio_levels: 2
   |       + if
   |         + has_value | input: leitzentrale_enabled | value: yes
   |         + then
-  |         | + attribute label | value: leitzentrale -> manager -> fader ->
+  |         | + attribute label | value: runtime -> leitzentrale -> manager -> fader ->
   |         + else
   |           + if
   |             + has_value | input: slides_enabled | value: yes
@@ -541,34 +541,6 @@ config | prio_levels: 2
       + parent
       + any-child
 
-+ start leitzentrale | caps: 2400 | ram: 203M | priority: -1
-  + binary init
-  + affinity | xpos: 1 | width: 1 | . decouple leitzentrale from boot CPU
-  + provides
-    + service Gui
-    + service Capture
-    + service Event
-    + service File_system | . fonts
-    + service ROM         | . view dialog ROMs
-    + service Report      | . view hover reports
-  + route
-    } [log_route] {
-    + service ROM | label: config                      | + child config_fs_rom | label: leitzentrale
-    + service ROM | label: runtime_init_config         | + child report_rom
-    + service ROM | label_prefix: report ->            | + child report_fs_rom
-    + service ROM | label_prefix: manager -> report -> | + child report_fs_rom
-    + service ROM | label_prefix: manager -> config -> | + child config_fs_rom
-    + service ROM | label_prefix: config ->            | + child config_fs_rom
-    + service ROM | label: manager -> nitpicker_focus  | + child report_rom
-    + service ROM | label: manager -> nitpicker_hover  | + child report_rom
-    + service ROM | label: leitzentrale_enabled        | + child report_rom
-    + service Report                                   | + child fs_report
-    + service Gui                                      | + child nitpicker
-    + service Timer                                    | + child timer
-    + service File_system | label_prefix: config ->    | + child config_fs | identity: rw
-    + service File_system | label_prefix: report ->    | + child report_fs | identity: ro
-    + any-service                                      | + parent
-
 + start terminal_monitor | ram: 2M | priority: -1
   + binary terminal_crosslink
   + provides | + service Terminal
@@ -595,11 +567,14 @@ config | prio_levels: 2
     + service ROM | label: capslock                  | + child report_rom
     + service ROM | label: numlock                   | + child report_rom
     + service ROM | label: clicked                   | + child report_rom
+    + service ROM | label: leitzentrale_enabled      | + child report_rom
+    + service ROM | label: nitpicker_focus           | + child report_rom
+    + service ROM | label: nitpicker_hover           | + child report_rom
+    + service ROM | label: runtime_init_config       | + child report_rom
     + service File_system | label_prefix: config ->  | + child config_fs | identity: rw
     + service File_system | label_prefix: report ->  | + child report_fs | identity: ro
     + service Platform | label_prefix: acpica        | + child drivers | label: acpica
     + service Platform                               | + child drivers
-    + service Gui | label_prefix: leitzentrale       | + child leitzentrale
     + service Gui | label: backdrop                  | + child nitpicker | label: backdrop
     + service Gui | label: lock_screen               | + child nitpicker | label: lock_screen
     + service Gui                                    | + child nitpicker
@@ -607,28 +582,22 @@ config | prio_levels: 2
     + service Report | label_suffix: -> shape        | + child pointer
     + service Report | label: inspect -> clipboard   | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
     + service Report | label: editor -> clipboard    | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
-    + service ROM | label: inspect -> clipboard      | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
-    + service ROM | label: editor -> clipboard       | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
+    + service ROM    | label: inspect -> clipboard   | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
+    + service ROM    | label: editor -> clipboard    | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
     + service Report | label_suffix: -> clipboard    | + child clipboard
-    + service ROM | label_suffix: -> clipboard       | + child clipboard
-    + service Report | label_prefix: leitzentrale -> | + child leitzentrale
-    + service ROM | label_prefix: leitzentrale ->    | + child leitzentrale
-    + service File_system
-              label_prefix: leitzentrale -> fonts -> | + child leitzentrale | identity: fonts
+    + service ROM    | label_suffix: -> clipboard    | + child clipboard
     + service Report                                 | + child fs_report
     + service LOG | label: unlogged                  | + parent
     } [log_route] {
     } [driver_routes] {
-    + service Event | label: leitzentrale   | + child leitzentrale
-    + service Event                         | + child event_filter
-    + service Capture | label: leitzentrale | + child leitzentrale
-    + service Capture                       | + child nitpicker
-    + service Pin_state                     | + child drivers
-    + service Pin_control                   | + child drivers
-    + service Terminal                      | + child terminal_monitor
-    + service TRACE | label: runtime        | + parent | label: runtime ->
-    + service TRACE | label: global         | + parent | label:
-    + any-service                           | + parent
+    + service Event                  | + child event_filter
+    + service Capture                | + child nitpicker
+    + service Pin_state              | + child drivers
+    + service Pin_control            | + child drivers
+    + service Terminal               | + child terminal_monitor
+    + service TRACE | label: runtime | + parent | label: runtime ->
+    + service TRACE | label: global  | + parent | label:
+    + any-service                    | + parent
 -
 }
 

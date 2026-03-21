@@ -23,14 +23,14 @@ config
     + service Report
     + service ROM
   + config | verbose: no
-    + policy | label: decorator -> window_layout             | report: manager -> window_layout
-    + policy | label: wm -> resize_request                   | report: manager -> resize_request
-    + policy | label: wm -> focus                            | report: manager -> wm_focus
-    + policy | label: decorator -> pointer                   | report: wm -> pointer
-    + policy | label: manager -> window_list                 | report: wm -> window_list
-    + policy | label: manager -> decorator_margins           | report: decorator -> decorator_margins
-    + policy | label: runtime -> leitzentrale -> main_dialog | report: manager -> main_dialog
-    + policy | label: manager -> menu_hover                  | report: runtime -> leitzentrale -> runtime_view -> hover
+    + policy | label: decorator -> window_layout   | report: manager -> window_layout
+    + policy | label: wm -> resize_request         | report: manager -> resize_request
+    + policy | label: wm -> focus                  | report: manager -> wm_focus
+    + policy | label: decorator -> pointer         | report: wm -> pointer
+    + policy | label: manager -> window_list       | report: wm -> window_list
+    + policy | label: manager -> decorator_margins | report: decorator -> decorator_margins
+    + policy | label: runtime_view -> main         | report: manager -> main_dialog
+    + policy | label: manager -> menu_hover        | report: runtime_view -> hover
 
 + start wm | caps: 300 | ram: 4M
   + provides
@@ -62,10 +62,10 @@ config
   |   | + rom default.png
   |   + dir dev
   |     + log
-  | + policy | label: log                                       | decoration: yes | motion: 20
-  | + policy | label: runtime -> leitzentrale -> main_view      | decoration: no  | motion: 0
-  | + policy | label: runtime -> leitzentrale -> touch_keyboard | decoration: no  | motion: 20
-  | + policy | label_prefix: logo                               | decoration: no
+  | + policy | label: log                  | decoration: yes | motion: 20
+  | + policy | label: runtime_view -> main | decoration: no  | motion: 0
+  | + policy | label: touch_keyboard       | decoration: no  | motion: 20
+  | + policy | label_prefix: logo          | decoration: no
   | + default-policy
   + route
     + service ROM    | label: default.png       | + parent | label: drop_shadow.png

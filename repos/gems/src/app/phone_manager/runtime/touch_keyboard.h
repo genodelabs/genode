@@ -64,12 +64,12 @@ void Sculpt::gen_touch_keyboard(Generator &g, Touch_keyboard_attr const attr)
 			connect_parent_rom(g, "menu_view_styles.tar");
 
 			gen_named_node(g, "fs", "fonts", [&] {
-				g.node("parent", [&] {
-					g.attribute("identity", "leitzentrale -> fonts"); }); });
+				gen_named_node(g, "child", "leitzentrale", [&] {
+					g.attribute("identity", "fonts"); }); });
 
 			g.node("gui", [&] {
-				g.node("parent", [&] {
-					g.attribute("label", "leitzentrale -> touch_keyboard"); }); });
+				gen_named_node(g, "child", "leitzentrale", [&] {
+					g.attribute("label", "touch_keyboard"); }); });
 
 			connect_event(g, "global");
 		});

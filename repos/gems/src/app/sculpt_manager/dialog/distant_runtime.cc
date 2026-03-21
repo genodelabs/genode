@@ -187,12 +187,12 @@ void Distant_runtime::gen_child_nodes(Generator &g) const
 				view._gen_view_connections(g); });
 
 			gen_named_node(g, "report", "hover", [&] {
-				g.node("parent", [&] {
-					g.attribute("label", "leitzentrale -> runtime_view -> hover"); }); });
+				g.node("child", [&] {
+					g.attribute("name", "leitzentrale"); }); });
 
 			gen_named_node(g, "fs", "fonts", [&] {
-				g.node("parent", [&] {
-					g.attribute("identity", "leitzentrale -> fonts"); }); });
+				g.node("child", [&] {
+					g.attribute("name", "leitzentrale"); }); });
 		});
 	});
 }
@@ -214,13 +214,11 @@ void Distant_runtime::View::_gen_menu_view_dialog(Generator &g) const
 
 void Distant_runtime::View::_gen_view_connections(Generator &g) const
 {
-	Session_label::String const label { "leitzentrale -> ", name, "_dialog" };
+	Session_label::String const label { name, "_dialog" };
 
 	gen_named_node(g, "rom", name, [&] {
-		g.node("parent", [&] {
-			g.attribute("label", label); }); });
+		g.node("child", [&] { g.attribute("name", "leitzentrale"); }); });
 
 	gen_named_node(g, "gui", name, [&] {
-		g.node("parent", [&] {
-			g.attribute("label", label); }); });
+		g.node("child", [&] { g.attribute("name", "leitzentrale"); }); });
 }

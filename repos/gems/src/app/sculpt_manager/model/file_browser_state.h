@@ -103,8 +103,7 @@ struct Sculpt::File_browser_state : Noncopyable
 							g.attribute("identity", "report"); });
 					}
 					else {
-						g.node("child", [&] {
-							g.attribute("name", browsed_fs); });
+						gen_named_node(g, "child", browsed_fs);
 					}
 				});
 			});
@@ -157,13 +156,11 @@ struct Sculpt::File_browser_state : Noncopyable
 
 				connect_parent_rom(g, "clipboard");
 				g.node("gui", [&] {
-					g.node("parent", [&] {
-						g.attribute("label", "leitzentrale -> editor"); }); });
+					gen_named_node(g, "child", "leitzentrale", [&] {
+						g.attribute("label", "editor"); }); });
 
-				g.node("fs", [&] {
-					g.attribute("name", "fonts");
-					g.node("parent", [&] {
-						g.attribute("identity", "leitzentrale -> fonts"); }); });
+				gen_named_node(g, "fs", "fonts", [&] {
+					gen_named_node(g, "child", "leitzentrale"); });
 
 				g.node("fs", [&] {
 					if (browsed_fs == "config") {
@@ -175,8 +172,7 @@ struct Sculpt::File_browser_state : Noncopyable
 							g.attribute("identity", "report"); });
 					}
 					else {
-						g.node("child", [&] {
-							g.attribute("name", browsed_fs); });
+						gen_named_node(g, "child", browsed_fs);
 					}
 				});
 			});

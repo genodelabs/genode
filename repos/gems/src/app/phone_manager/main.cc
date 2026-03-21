@@ -2092,8 +2092,8 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 	Decorator_margins const margins { decorator_margins };
 
 	using Label = String<128>;
-	Label const main_view_label     ("runtime -> leitzentrale -> main_dialog");
-	Label const touch_keyboard_label("runtime -> leitzentrale -> touch_keyboard");
+	Label const main_view_label     ("runtime_view -> main");
+	Label const touch_keyboard_label("touch_keyboard");
 
 	/*
 	 * Take presence of main view as trigger for second driver stage.

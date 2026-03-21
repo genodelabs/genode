@@ -779,7 +779,7 @@ struct Sculpt::Main : Input_event_handler,
 		using Label = String<128>;
 
 		Label label  { node.attribute_value("label", Label()) };
-		Label suffix { "popup_dialog" };
+		Label suffix { "popup" };
 
 		if (label.length() >= suffix.length()) {
 			size_t const offset = label.length() - suffix.length();
@@ -1980,17 +1980,17 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 
 	using Label = String<128>;
 	Label const
-		inspect_label          ("runtime -> leitzentrale -> inspect"),
-		runtime_view_label     ("runtime -> leitzentrale -> runtime_dialog"),
-		panel_view_label       ("runtime -> leitzentrale -> panel_dialog"),
-		diag_view_label        ("runtime -> leitzentrale -> diag_dialog"),
-		popup_view_label       ("runtime -> leitzentrale -> popup_dialog"),
-		system_view_label      ("runtime -> leitzentrale -> system_dialog"),
-		settings_view_label    ("runtime -> leitzentrale -> settings_dialog"),
-		network_view_label     ("runtime -> leitzentrale -> network_dialog"),
-		file_browser_view_label("runtime -> leitzentrale -> file_browser_dialog"),
-		editor_view_label      ("runtime -> leitzentrale -> editor"),
-		logo_label             ("logo");
+		logo_label             ("logo"),
+		inspect_label          ("inspect"),
+		editor_label           ("editor"),
+		runtime_view_label     ("runtime_view -> runtime"),
+		panel_view_label       ("runtime_view -> panel"),
+		diag_view_label        ("runtime_view -> diag"),
+		popup_view_label       ("runtime_view -> popup"),
+		system_view_label      ("runtime_view -> system"),
+		settings_view_label    ("runtime_view -> settings"),
+		network_view_label     ("runtime_view -> network"),
+		file_browser_view_label("runtime_view -> file_browser");
 
 	auto win_size = [&] (Node const &win) { return Area::from_node(win); };
 
@@ -2125,7 +2125,7 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 			}
 		});
 
-		_with_window(window_list, editor_view_label, [&] (Node const &win) {
+		_with_window(window_list, editor_label, [&] (Node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::FILES) {
 				Area  const size = constrained_win_size(win);
 				Point const pos  = Rect::compound(inspect_p1 + Point(400, 0), inspect_p2).center(size);
@@ -2233,7 +2233,7 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 					g.node("window", [&] {
 						g.attribute("id", win.attribute_value("id", 0UL)); });
 
-				if (label == editor_view_label && _selected_tab == Panel_dialog::Tab::FILES)
+				if (label == editor_label && _selected_tab == Panel_dialog::Tab::FILES)
 					g.node("window", [&] {
 						g.attribute("id", win.attribute_value("id", 0UL)); });
 			});
