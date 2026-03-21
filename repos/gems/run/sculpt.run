@@ -125,7 +125,26 @@ proc single_ingredient { type default } {
 
 
 proc ingredient_path { type ingredient } {
-	return [select_from_repositories [file join sculpt $type $ingredient]] }
+
+	set rep_rel_path [file join sculpt $type $ingredient]
+
+	lappend paths {*}[gather_from_repositories "$rep_rel_path-[board]"] \
+	              {*}[gather_from_repositories "$rep_rel_path"]
+
+	if {[llength $paths] == 0} {
+		puts stderr "Error: $rep_rel_path not present in any repository"
+		exit -9
+	}
+	if {[llength $paths] > 1} {
+		puts "multiple candidates for '$rep_rel_path'"
+		set prefix "using ->"
+		foreach path $paths {
+			puts "$prefix $path"
+			regsub -all {.} $prefix " " prefix
+		}
+	}
+	return [lindex $paths 0]
+}
 
 proc initial_config_dir { } {
 	return [file join [run_dir] initial_config] }
