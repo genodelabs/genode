@@ -873,6 +873,21 @@ proc repository_contains { rep_rel_path } {
 
 
 ##
+# Return list of paths matching 'rep_rel_path' found in the repositories
+#
+proc gather_from_repositories { rep_rel_path } {
+
+	global repositories;
+
+	set result {}
+	foreach rep $repositories {
+		set path [file join $rep $rep_rel_path]
+		if {[file exists $path]} { lappend result $path } }
+	return $result
+}
+
+
+##
 # Return path to first file found in the available repositories
 #
 proc select_from_repositories { rep_rel_path } {
