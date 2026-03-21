@@ -1,5 +1,6 @@
 deploy | info: webcam example
 
++ option sculpt
 + option managed
 
 + child internal | ram: 64M | pkg: usb_webcam

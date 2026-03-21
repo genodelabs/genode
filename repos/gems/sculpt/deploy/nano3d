@@ -1,5 +1,6 @@
 deploy | info: software-rendering example
 
++ option sculpt
 + option managed
 
 + child backdrop | pkg: sticks_blue_backdrop
