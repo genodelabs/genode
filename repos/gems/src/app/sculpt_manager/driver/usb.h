@@ -124,7 +124,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 		child_node(_hcd, [&] {
 			g.node("provides", [&] { g.node("usb"); });
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
+				connect_platform(g, "usb");
 				connect_report(g);
 				connect_config_rom(g, "config", "usb");
 				connect_parent_rom(g, "dtb",    "usb.dtb");

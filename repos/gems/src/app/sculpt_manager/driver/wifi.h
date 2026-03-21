@@ -58,9 +58,7 @@ struct Sculpt::Wifi_driver : private Noncopyable
 			});
 
 			g.tabular_node("connect", [&] {
-				g.node("platform", [&] {
-					g.node("parent", [&] {
-						g.attribute("label", "wifi"); }); });
+				connect_platform(g, "wifi");
 				g.node("uplink", [&] {
 					g.node("child", [&] {
 						g.attribute("name", "nic_router");

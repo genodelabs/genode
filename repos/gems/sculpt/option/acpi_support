@@ -3,8 +3,8 @@ option
   + connect
     + io_mem            | + parent
     + io_port           | + parent
-    + platform          | + parent | label: acpica
-    + rom platform_info | + parent | label: platform_info
-    + rom system        | + parent | label: config -> system
+    + platform          | + child platform | label: acpica
+    + rom platform_info | + parent         | label: platform_info
+    + rom system        | + parent         | label: config -> system
     + report            | + parent
 -

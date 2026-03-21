@@ -2,10 +2,8 @@ config
 + output
   + merge
     + touch-key
-    | + input drivers
-    | + tap | xpos: 0 | ypos: 400 | width: 25 | height: 600 | key: KEY_DASHBOARD
-    + input runtime
+      + input runtime
+      + tap | xpos: 0 | ypos: 400 | width: 25 | height: 600 | key: KEY_DASHBOARD
 
-+ policy | label_prefix: drivers ->  | input: drivers
-+ policy | label_prefix: runtime ->  | input: runtime
++ default-policy | input: runtime
 -

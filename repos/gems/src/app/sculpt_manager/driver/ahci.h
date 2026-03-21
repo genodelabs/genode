@@ -54,7 +54,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 						g.attribute("writeable", "yes"); });
 			});
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
+				connect_platform(g, "ahci");
 				connect_config_rom(g, "system",   "system");
 				connect_report(g);
 			});

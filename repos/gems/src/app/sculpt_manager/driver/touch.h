@@ -30,10 +30,13 @@ struct Sculpt::Touch_driver : private Noncopyable
 			_soc->gen_child_node_content(g);
 			g.node("config", [&] { });
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
+				connect_platform(g, "touch");
 				connect_parent_rom(g, "dtb", "touch.dtb");
-				connect_pin_control(g);
-				g.node("irq", [&] { g.node("parent"); });
+				connect_pin_control(g, "PH4",  "touch-int");   /* pinephone */
+				connect_pin_control(g, "PH11", "touch-reset"); /* pinephone */
+				g.node("irq", [&] {                            /* pinephone */
+					gen_named_node(g, "child", "platform", [&] {
+						g.attribute("label", "touch-int"); }); });
 				connect_event(g, "touch");
 			});
 		});

@@ -56,7 +56,7 @@ struct Sculpt::Mmc_driver : private Noncopyable
 				}
 			});
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
+				connect_platform(g, "mmc");
 				connect_parent_rom(g, "dtb", "mmc.dtb");
 				connect_config_rom(g, "system", "system");
 				connect_report(g);

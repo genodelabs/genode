@@ -30,9 +30,7 @@ struct Sculpt::Nic_driver : private Noncopyable
 			_nic->gen_child_node_content(g);
 			g.node("config", [&] { });
 			g.tabular_node("connect", [&] {
-				g.node("platform", [&] {
-					g.node("parent", [&] {
-						g.attribute("label", "nic"); }); });
+				connect_platform(g, "nic");
 				g.node("uplink", [&] {
 					g.node("child", [&] {
 						g.attribute("name", "nic_router"); }); });

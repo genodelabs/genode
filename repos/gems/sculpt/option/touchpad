@@ -7,6 +7,6 @@ option
   x config | gpio_pin: 3   | bus_addr: 44 | hid_addr: 32 | info: Framework Gen12/Gen13
   + heartbeat | restart_after_skipped: 4
   + connect
-    + platform | + parent | label: touchpad
+    + platform | + child platform | label: touchpad
     + event    | + parent | label: touchpad
 -

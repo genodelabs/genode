@@ -215,9 +215,11 @@ namespace Sculpt {
 		g.node("report", [&] { g.node("parent", [&] { }); });
 	}
 
-	static inline void connect_platform(Generator &g)
+	static inline void connect_platform(Generator &g, auto const &label)
 	{
-		g.node("platform", [&] { g.node("parent", [&] { }); });
+		g.node("platform", [&] {
+			gen_named_node(g, "child", "platform", [&] {
+				g.attribute("label", label); }); });
 	}
 
 	static inline void connect_event(Generator &g, auto const &label)
@@ -231,14 +233,16 @@ namespace Sculpt {
 		g.node("capture", [&] { g.node("parent"); });
 	}
 
-	static inline void connect_pin_control(Generator &g)
+	static inline void connect_pin_control(Generator &g, auto const &name, auto const &label)
 	{
-		g.node("pin_control", [&] { g.node("parent"); });
+		gen_named_node(g, "pin_control", name, [&] {
+			gen_named_node(g, "child", "platform", [&] {
+				g.attribute("label", label); }); });
 	}
 
 	static inline void connect_i2c(Generator &g)
 	{
-		g.node("i2c", [&] { g.node("parent"); });
+		g.node("i2c", [&] { gen_named_node(g, "child", "platform"); });
 	}
 
 	static inline void connect_config_fs(Generator &g)
@@ -252,6 +256,14 @@ namespace Sculpt {
 		gen_named_node(g, "rom", name, [&] {
 			g.node("parent", [&] {
 				Session_label const label { "config -> ", config_rom };
+				g.attribute("label", label); }); });
+	}
+
+	static inline void connect_report_rom(Generator &g, Rom_name const &name, Rom_name const &report_rom)
+	{
+		gen_named_node(g, "rom", name, [&] {
+			g.node("parent", [&] {
+				Session_label const label { "report -> ", report_rom };
 				g.attribute("label", label); }); });
 	}
 

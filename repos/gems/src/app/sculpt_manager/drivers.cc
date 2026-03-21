@@ -59,7 +59,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		Attached_rom_dataspace const _platform { _env, "platform_info" };
 
 		Rom_handler<Instance> _devices {
-			_env, "report -> drivers/devices", *this, &Instance::_handle_devices };
+			_env, "report -> runtime/platform/devices", *this, &Instance::_handle_devices };
 
 		void _handle_devices(Node const &devices)
 		{

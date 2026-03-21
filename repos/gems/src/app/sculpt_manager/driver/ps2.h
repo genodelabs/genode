@@ -36,7 +36,7 @@ struct Sculpt::Ps2_driver : private Noncopyable
 			});
 
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
+				connect_platform(g, "ps2");
 				connect_parent_rom(g, "capslock");
 				connect_parent_rom(g, "numlock");
 				connect_config_rom(g, "system", "system");

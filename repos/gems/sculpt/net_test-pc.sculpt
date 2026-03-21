@@ -1,5 +1,5 @@
 # configuration decisions
-drivers: pc
+platform: pc
 ram_fs: depot
 
 # selection of option-menu entries

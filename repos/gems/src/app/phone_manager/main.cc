@@ -1685,7 +1685,7 @@ struct Sculpt::Main : Input_event_handler,
 	 **********************/
 
 	Rom_handler<Main> _power_rom {
-		_env, "report -> drivers/power", *this, &Main::_handle_power };
+		_env, "report -> platform/power", *this, &Main::_handle_power };
 
 	bool _update_soc_feature_selection()
 	{
@@ -1825,7 +1825,7 @@ struct Sculpt::Main : Input_event_handler,
 	Modem_config _curr_modem_config { };
 
 	Rom_handler<Main> _modem_state_rom {
-		_env, "report -> drivers/modem/state", *this, &Main::_handle_modem_state };
+		_env, "report -> runtime/modem/state", *this, &Main::_handle_modem_state };
 
 	void _handle_modem_state(Node const &modem_state)
 	{

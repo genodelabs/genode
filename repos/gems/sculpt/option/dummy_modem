@@ -1,0 +1,6 @@
+option
++ child modem | binary: dummy_modem | caps: 120 | ram: 1M
+  + connect
+    + rom config | + parent | label: config -> modem
+    + report     | + parent | label: modem -> state
+-

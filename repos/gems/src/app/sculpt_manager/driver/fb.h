@@ -72,7 +72,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				g.node("platform");
 			});
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
+				connect_platform(g, "intel_gpu");
 				connect_config_rom(g, "config", "gpu");
 				connect_config_rom(g, "system", "system");
 				g.node("rm", [&] { g.node("parent"); });
@@ -86,14 +86,14 @@ struct Sculpt::Fb_driver : private Noncopyable
 				connect_capture(g);
 				connect_report(g);
 				connect_config_rom(g, "config", "fb");
-				connect_parent_rom(g, "intel_opregion", "report -> drivers/intel_opregion");
+				connect_report_rom(g, "intel_opregion", "runtime/platform/intel_opregion");
 				g.node("rm", [&] { g.node("parent"); });
 			});
 		});
 
 		child_node(_vesa_fb, [&] {
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
+				connect_platform(g, "vesa_fb");
 				connect_capture(g);
 				connect_report(g);
 				connect_config_rom(g, "config", "fb");
@@ -114,8 +114,9 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 		child_node(_soc_fb, [&] {
 			g.tabular_node("connect", [&] {
-				connect_platform(g);
-				connect_pin_control(g);
+				connect_platform(g, "fb");
+				connect_pin_control(g, "PH10", "backlight"); /* pinephone */
+				connect_pin_control(g, "PD23", "lcd-reset"); /* pinephone */
 				connect_i2c(g);
 				connect_capture(g);
 				connect_report(g);

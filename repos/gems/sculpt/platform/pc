@@ -1,4 +1,4 @@
-config
+config | verbose: yes
 + parent-provides
   + service ROM
   + service IRQ
@@ -91,27 +91,27 @@ config
     + service Timer                     | + parent
   + config
     + report | devices: yes | iommu: yes
-    + policy | label_prefix: runtime -> ps2
+    + policy | label: ps2
     | + device ps2
-    + policy | label_prefix: runtime -> vesa_fb   | info: yes
+    + policy | label: vesa_fb   | info: yes
     | + pci | class: VGA
-    + policy | label_prefix: runtime -> ahci
+    + policy | label: ahci
     | + pci | class: AHCI
-    + policy | label_prefix: runtime -> nvme      | info: yes
+    + policy | label: nvme      | info: yes
     | + pci | class: NVME
-    + policy | label_prefix: runtime -> usb       | info: yes
+    + policy | label: usb       | info: yes
     | + pci | class: USB
-    + policy | label_prefix: runtime -> intel_gpu | info: yes
+    + policy | label: intel_gpu | info: yes
     | + pci | class: VGA
     | + pci | class: ISABRIDGE
-    + policy | label: runtime -> touchpad         | info: yes
+    + policy | label: touchpad  | info: yes
     | + device 00:15.3 | type: pci
     | + device INT34C5 | type: acpi
-    + policy | label_suffix: -> wifi              | info: yes | msix: no
+    + policy | label: wifi      | info: yes | msix: no
     | + pci | class: WIFI
-    + policy | label_suffix: -> nic               | info: yes
+    + policy | label: nic       | info: yes
     | + pci | class: ETHERNET
-    + policy | label_suffix: -> audio             | info: yes
+    + policy | label: audio     | info: yes
     | + pci | class: AUDIO
     | + pci | class: HDAUDIO
     + policy | label: acpica
