@@ -6,8 +6,8 @@ option
     + fs target        | + child default_fs_rw
     + fs config        | + parent | identity: config
     + fs report        | + parent | identity: report
-    + report clipboard | + parent | label: clipboard
-    + rom    clipboard | + parent | label: clipboard
+    + report clipboard | + child wm
+    + rom    clipboard | + child wm
     + rom    vimrc     | + parent | label: config -> vimrc
     + rm               | + parent
 -

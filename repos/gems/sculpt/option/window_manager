@@ -19,9 +19,9 @@ option
 
 + child wm | priority: -2 | pkg: wm
   + connect
-    + gui focus                      | + parent | label: focus
-    + gui                            | + parent
-    + report | label_last: shape     | + parent
-    + report | label_last: clipboard | + parent
-    + rom    | label_last: clipboard | + parent
+    + gui focus                      | + child gui | label: focus
+    + gui                            | + child gui
+    + report | label_last: shape     | + child pointer
+    + report | label_last: clipboard | + child clipboard
+    + rom    | label_last: clipboard | + child clipboard
 -

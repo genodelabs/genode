@@ -16,6 +16,6 @@ option
   | + image | png: genode_logo.png | alpha: 150 | anchor: bottom_right
   |                                             | xpos: -20 | ypos: -20
   + connect
-    + gui | + parent | label: backdrop
+    + gui | + child gui | label: backdrop
 -
 

@@ -2,15 +2,12 @@ config
 + bool leitzentrale | initial: yes
 + bool capslock     | initial: no
 + bool numlock      | initial: no
-+ bool slides       | initial: no
 
-+ press KEY_PRESENTATION | bool: slides       | change: toggle
-+ press KEY_DASHBOARD    | bool: leitzentrale | change: toggle
-+ press KEY_CAPSLOCK     | bool: capslock     | change: toggle
-+ press KEY_NUMLOCK      | bool: numlock      | change: toggle
++ press KEY_DASHBOARD | bool: leitzentrale | change: toggle
++ press KEY_CAPSLOCK  | bool: capslock     | change: toggle
++ press KEY_NUMLOCK   | bool: numlock      | change: toggle
 
 + report leitzentrale | + bool leitzentrale
 + report capslock     | + bool capslock
 + report numlock      | + bool numlock
-+ report slides       | + bool slides
 -

@@ -152,9 +152,14 @@ struct Sculpt::File_browser_state : Noncopyable
 				connect_parent_rom(g, "menu_view");
 				connect_parent_rom(g, "menu_view_styles.tar");
 
+				gen_named_node(g, "report", "clipboard", [&] {
+					gen_named_node(g, "child", "clipboard"); });
+
 				connect_report(g);
 
-				connect_parent_rom(g, "clipboard");
+				gen_named_node(g, "rom", "clipboard", [&] {
+					gen_named_node(g, "child", "clipboard"); });
+
 				g.node("gui", [&] {
 					gen_named_node(g, "child", "leitzentrale", [&] {
 						g.attribute("label", "editor"); }); });

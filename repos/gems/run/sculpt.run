@@ -326,29 +326,6 @@ config | prio_levels: 2
     + policy | label: runtime -> query                | report: deploy -> query
     + policy | label: report_fs -> init               | report: deploy -> runtime
     + policy | label: runtime -> runtime_init_config  | report: deploy -> runtime
-    + policy | label: runtime -> leitzentrale_enabled | report: global_keys_handler -> leitzentrale
-    + policy | label: pointer -> hover                | report: nitpicker -> hover
-    + policy | label: pointer -> xray                 | report: global_keys_handler -> leitzentrale
-    + policy | label: pointer -> shape                | report: shape
-    + policy | label: clipboard -> focus              | report: nitpicker -> focus
-    + policy | label: runtime -> capslock             | report: global_keys_handler -> capslock
-    + policy | label: runtime -> numlock              | report: global_keys_handler -> numlock
-    + policy | label: numlock_remap_rom -> numlock    | report: global_keys_handler -> numlock
-    + policy | label: event_filter -> capslock        | report: global_keys_handler -> capslock
-    + policy | label: runtime -> clicked              | report: nitpicker -> clicked
-    + policy | label: runtime -> nitpicker_focus      | report: nitpicker -> focus
-    + policy | label: runtime -> nitpicker_hover      | report: nitpicker -> hover
-    + policy | label: nit_focus -> leitzentrale       | report: global_keys_handler -> leitzentrale
-    + policy | label: nit_focus -> slides             | report: global_keys_handler -> slides
-    + policy | label: nit_focus -> hover              | report: nitpicker -> hover
-    + policy | label: slides_gui_fb_config -> slides  | report: global_keys_handler -> slides
-
-+ start report_logger | priority: -1
-  + binary report_rom
-  + provides
-    + service Report
-    + service ROM
-  + config | verbose: yes
 
 + start config_fs | caps: 200 | ram: 12M | priority: -1
   + binary vfs
@@ -431,109 +408,6 @@ config | prio_levels: 2
     + service File_system | + child report_fs
     + any-service         | + parent
 
-+ start nitpicker | caps: 1000 | ram: 18M | priority: -1
-  + affinity | xpos: 1 | width: 1 | . decouple nitpicker from boot CPU
-  + provides
-    + service Gui
-    + service Capture
-    + service Event
-  + route
-    + service ROM | label: config      | + child config_fs_rom | label: nitpicker
-    + service ROM | label: focus       | + child nit_focus
-    + service Report | label: panorama | + child fs_report
-    + service Report | label: keystate | + child report_logger
-    + service Report                   | + child report_rom
-    + service Timer                    | + child timer
-    + any-service                      | + parent
-
-+ start numlock_remap_rom | priority: -1
-  .
-  . toggle key mappings depending on the numlock state
-  .
-  + binary rom_filter
-  + provides | + service ROM
-  + route
-    + service ROM | label: config  | + child config_fs_rom | label: numlock_remap
-    + service ROM | label: numlock | + child report_rom
-    + any-service                  | + parent
-
-+ start event_filter | caps: 120 | ram: 2M | priority: -1
-  + provides | + service Event
-  + route
-    + service ROM | label: config           | + child config_fs_rom | label: event_filter
-    + service ROM | label_prefix: keyboard/ | + child config_fs_rom
-    + service ROM | label: numlock.remap    | + child numlock_remap_rom
-    + service ROM | label: capslock         | + child report_rom
-    + service ROM                           | + parent
-    + service PD                            | + parent
-    + service CPU                           | + parent
-    + service LOG                           | + parent
-    + service Timer                         | + child timer
-    + service Event                         | + child nitpicker
-
-+ start nit_focus | priority: -1
-  .
-  . override user focus when leitzentrale is active
-  .
-  + binary rom_filter
-  + provides | + service ROM
-  + config
-  | + input lockscreen_enabled   | rom: hover        | node: hover        | + attribute label
-  | + input leitzentrale_enabled | rom: leitzentrale | node: leitzentrale | + attribute enabled
-  | + input slides_enabled       | rom: slides       | node: slides       | + attribute enabled
-  | + output | node: focus
-  |   + if
-  |     + has_value | input: lockscreen_enabled | value: lock_screen
-  |     + then
-  |     | + attribute label | value: lock_screen
-  |     + else
-  |       + if
-  |         + has_value | input: leitzentrale_enabled | value: yes
-  |         + then
-  |         | + attribute label | value: runtime -> leitzentrale -> manager -> fader ->
-  |         + else
-  |           + if
-  |             + has_value | input: slides_enabled | value: yes
-  |             + then
-  |             | + attribute label | value: slides
-  |             + else
-  |               + attribute label | value: runtime -> focus
-  + route
-    + service ROM | label: hover        | + child report_rom
-    + service ROM | label: leitzentrale | + child report_rom
-    + service ROM | label: slides       | + child report_rom
-    + any-service                       | + parent
-
-+ start pointer | ram: 2M | priority: -1
-  + provides | + service Report
-  + config | shapes: yes
-  + route
-    + service Gui                | + child nitpicker
-    + service ROM | label: hover | + child report_rom
-    + service ROM | label: xray  | + child report_rom
-    + any-service
-      + parent
-      + any-child
-
-+ start global_keys_handler | priority: -1
-  + route
-    + service Report              | + child report_rom
-    + service Gui                 | + child nitpicker
-    + service Timer               | + child timer
-    + service ROM | label: config | + child config_fs_rom | label: global_keys
-    + any-service                 | + parent
-
-+ start clipboard | ram: 2M | priority: -1
-  + provides
-    + service ROM
-    + service Report
-  + route
-    + service ROM | label: config | + child config_fs_rom | label: clipboard
-    + service ROM | label: focus  | + child report_rom
-    + any-service
-      + parent
-      + any-child
-
 + start terminal_monitor | ram: 2M | priority: -1
   + binary terminal_crosslink
   + provides | + service Terminal
@@ -557,32 +431,14 @@ config | prio_levels: 2
     + service Report | label: blueprint              | + child report_rom
     + service ROM | label_prefix: config ->          | + child config_fs_rom
     + service ROM | label_prefix: report ->          | + child report_fs_rom
-    + service ROM | label: capslock                  | + child report_rom
-    + service ROM | label: numlock                   | + child report_rom
-    + service ROM | label: clicked                   | + child report_rom
-    + service ROM | label: leitzentrale_enabled      | + child report_rom
-    + service ROM | label: nitpicker_focus           | + child report_rom
-    + service ROM | label: nitpicker_hover           | + child report_rom
     + service ROM | label: runtime_init_config       | + child report_rom
     + service File_system | label_prefix: config ->  | + child config_fs | identity: rw
     + service File_system | label_prefix: report ->  | + child report_fs | identity: ro
-    + service Gui | label: backdrop                  | + child nitpicker | label: backdrop
-    + service Gui | label: lock_screen               | + child nitpicker | label: lock_screen
-    + service Gui                                    | + child nitpicker
     + service Timer                                  | + child timer
-    + service Report | label_suffix: -> shape        | + child pointer
-    + service Report | label: inspect -> clipboard   | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
-    + service Report | label: editor -> clipboard    | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
-    + service ROM    | label: inspect -> clipboard   | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
-    + service ROM    | label: editor -> clipboard    | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
-    + service Report | label_suffix: -> clipboard    | + child clipboard
-    + service ROM    | label_suffix: -> clipboard    | + child clipboard
     + service Report                                 | + child fs_report
     + service LOG | label: unlogged                  | + parent
     } [log_route] {
     } [driver_routes] {
-    + service Event                  | + child event_filter
-    + service Capture                | + child nitpicker
     + service Terminal               | + child terminal_monitor
     + service TRACE | label: runtime | + parent | label: runtime ->
     + service TRACE | label: global  | + parent | label:
@@ -630,8 +486,8 @@ if {[llength [ingredients_of_type presets]] > 0} {
 
 install_hid [initial_config_file runtime] w] {
 config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8 | depot_rom: depot_rom
-+ report | init_ram: yes | init_caps: yes | child_ram: yes | child_caps: yes
-         | requested: no | provided: no | delay_ms: 2000 | buffer: 1M
++ report  | init_ram: yes | init_caps: yes | child_ram: yes | child_caps: yes
+          | requested: no | provided: no | delay_ms: 2000 | buffer: 1M
 + heartbeat | rate_ms: 2000
 + static
   + parent-provides
@@ -644,13 +500,10 @@ config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8 | depot_rom: dep
     + service Timer
     + service Report
     + service File_system
-    + service Gui
     + service TRACE
     + service IO_MEM
     + service IO_PORT
     + service IRQ
-    + service Event
-    + service Capture
     + service Terminal
 + common_routes
   + service ROM | label_last: ld.lib.so | + parent
@@ -680,7 +533,7 @@ set required_configs {
 	wifi
 	event_filter
 	fonts
-	nitpicker
+	gui
 	deploy
 	fb
 	clipboard

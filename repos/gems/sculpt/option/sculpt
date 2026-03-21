@@ -1,4 +1,87 @@
 option
+
++ child gui | binary: nitpicker | caps: 1000 | ram: 18M | priority: -1
+  + affinity | xpos: 1 | width: 1 | . decouple nitpicker from boot CPU
+  + provides
+    + gui
+    + capture
+    + event
+  + connect
+    + rom config      | + parent | label: config -> gui
+    + rom focus       | + child gui_focus
+    + report keystate | + child report_logger
+    + report          | + parent
+
++ child report_logger | binary: report_rom | ram: 1M | caps: 100 | priority: -1
+  + provides
+    + report
+    + rom
+  + config | verbose: yes
+
++ child numlock_remap | binary: rom_filter | ram: 1M | caps: 100 | priority: -1
+  .
+  . toggle key mappings depending on the numlock state
+  .
+  + provides | + rom
+  + connect
+    + rom config  | + parent | label: config -> numlock_remap
+    + rom numlock | + parent | label: report -> runtime/global_keys/numlock
+
++ child event_filter | binary: event_filter | caps: 120 | ram: 2M | priority: -1
+  + provides | + event
+  + connect
+    + event                         | + child gui
+    + rom config                    | + parent | label: config -> event_filter
+    + rom numlock.remap             | + child numlock_remap
+    + rom capslock                  | + parent | label: report -> global_keys -> capslock
+    + rom | label_prefix: keyboard/ | + parent | identity: config
+
++ child gui_focus | binary: rom_filter | ram: 1M | caps: 100 | priority: -1
+  .
+  . override user focus when leitzentrale is active
+  .
+  + provides | + rom
+  + config
+  | + input lockscreen_enabled   | rom: hover        | node: hover        | + attribute label
+  | + input leitzentrale_enabled | rom: leitzentrale | node: leitzentrale | + attribute enabled
+  | + output | node: focus
+  |   + if
+  |     + has_value | input: lockscreen_enabled | value: lock_screen
+  |     + then
+  |     | + attribute label | value: lock_screen
+  |     + else
+  |       + if
+  |         + has_value | input: leitzentrale_enabled | value: yes
+  |         + then
+  |         | + attribute label | value: leitzentrale -> manager -> fader ->
+  |         + else
+  |           + attribute label | value: focus
+  + connect
+    + rom hover        | + parent | label: report -> runtime/gui/hover
+    + rom leitzentrale | + parent | label: report -> runtime/global_keys/leitzentrale
+
++ child pointer | binary: pointer | ram: 2M | caps: 100 | priority: -1
+  + provides | + report
+  + config | shapes: yes
+  + connect
+    + gui       | + child gui
+    + rom hover | + parent | label: report -> runtime/gui/hover
+    + rom xray  | + parent | label: report -> runtime/global_keys/xray
+
++ child global_keys | binary: global_keys_handler | ram: 1M | caps: 100 | priority: -1
+  + connect
+    + gui        | + child gui
+    + rom config | + parent | label: config -> global_keys
+    + report     | + parent
+
++ child clipboard | binary: clipboard | ram: 2M | caps: 100 | priority: -1
+  + provides
+    + rom
+    + report
+  + connect
+    + rom config | + parent | label: config -> clipboard
+    + rom focus  | + parent | label: report -> runtime/gui/focus
+
 + child leitzentrale | binary: init | caps: 2400 | ram: 203M | priority: -1
   + affinity | xpos: 1 | width: 1 | . decouple leitzentrale from boot CPU
   + provides
@@ -9,17 +92,17 @@ option
     + rom    | . view dialog ROMs
     + report | . view hover reports
   + connect
+    + gui                                      | + child gui
     + rom config                               | + parent | label: config -> leitzentrale
-    + rom nitpicker_focus                      | + parent | label: nitpicker_focus
-    + rom nitpicker_hover                      | + parent | label: nitpicker_hover
-    + rom leitzentrale_enabled                 | + parent | label: leitzentrale_enabled
+    + rom focus                                | + parent | label: report -> runtime/gui/focus
+    + rom hover                                | + parent | label: report -> runtime/gui/hover
+    + rom leitzentrale_enabled                 | + parent | label: report -> runtime/global_keys/leitzentrale
     + rom runtime_init_config                  | + parent | label: runtime_init_config
     + rom | label_prefix: report ->            | + parent | identity: report
     + rom | label_prefix: manager -> report -> | + parent | identity: report
     + rom | label_prefix: manager -> config -> | + parent | identity: config
     + rom | label_prefix: config ->            | + parent | identity: config
     + report                                   | + parent
-    + gui                                      | + parent
     + fs config                                | + parent | identity: config -> rw
     + fs report                                | + parent | identity: report -> ro
     + rom ld.lib.so                            | + parent

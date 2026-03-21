@@ -1753,12 +1753,12 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Display driver configuration **
 	 **********************************/
 
-	Managed_config<Main> _nitpicker_config {
-		_env, _heap, "config", "nitpicker", *this, &Main::_handle_nitpicker_config };
+	Managed_config<Main> _gui_config {
+		_env, _heap, "config", "gui", *this, &Main::_handle_gui_config };
 
-	void _handle_nitpicker_config(Node const &node)
+	void _handle_gui_config(Node const &node)
 	{
-		_nitpicker_config.generate([&] (Generator &g) {
+		_gui_config.generate([&] (Generator &g) {
 			node.for_each_attribute([&] (Node::Attribute const &a) {
 				if (a.name != "managed")
 					g.attribute(a.name.string(), a.value.start, a.value.num_bytes); });
@@ -1797,7 +1797,7 @@ struct Sculpt::Main : Input_event_handler,
 		Panorama_config const orig = _panorama_config;
 		_panorama_config = Panorama_config(_fb_config_model);
 		if (orig != Panorama_config(_fb_config_model))
-			_nitpicker_config.trigger_update();
+			_gui_config.trigger_update();
 	}
 
 	void _handle_fb_config(Node const &node)
@@ -1936,7 +1936,7 @@ struct Sculpt::Main : Input_event_handler,
 		_gui.input.sigh(_input_handler);
 		_gui.info_sigh(_gui_mode_handler);
 		_handle_gui_mode();
-		_nitpicker_config.trigger_update();
+		_gui_config.trigger_update();
 
 		/*
 		 * Generate initial configurations
@@ -2745,10 +2745,10 @@ void Sculpt::Main::_generate_event_filter_config(Generator &g)
 			g.attribute("input", input); }); };
 
 	g.tabular([&] {
-		gen_policy("runtime -> ps2",      "ps2");
-		gen_policy("runtime -> usb_hid",  "usb");
-		gen_policy("runtime -> touchpad", "touchpad");
-		gen_policy("drivers -> sdl",      "sdl");
+		gen_policy("ps2",      "ps2");
+		gen_policy("usb_hid",  "usb");
+		gen_policy("touchpad", "touchpad");
+		gen_policy("sdl",      "sdl");
 	});
 }
 

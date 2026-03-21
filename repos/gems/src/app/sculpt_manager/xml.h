@@ -225,12 +225,13 @@ namespace Sculpt {
 	static inline void connect_event(Generator &g, auto const &label)
 	{
 		g.node("event", [&] {
-			g.node("parent", [&] { g.attribute("label", label); }); });
+			gen_named_node(g, "child", "event_filter",
+				[&] { g.attribute("label", label); }); });
 	}
 
 	static inline void connect_capture(Generator &g)
 	{
-		g.node("capture", [&] { g.node("parent"); });
+		g.node("capture", [&] { gen_named_node(g, "child", "gui"); });
 	}
 
 	static inline void connect_pin_control(Generator &g, auto const &name, auto const &label)

@@ -188,8 +188,8 @@ config | prio_levels: 4
     + service ROM | label: runtime_init_config     | + parent | label: runtime_init_config
     + service ROM | label_prefix: report ->        | + parent
     + service ROM | label: config -> depot_version | + parent | label: config -> depot/version
-    + service ROM | label: nitpicker_focus         | + parent
-    + service ROM | label: nitpicker_hover         | + parent
+    + service ROM | label: nitpicker_focus         | + parent | label: focus
+    + service ROM | label: nitpicker_hover         | + parent | label: hover
     + service ROM | label: leitzentrale            | + parent | label: leitzentrale_enabled
     + service ROM | label: clicked                 | + child report_rom
     + service ROM | label: touch                   | + child report_rom

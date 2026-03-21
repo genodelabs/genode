@@ -140,8 +140,8 @@ struct Sculpt::Usb_driver : private Noncopyable
 				g.node("usb", [&] {
 					gen_named_node(g, "child", "usb"); });
 				connect_report(g);
-				connect_parent_rom(g, "capslock");
-				connect_parent_rom(g, "numlock");
+				connect_report_rom(g, "capslock", "global_keys/capslock");
+				connect_report_rom(g, "numlock",  "global_keys/numlock");
 				connect_event(g, "usb_hid");
 			});
 		});
