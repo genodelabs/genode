@@ -74,7 +74,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 	}
 
 	Managed_config<Usb_driver> _usb_config {
-		_env, _alloc, "config", "usb", *this, &Usb_driver::_handle_usb_config };
+		_env, _alloc, "config", "child/usb", *this, &Usb_driver::_handle_usb_config };
 
 	void _handle_usb_config(Node const &config)
 	{
@@ -126,7 +126,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			g.tabular_node("connect", [&] {
 				connect_platform(g, "usb");
 				connect_report(g);
-				connect_config_rom(g, "config", "usb");
+				connect_config_rom(g, "config", "child/usb");
 				connect_parent_rom(g, "dtb",    "usb.dtb");
 			});
 		});

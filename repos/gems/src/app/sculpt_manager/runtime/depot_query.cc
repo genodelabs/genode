@@ -29,7 +29,7 @@ void Sculpt::gen_depot_query_child_content(Generator &g)
 	g.tabular_node("connect", [&] {
 		connect_fs(g, "depot");
 		connect_parent_rom(g, "vfs.lib.so");
-		connect_config_rom(g, "query", "depot_query");
+		connect_config_rom(g, "query", "child/depot_query");
 		connect_report(g);
 	});
 }

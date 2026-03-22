@@ -247,7 +247,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Managed_config<Main> _event_filter_config {
-		_env, _heap, "config", "event_filter", *this, &Main::_handle_event_filter_config };
+		_env, _heap, "config", "child/event_filter", *this, &Main::_handle_event_filter_config };
 
 	void _generate_event_filter_config(Generator &);
 
@@ -582,7 +582,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Depot::Archive::User _index_user = _build_info.depot_user;
 
-	Expanding_reporter _depot_query_reporter { _env, "query", "depot_query"};
+	Expanding_reporter _depot_query_reporter { _env, "query", "child/depot_query"};
 
 	bool _system_dialog_watches_depot() const
 	{
@@ -714,7 +714,7 @@ struct Sculpt::Main : Input_event_handler,
 	Managed_config<Main> _deploy_config {
 		_env, _heap, "deploy", "deploy", *this, &Main::_handle_deploy_config };
 
-	Expanding_reporter _managed_option { _env, "option", "managed_option" };
+	Expanding_reporter _managed_option { _env, "option", "option/managed" };
 
 	void _handle_deploy_config(Node const &deploy)
 	{
@@ -1754,7 +1754,7 @@ struct Sculpt::Main : Input_event_handler,
 	 **********************************/
 
 	Managed_config<Main> _gui_config {
-		_env, _heap, "config", "gui", *this, &Main::_handle_gui_config };
+		_env, _heap, "config", "child/gui", *this, &Main::_handle_gui_config };
 
 	void _handle_gui_config(Node const &node)
 	{

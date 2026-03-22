@@ -30,7 +30,7 @@ void Sculpt::gen_nic_router_child_content(Generator &g)
 	});
 
 	g.tabular_node("connect", [&] {
-		connect_config_rom(g, "config", "nic_router");
+		connect_config_rom(g, "config", "child/nic_router");
 		connect_report(g);
 	});
 }

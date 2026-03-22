@@ -614,7 +614,7 @@ struct Sculpt::Main : Input_event_handler,
 	Managed_config<Main> _deploy_config {
 		_env, _heap, "deploy", "deploy", *this, &Main::_handle_deploy_config };
 
-	Expanding_reporter _managed_option { _env, "option", "managed_option" };
+	Expanding_reporter _managed_option { _env, "option", "option/managed" };
 
 	void _handle_deploy_config(Node const &deploy)
 	{

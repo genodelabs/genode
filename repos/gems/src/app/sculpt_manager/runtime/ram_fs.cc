@@ -21,7 +21,7 @@ void Sculpt::gen_ram_fs_child_content(Generator &g, Ram_fs_state const &state)
 
 	g.tabular_node("connect", [&] {
 		connect_parent_rom(g, "vfs.lib.so");
-		connect_config_rom(g, "config", "ram_fs");
+		connect_config_rom(g, "config", "child/ram_fs");
 		g.node("rom", [&] { g.node("parent"); });
 	});
 }

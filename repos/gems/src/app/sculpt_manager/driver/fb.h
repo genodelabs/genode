@@ -73,7 +73,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 			});
 			g.tabular_node("connect", [&] {
 				connect_platform(g, "intel_gpu");
-				connect_config_rom(g, "config", "gpu");
+				connect_config_rom(g, "config", "child/gpu");
 				connect_config_rom(g, "system", "system");
 				g.node("rm", [&] { g.node("parent"); });
 			});

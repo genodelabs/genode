@@ -250,7 +250,7 @@ struct Sculpt::Dir_query : Noncopyable
 			_state->_fs_query.gen_child_node_content(g);
 
 			g.tabular_node("connect", [&] {
-				connect_config_rom(g, "config", "dir_query");
+				connect_config_rom(g, "config", "child/dir_query");
 				connect_parent_rom(g, "vfs.lib.so");
 				connect_report(g);
 

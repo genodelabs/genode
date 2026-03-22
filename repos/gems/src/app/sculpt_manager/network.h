@@ -90,7 +90,7 @@ struct Sculpt::Network : Noncopyable
 	void _handle_nic_router_config(Node const &);
 
 	Managed_config<Network> _nic_router_config {
-		_env, _alloc, "config", "nic_router", *this, &Network::_handle_nic_router_config };
+		_env, _alloc, "config", "child/nic_router", *this, &Network::_handle_nic_router_config };
 
 	Wlan_config_policy _wlan_config_policy = Wlan_config_policy::MANAGED;
 
@@ -99,7 +99,7 @@ struct Sculpt::Network : Noncopyable
 		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy };
 
 	Managed_config<Network> _wlan_config {
-		_env, _alloc, "config", "wifi", *this, &Network::_handle_wlan_config };
+		_env, _alloc, "config", "child/wifi", *this, &Network::_handle_wlan_config };
 
 	void _handle_wlan_config(Node const &config)
 	{

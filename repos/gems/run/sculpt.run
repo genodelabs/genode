@@ -383,7 +383,7 @@ proc validate_hid { schema file } {
 #
 
 # directory structure
-foreach subdir { option depot keyboard } {
+foreach subdir { option depot keyboard child } {
 	file mkdir [file join [initial_config_dir] $subdir] }
 
 if {[llength [ingredients_of_type presets]] > 0} {
@@ -420,7 +420,50 @@ config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8 | depot_rom: dep
 -
 }
 
-# configs that are managed by the sculpt manager if absent
+# configs that are expected to be always present
+set required_global_configs {
+	fonts
+	deploy
+	system
+	manager
+	fb
+}
+
+foreach config $required_global_configs {
+	set ingredient [single_ingredient $config "default"]
+	set from [ingredient_path $config $ingredient]
+	set to   [initial_config_file $config]
+	check_syntax $from
+	copy_config $from $to
+}
+
+set required_child_configs {
+	wifi
+	event_filter
+	gui
+	clipboard
+	numlock_remap
+	global_keys
+	leitzentrale
+	usb
+	ram_fs
+	report
+}
+
+foreach config $required_child_configs {
+	set ingredient [single_ingredient $config "default"]
+	set from [ingredient_path $config $ingredient]
+	set to   [initial_config_file [file join "child" $config]]
+	check_syntax $from
+	copy_config $from $to
+}
+
+set from [ingredient_path platform [board]]
+set to   [initial_config_file [file join "child" platform]]
+check_syntax $from
+copy_config $from $to
+
+# optional child configs that are managed by the sculpt manager if absent
 set optional_configs {
 	nic_router
 	gpu
@@ -430,42 +473,8 @@ foreach config $optional_configs {
 	set ingredient [single_ingredient $config ""]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]
-		set to   [initial_config_file $config]
+		set to   [initial_config_file [file join "child" $config]]
 		copy_config $from $to } }
-
-# configs that are expected to be always present
-set required_configs {
-	wifi
-	event_filter
-	fonts
-	gui
-	deploy
-	fb
-	clipboard
-	numlock_remap
-	global_keys
-	leitzentrale
-	usb
-	system
-	ram_fs
-	manager
-	report
-}
-
-foreach config $required_configs {
-	set ingredient [single_ingredient $config "default"]
-	set from [ingredient_path $config $ingredient]
-	set to   [initial_config_file $config]
-	check_syntax $from
-	copy_config $from $to
-}
-
-# config of the platform-driver subsystem hosted in the 'board' deploy option
-set from [ingredient_path platform [board]]
-set to   [initial_config_file platform]
-check_syntax $from
-copy_config $from $to
-
 
 ##
 # Return list of deploy files
@@ -548,11 +557,11 @@ set fd [open [file join [initial_config_dir] install] w]
 puts $fd "install | managed: yes | arch: [depot_spec]\n-"
 close $fd
 
-set fd [open [file join [initial_config_dir] depot_query] w]
+set fd [open [file join [initial_config_dir] child depot_query] w]
 puts $fd "query\n-"
 close $fd
 
-set fd [open [file join [initial_config_dir] blueprint_query] w]
+set fd [open [file join [initial_config_dir] child blueprint_query] w]
 puts $fd "query\n-"
 close $fd
 

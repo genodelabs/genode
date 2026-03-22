@@ -77,7 +77,7 @@ struct Sculpt::Wifi_driver : private Noncopyable
 				connect_parent_rom(g, "wpa_supplicant.lib.so");
 				g.node("rm",  [&] { g.node("parent"); });
 				g.node("rtc", [&] { g.node("parent"); });
-				connect_config_rom(g, "wifi_config", "wifi");
+				connect_config_rom(g, "wifi_config", "child/wifi");
 			});
 		});
 	};
