@@ -138,11 +138,13 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	 */
 	void produce_state_report(Generator &g, Report_detail const &detail) const override
 	{
-		if (detail.init_ram())
-			g.node("ram",  [&] () { Ram_info::from_pd(_env.pd()).generate(g); });
+		g.tabular([&] {
+			if (detail.init_ram())
+				g.node("ram",  [&] () { Ram_info::from_pd(_env.pd()).generate(g); });
 
-		if (detail.init_caps())
-			g.node("caps", [&] () { Cap_info::from_pd(_env.pd()).generate(g); });
+			if (detail.init_caps())
+				g.node("caps", [&] () { Cap_info::from_pd(_env.pd()).generate(g); });
+		});
 
 		if (detail.children())
 			_children.report_state(g, detail);

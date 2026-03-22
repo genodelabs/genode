@@ -385,48 +385,50 @@ void Sandbox::Child::report_state(Generator &g, Report_detail const &detail) con
 		if (_heartbeat.enabled && _child.skipped_heartbeats())
 			g.attribute("skipped_heartbeats", _child.skipped_heartbeats());
 
-		if (detail.child_ram() && _child.pd_session_cap().valid()) {
-			g.node("ram", [&] () {
+		g.tabular([&] {
+			if (detail.child_ram() && _child.pd_session_cap().valid()) {
+				g.node("ram", [&] () {
 
-				g.attribute("assigned", String<32> {
-					Number_of_bytes(_resources.assigned_ram_quota.value) });
+					g.attribute("assigned", String<32> {
+						Number_of_bytes(_resources.assigned_ram_quota.value) });
 
-				if (_pd_alive())
-					_child.with_pd([&] (Pd_session const &pd) {
-						Ram_info::from_pd(pd).generate(g); }, [&] { });
+					if (_pd_alive())
+						_child.with_pd([&] (Pd_session const &pd) {
+							Ram_info::from_pd(pd).generate(g); }, [&] { });
 
-				if (_requested_resources.constructed() && _requested_resources->ram.value)
-					g.attribute("requested", String<32>(_requested_resources->ram));
-			});
-		}
+					if (_requested_resources.constructed() && _requested_resources->ram.value)
+						g.attribute("requested", String<32>(_requested_resources->ram));
+				});
+			}
 
-		if (detail.child_caps() && _child.pd_session_cap().valid()) {
-			g.node("caps", [&] () {
+			if (detail.child_caps() && _child.pd_session_cap().valid()) {
+				g.node("caps", [&] () {
 
-				g.attribute("assigned", String<32>(_resources.assigned_cap_quota));
+					g.attribute("assigned", String<32>(_resources.assigned_cap_quota));
 
-				if (_pd_alive())
-					_child.with_pd([&] (Pd_session const &pd) {
-						Cap_info::from_pd(pd).generate(g); }, [&] { });
+					if (_pd_alive())
+						_child.with_pd([&] (Pd_session const &pd) {
+							Cap_info::from_pd(pd).generate(g); }, [&] { });
 
-				if (_requested_resources.constructed() && _requested_resources->caps.value)
-					g.attribute("requested", String<32>(_requested_resources->caps));
-			});
-		}
+					if (_requested_resources.constructed() && _requested_resources->caps.value)
+						g.attribute("requested", String<32>(_requested_resources->caps));
+				});
+			}
+		});
 
 		Session_state::Detail const
 			session_detail { detail.session_args() ? Session_state::Detail::ARGS
 			                                       : Session_state::Detail::NO_ARGS};
 
 		if (detail.requested()) {
-			g.node("requested", [&] () {
+			g.tabular_node("requested", [&] () {
 				_child.for_each_session([&] (Session_state const &session) {
 					g.node("session", [&] () {
 						session.generate_client_side_info(g, session_detail); }); }); });
 		}
 
 		if (detail.provided()) {
-			g.node("provided", [&] () {
+			g.tabular_node("provided", [&] () {
 
 				auto fn = [&] (Session_state const &session) {
 					g.node("session", [&] () {

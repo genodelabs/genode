@@ -205,8 +205,8 @@ struct Test::Main
 			client_present = true;
 			child.for_each_sub_node("requested", [&] (Node const &requested) {
 				requested.for_each_sub_node("session", [&] (Node const &session) {
-					if (session.attribute_value("service", String<16>()) == "LOG"
-					 && session.attribute_value("state", String<16>()) == "CAP_HANDED_OUT")
+					if (session.attribute_value("name", String<16>()) == "LOG"
+					 && session.attribute_value("state", String<16>()) == "OK")
 						client_complete = true; }); }); });
 
 		bool client_connected = false;

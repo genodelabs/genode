@@ -30,15 +30,15 @@ struct Formatted_phase
 		using State = Genode::Session_state;
 
 		switch (_phase) {
-		case State::CREATE_REQUESTED:       print(output, "CREATE_REQUESTED");       break;
-		case State::SERVICE_DENIED:         print(output, "SERVICE_DENIED");         break;
-		case State::INSUFFICIENT_RAM_QUOTA: print(output, "INSUFFICIENT_RAM_QUOTA"); break;
-		case State::INSUFFICIENT_CAP_QUOTA: print(output, "INSUFFICIENT_CAP_QUOTA"); break;
-		case State::AVAILABLE:              print(output, "AVAILABLE");              break;
-		case State::CAP_HANDED_OUT:         print(output, "CAP_HANDED_OUT");         break;
-		case State::UPGRADE_REQUESTED:      print(output, "UPGRADE_REQUESTED");      break;
-		case State::CLOSE_REQUESTED:        print(output, "CLOSE_REQUESTED");        break;
-		case State::CLOSED:                 print(output, "CLOSED");                 break;
+		case State::CREATE_REQUESTED:       print(output, "CREATING");         break;
+		case State::SERVICE_DENIED:         print(output, "DENIED");           break;
+		case State::INSUFFICIENT_RAM_QUOTA: print(output, "INSUFFICIENT_RAM"); break;
+		case State::INSUFFICIENT_CAP_QUOTA: print(output, "INSUFFICIENT_CAP"); break;
+		case State::AVAILABLE:              print(output, "AVAIL");            break;
+		case State::CAP_HANDED_OUT:         print(output, "OK");               break;
+		case State::UPGRADE_REQUESTED:      print(output, "UPGRADING");        break;
+		case State::CLOSE_REQUESTED:        print(output, "CLOSING");          break;
+		case State::CLOSED:                 print(output, "CLOSED");           break;
 		}
 	}
 };
@@ -113,11 +113,11 @@ void Session_state::generate_session_request(Generator &g) const
 
 void Session_state::generate_client_side_info(Generator &g, Detail detail) const
 {
-	g.attribute("service", _service.name());
-	g.attribute("label", _label);
+	g.attribute("name",  _service.name());
 	g.attribute("state", String<32>(Formatted_phase(phase)));
-	g.attribute("ram", String<32>(_donated_ram_quota));
-	g.attribute("caps", String<32>(_donated_cap_quota));
+	g.attribute("label", _label);
+	g.attribute("ram",   String<32>(_donated_ram_quota));
+	g.attribute("caps",  String<32>(_donated_cap_quota));
 
 	if (detail.args == Detail::ARGS)
 		g.node("args", [&] { g.append_quoted(_args.string()); });
