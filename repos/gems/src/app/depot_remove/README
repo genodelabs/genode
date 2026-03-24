@@ -12,7 +12,7 @@ A typical configuration looks as follows.
 !     <remove user="alice" pkg="nano3d"/>
 !     <remove user="bob"   pkg="wm" version="2042-42-42"/>
 !     <remove-all>
-!         <keep user="alice" pkg="fonts_fs"/>
+!         <keep user="alice" pkg="font"/>
 !     </remove-all>
 ! </config>
 

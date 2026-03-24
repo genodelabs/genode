@@ -5,7 +5,7 @@ runtime | ram: 108M | caps: 1100 | binary: init | config: system_shell.config
   + fs model  | writeable: yes
   + fs report | writeable: no
   + fs target | writeable: yes
-  + fs fonts  | writeable: no
+  + fs font   | writeable: no
   + rom    vimrc
   + rom    clipboard
   + report clipboard

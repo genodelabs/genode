@@ -3,7 +3,7 @@ _/pkg/chroot
 _/pkg/dbg_download
 _/pkg/dynamic_rom
 _/pkg/file_vault
-_/pkg/fonts_fs
+_/pkg/font
 _/pkg/mesa_gears
 _/pkg/mesa_gpu-cpu
 _/pkg/motif_decorator

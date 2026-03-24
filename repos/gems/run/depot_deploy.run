@@ -15,7 +15,7 @@ import_from_depot [depot_user]/src/[base_src] \
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                [depot_user]/pkg/chroot \
                                [depot_user]/pkg/system_shell \
-                               [depot_user]/pkg/fonts_fs \
+                               [depot_user]/pkg/font \
                                [depot_user]/pkg/wm \
                                [depot_user]/pkg/nano3d \
                                [depot_user]/pkg/window_layouter \
@@ -156,7 +156,7 @@ config
     + service ROM | label_last: init         | + parent
     + service ROM | label_last: shim         | + parent
     + service ROM | label: config            | + child report_rom
-    + service ROM | label_last: fonts.config | + parent
+    + service ROM | label_last: font.config  | + parent
     + service ROM | label_last: vimrc        | + parent
     + service ROM | label_last: fs_rom       | + parent
     + service ROM | label_last: vfs          | + parent
@@ -205,8 +205,8 @@ deploy
 
 + option nano3d_option
 
-+ start fonts_fs | pkg: } [depot_user]/pkg/[current_pkg fonts_fs] {
-  + route | + service ROM | label: config | + parent | label: fonts.config
++ start font | pkg: } [depot_user]/pkg/[current_pkg font] {
+  + route | + service ROM | label: config | + parent | label: font.config
 
 + start inspect_vfs | binary: vfs | ram: 4M | caps: 100
   .
@@ -227,7 +227,7 @@ deploy
 + start system_shell | pkg: } [depot_user]/pkg/[current_pkg system_shell] {
   + connect
     + gui              | + child wm
-    + fs fonts         | + child fonts_fs
+    + fs font          | + child font
     + fs config        | + parent
     + fs               | + child inspect_vfs
     + report clipboard | + parent | label: clipboard
@@ -262,7 +262,7 @@ close $fd
 
 build { app/depot_query app/depot_deploy }
 
-copy_file [genode_dir]/repos/gems/sculpt/fonts/default [run_dir]/genode/fonts.config
+copy_file [genode_dir]/repos/gems/sculpt/font/default [run_dir]/genode/font.config
 copy_file [genode_dir]/repos/ports/recipes/raw/system_shell/system_shell.config [run_dir]/genode/
 
 #

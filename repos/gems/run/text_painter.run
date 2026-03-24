@@ -69,12 +69,12 @@ config
   + config
     + vfs
       + rom VeraMono.ttf
-      + dir fonts | + ttf regular | path: /VeraMono.ttf | size_px: 48 | cache: 128K
-    + default-policy | root: /fonts
+      + dir font | + ttf regular | path: /VeraMono.ttf | size_px: 48 | cache: 128K
+    + default-policy | root: /font
 
 + start test-text_painter | ram: 2M
   + config
-    + vfs | + dir fonts | + fs
+    + vfs | + dir font | + fs
 -
 }
 

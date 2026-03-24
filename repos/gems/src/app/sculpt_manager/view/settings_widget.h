@@ -64,7 +64,7 @@ struct Sculpt::Settings_widget : Widget<Vbox>
 	{
 		unsigned const left_ex = 10, right_ex = 24;
 
-		if (!_settings.manual_fonts_config) {
+		if (!_settings.manual_font_config) {
 			Font_size const selected = _settings.font_size;
 			s.widget(_font_size_choice,
 				Hosted_choice::Attr {

@@ -68,13 +68,13 @@ class Menu_view::Style_database
 			bool const out_of_date = false;
 
 			static Label_style _init_style(Allocator &alloc,
-			                               Directory const &styles_dir,
+			                               Directory const &style_dir,
 			                               Path const &path)
 			{
 				Label_style result { .color = Color::black() };
 
 				try {
-					File_content const content(alloc, styles_dir, path,
+					File_content const content(alloc, style_dir, path,
 					                           File_content::Limit{1024});
 					content.node([&] (Node const &node) {
 						result.color = node.attribute_value("color", result.color);
@@ -84,10 +84,10 @@ class Menu_view::Style_database
 				return result;
 			}
 
-			Label_style_entry(Allocator &alloc, Directory const &styles_dir,
+			Label_style_entry(Allocator &alloc, Directory const &style_dir,
 			                  Path const &path)
 			:
-				path(path), style(_init_style(alloc, styles_dir, path))
+				path(path), style(_init_style(alloc, style_dir, path))
 			{ }
 		};
 
@@ -152,15 +152,15 @@ class Menu_view::Style_database
 			 *
 			 * \throw Reading_failed
 			 */
-			Font_entry(Entrypoint &ep, Directory const &fonts_dir,
+			Font_entry(Entrypoint &ep, Directory const &font_dir,
 			           Path const &path, Allocator &alloc,
 			           Style_database const &style_database)
 			try :
 				path(path),
 				_style_database(style_database),
-				_vfs_font(alloc, fonts_dir, path),
+				_vfs_font(alloc, font_dir, path),
 				_cached_font(alloc, _vfs_font, _font_cache_limit),
-				_glyphs_changed_handler(ep, fonts_dir, Path(path, "/glyphs"),
+				_glyphs_changed_handler(ep, font_dir, Path(path, "/glyphs"),
 				                        *this, &Font_entry::_handle_glyphs_changed)
 			{ }
 			catch (...) { throw Reading_failed(); }
@@ -170,8 +170,8 @@ class Menu_view::Style_database
 		Ram_allocator   &_ram;
 		Env::Local_rm   &_rm;
 		Allocator       &_alloc;
-		Directory const &_fonts_dir;
-		Directory const &_styles_dir;
+		Directory const &_font_dir;
+		Directory const &_style_dir;
 
 		Signal_context_capability _style_changed_sigh;
 
@@ -194,7 +194,7 @@ class Menu_view::Style_database
 		}
 
 		/*
-		 * Assemble path name 'styles/<widget>/<style>/<name>.png'
+		 * Assemble path name 'style/<widget>/<style>/<name>.png'
 		 */
 		static Path _construct_png_path(Node const &node, char const *name)
 		{
@@ -205,7 +205,7 @@ class Menu_view::Style_database
 		}
 
 		/*
-		 * Assemble path of style file relative to the styles directory
+		 * Assemble path of style file relative to the style directory
 		 */
 		static Path _widget_style_path(Node const &node)
 		{
@@ -226,7 +226,7 @@ class Menu_view::Style_database
 			 * Load and remember style
 			 */
 			Label_style_entry &e = *new (_alloc)
-				Label_style_entry(_alloc, _styles_dir, path);
+				Label_style_entry(_alloc, _style_dir, path);
 
 			_label_styles.insert(&e);
 			return e.style;
@@ -236,11 +236,11 @@ class Menu_view::Style_database
 
 		Style_database(Entrypoint &ep, Ram_allocator &ram, Env::Local_rm &rm,
 		               Allocator &alloc,
-		               Directory const &fonts_dir, Directory const &styles_dir,
+		               Directory const &font_dir, Directory const &style_dir,
 		               Signal_context_capability style_changed_sigh)
 		:
 			_ep(ep), _ram(ram), _rm(rm), _alloc(alloc),
-			_fonts_dir(fonts_dir), _styles_dir(styles_dir),
+			_font_dir(font_dir), _style_dir(style_dir),
 			_style_changed_sigh(style_changed_sigh)
 		{ }
 
@@ -256,7 +256,7 @@ class Menu_view::Style_database
 			 */
 			try {
 				Texture_entry *e = new (_alloc)
-					Texture_entry(_ram, _rm, _alloc, _styles_dir, path.string());
+					Texture_entry(_ram, _rm, _alloc, _style_dir, path.string());
 
 				_textures.insert(e);
 				return &e->texture;
@@ -280,7 +280,7 @@ class Menu_view::Style_database
 			 */
 			try {
 				Font_entry *e = new (_alloc)
-					Font_entry(_ep, _fonts_dir, path, _alloc, *this);
+					Font_entry(_ep, _font_dir, path, _alloc, *this);
 
 				_fonts.insert(e);
 				return &e->font();

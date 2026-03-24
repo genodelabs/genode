@@ -5,7 +5,6 @@ deploy | info: simple desktop environment
 + option managed
 + option recall_fs
 + option window_manager
-+ option fonts_fs
 + option black_hole
 + option system_shell
 

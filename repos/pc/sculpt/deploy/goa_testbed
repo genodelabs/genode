@@ -6,7 +6,6 @@ deploy | info: Goa testbed
 + option recall_fs
 + option black_hole
 + option window_manager
-+ option fonts_fs
 + option system_clock
 
 + child mesa_gpu-intel | pkg: mesa_gpu-intel

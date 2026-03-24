@@ -1,11 +1,22 @@
-config
+config | copy: yes | paste: yes | managed: yes
+
 + vfs
   + rom Vera.ttf
   + rom VeraMono.ttf
-  + dir fonts
+  + dir font
     + dir title      | + ttf regular | path: /Vera.ttf     | size_px: 18 | cache: 256K
     + dir text       | + ttf regular | path: /Vera.ttf     | size_px: 14 | cache: 256K
     + dir annotation | + ttf regular | path: /Vera.ttf     | size_px: 11 | cache: 256K
     + dir monospace  | + ttf regular | path: /VeraMono.ttf | size_px: 14 | cache: 256K
-+ default-policy | root: /fonts
+
++ default-policy | root: /font
+  .
+  . policy when using this file as font config
+  .
+
++ palette
+  .
+  . color definition when this file is used as terminal config
+  .
+  + color | index: 0 | value: #1c2232
 -

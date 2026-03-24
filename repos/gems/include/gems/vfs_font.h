@@ -1,5 +1,5 @@
 /*
- * \brief  Implementation of 'Text_painter::Font' for VFS-mounted fonts
+ * \brief  Implementation of 'Text_painter::Font' for VFS-mounted font
  * \author Norman Feske
  * \date   2018-03-26
  */

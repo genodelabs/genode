@@ -32,7 +32,7 @@ lappend archives \
 	[depot_user]/src/nitpicker \
 	[depot_user]/src/menu_view \
 	[depot_user]/src/libpng \
-	[depot_user]/pkg/fonts_fs \
+	[depot_user]/pkg/font \
 	[depot_user]/pkg/[drivers_interactive_pkg]
 
 lappend_if [jent_avail]       archives [depot_user]/src/vfs_jitterentropy
@@ -132,21 +132,21 @@ config
 
 + start pointer | caps: 100 | ram: 1M
 
-+ start fonts_fs | caps: 150 | ram: 4M
++ start font | caps: 150 | ram: 4M
   + binary vfs
   + provides | + service File_system
   + config
   | + vfs
   |   + rom Vera.ttf
   |   + rom VeraMono.ttf
-  |   + dir fonts
+  |   + dir font
   |     + dir title      | + ttf regular | path: /Vera.ttf     | size_px: 18 | cache: 256K
   |     + dir text       | + ttf regular | path: /Vera.ttf     | size_px: 14 | cache: 256K
   |     + dir annotation | + ttf regular | path: /Vera.ttf     | size_px: 11 | cache: 256K
   |     + dir monospace  | + ttf regular | path: /VeraMono.ttf | size_px: 14 | cache: 256K
-  | + policy | label_prefix: file_vault_gui -> fonts | root: /fonts
+  | + policy | label_prefix: file_vault_gui -> font | root: /font
   + route
-    + service ROM | label: config | + parent | label: fonts_fs.config
+    + service ROM | label: config | + parent | label: font.config
     + any-service                 | + parent
 
 } [data_fs_start_nodes] {
@@ -186,7 +186,7 @@ config
 
 + start file_vault_gui | caps: 400 | ram: 8M
   + route
-    + service File_system               | + child fonts_fs
+    + service File_system               | + child font
     + service Gui                       | + child nitpicker
     + service ROM | label: ui_report    | + child report_rom
     + service Report | label: ui_config | + child report_rom

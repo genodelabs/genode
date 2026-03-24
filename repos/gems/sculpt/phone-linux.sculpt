@@ -1,7 +1,7 @@
 leitzentrale: phone
 manager:      phone
 gui:          phone
-fonts:        phone
+font:         phone
 event_filter: phone_linux
 build:        app/phone_manager server/nitpicker app/menu_view server/wm
 build:        server/event_filter

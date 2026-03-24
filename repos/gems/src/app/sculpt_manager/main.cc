@@ -216,18 +216,18 @@ struct Sculpt::Main : Input_event_handler,
 		_broadcast_system_state();
 	}
 
-	Managed_config<Main> _fonts_config {
-		_env, _heap, "config", "fonts", *this, &Main::_handle_fonts_config };
+	Managed_config<Main> _font_config {
+		_env, _heap, "config", "child/font", *this, &Main::_handle_font_config };
 
-	void _handle_fonts_config(Node const &config)
+	void _handle_font_config(Node const &config)
 	{
 		/*
-		 * Obtain font size from manually maintained fonts configuration
+		 * Obtain font size from manually maintained font configuration
 		 * so that we can adjust the GUI layout accordingly.
 		 */
 		config.for_each_sub_node("vfs", [&] (Node const &vfs) {
 			vfs.for_each_sub_node("dir", [&] (Node const &dir) {
-				if (dir.attribute_value("name", String<16>()) == "fonts") {
+				if (dir.attribute_value("name", String<16>()) == "font") {
 					dir.for_each_sub_node("dir", [&] (Node const &type) {
 						if (type.attribute_value("name", String<16>()) == "text") {
 							type.for_each_sub_node("ttf", [&] (Node const &ttf) {
@@ -239,7 +239,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		_handle_gui_mode();
 
-		/* visibility of fonts section of settings dialog may have changed */
+		/* visibility of font section of settings dialog may have changed */
 		_settings_dialog.refresh();
 
 		/* visibility of settings button may have changed */
@@ -2299,9 +2299,9 @@ void Sculpt::Main::_handle_gui_mode()
 		update_runtime_config = true;
 	}
 
-	_settings.manual_fonts_config = !_fonts_config.managed;
+	_settings.manual_font_config = !_font_config.managed;
 
-	if (!_settings.manual_fonts_config) {
+	if (!_settings.manual_font_config) {
 
 		double const orig_font_size_px = _font_size_px;
 
@@ -2317,13 +2317,13 @@ void Sculpt::Main::_handle_gui_mode()
 		_font_size_px = max(_font_size_px, _min_font_size_px);
 
 		if (orig_font_size_px != _font_size_px) {
-			_fonts_config.generate([&] (Generator &g) {
+			_font_config.generate([&] (Generator &g) {
 				g.attribute("copy",  true);
 				g.attribute("paste", true);
 				g.node("vfs", [&] {
 					gen_named_node(g, "rom", "Vera.ttf");
 					gen_named_node(g, "rom", "VeraMono.ttf");
-					gen_named_node(g, "dir", "fonts", [&] {
+					gen_named_node(g, "dir", "font", [&] {
 
 						auto gen_ttf_dir = [&] (char const *dir_name,
 						                        char const *ttf_path, double size_px) {
@@ -2345,7 +2345,7 @@ void Sculpt::Main::_handle_gui_mode()
 						});
 					});
 				});
-				g.node("default-policy", [&] { g.attribute("root", "/fonts"); });
+				g.node("default-policy", [&] { g.attribute("root", "/font"); });
 
 				auto gen_color = [&] (unsigned index, Color color) {
 					g.node("color", [&] {
@@ -2362,7 +2362,7 @@ void Sculpt::Main::_handle_gui_mode()
 						gen_color(8, background);
 						gen_color(7, foreground); }); });
 			});
-			/* propagate fonts config of runtime view */
+			/* propagate font config of runtime view */
 			update_runtime_config = true;
 		}
 	}

@@ -4,7 +4,7 @@ runtime | ram: 18M | caps: 400 | binary: init
   + gui
   + timer
   + event
-  + file_system | label: fonts | writeable: no
+  + file_system | label: font | writeable: no
 
 + config
   + parent-provides
@@ -25,9 +25,9 @@ runtime | ram: 18M | caps: 400 | binary: init
     |        opaque:     yes
     |        background: #3e3e43
     + route
-      + service ROM         | label: layout          | + parent | label: touch_keyboard_layout.config
-      + service File_system | label_prefix: fonts -> | + parent | identity: fonts
-      + any-service                                  | + parent
+      + service ROM         | label: layout         | + parent | label: touch_keyboard_layout.config
+      + service File_system | label_prefix: font -> | + parent | identity: font
+      + any-service                                 | + parent
 
 + content
   + rom | label: touch_keyboard
@@ -39,7 +39,7 @@ runtime | ram: 18M | caps: 400 | binary: init
   + rom | label: vfs.lib.so
   + rom | label: sandbox.lib.so
   + rom | label: menu_view
-  + rom | label: menu_view_styles.tar
+  + rom | label: menu_view_style.tar
   + rom | label: libpng.lib.so
   + rom | label: zlib.lib.so
 -

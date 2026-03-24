@@ -1,4 +1,4 @@
-runtime | ram: 4M | caps: 150 | binary: vfs | config: fonts.config
+runtime | ram: 4M | caps: 150 | binary: vfs | config: font.config
 + requires | + rom | label: config
 + provides | + file_system
 + content

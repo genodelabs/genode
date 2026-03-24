@@ -16,7 +16,7 @@ Requires
 
 * A Report session "ui_config" that maps to the file_vault UI configuration
 * A ROM session "ui_report" that maps to the file_vault UI report
-* A File System session "menu_view -> fonts" to a fonts server
+* A File System session "menu_view -> font" to a font renderer
 * A Gui session for the Menu View it spawns
 * A Timer session
 

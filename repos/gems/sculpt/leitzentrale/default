@@ -15,7 +15,6 @@ config | prio_levels: 4
 + service Gui         | + default-policy | + child wm
 + service Capture     | + default-policy | + child nitpicker
 + service Event       | + default-policy | + child nitpicker
-+ service File_system | + default-policy | + child fonts_fs
 + service ROM         | + default-policy | + child report_rom
 + service Report      | + default-policy | + child report_rom
 
@@ -171,7 +170,7 @@ config | prio_levels: 4
     + service Report | label: depot_version_config      | + child config_fs_report | label: depot -> version
     + service Report | label: deploy_config             | + child config_fs_report | label: deploy
     + service Report | label: child/wifi_config         | + child config_fs_report | label: child -> wifi
-    + service Report | label: fonts_config              | + child config_fs_report | label: fonts
+    + service Report | label: child/font_config         | + child config_fs_report | label: child -> font
     + service Report | label: child/nic_router_config   | + child config_fs_report | label: child -> nic_router
     + service Report | label: fb_config                 | + child config_fs_report | label: fb
     + service Report | label: child/dir_query_config    | + child config_fs_report | label: child -> dir_query
@@ -199,13 +198,6 @@ config | prio_levels: 4
     + service Gui                                  | + parent
     + any-service                                  | + parent
 
-+ start fonts_fs | caps: 100 | ram: 4M | priority: -1
-  + binary vfs
-  + provides | + service File_system
-  + route
-    + service ROM | label: config | + parent | label: config -> fonts
-    + any-service                 | + parent
-
 + start log_terminal | caps: 120 | ram: 8M | priority: -1
   + binary terminal
   + provides | + service Terminal
@@ -216,7 +208,7 @@ config | prio_levels: 4
   |   + color | index: 8 | value: #2f3953
   | + vfs
   |   + rom VeraMono.ttf
-  |   + dir fonts
+  |   + dir font
   |     + dir monospace
   |       + ttf regular | path: /VeraMono.ttf | size_px: 10
   + route

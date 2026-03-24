@@ -2,7 +2,7 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
-                  [depot_user]/pkg/fonts_fs \
+                  [depot_user]/pkg/font \
                   [depot_user]/src/init \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/nitpicker \
@@ -76,11 +76,11 @@ config
       + parent
       + any-child
 
-+ start fonts_fs | caps: 300 | ram: 8M
++ start font | caps: 300 | ram: 8M
   + binary vfs
   + provides | + service File_system
   + route
-    + service ROM | label: config | + parent | label: fonts_fs.config
+    + service ROM | label: config | + parent | label: font.config
     + any-service                 | + parent
 
 + start test-dialog | caps: 1000 | ram: 8M

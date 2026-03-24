@@ -4,7 +4,6 @@ deploy
 + option managed
 + option recall_fs
 + option window_manager
-+ option fonts_fs
 + option sticks_blue_backdrop
 + option nano3d
 + option system_shell

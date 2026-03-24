@@ -2,7 +2,7 @@ option
 + child direct_system_shell | pkg: system_shell
   + connect
     + gui                  | + child gui | label: focus
-    + fs     fonts         | + child fonts_fs
+    + fs     font          | + child font
     + fs     target        | + child default_fs_rw
     + fs     model         | + child model
     + fs     report        | + child report

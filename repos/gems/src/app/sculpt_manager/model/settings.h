@@ -27,7 +27,7 @@ struct Sculpt::Settings
 
 	Font_size font_size = Font_size::MEDIUM;
 
-	bool manual_fonts_config = false;
+	bool manual_font_config = false;
 
 	struct Keyboard_layout
 	{
@@ -59,7 +59,7 @@ struct Sculpt::Settings
 	bool interactive_settings_available() const
 	{
 		return !manual_event_filter_config
-		    || !manual_fonts_config;
+		    || !manual_font_config;
 	}
 };
 

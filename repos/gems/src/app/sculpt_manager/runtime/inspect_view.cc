@@ -284,7 +284,7 @@ void Sculpt::gen_inspect_view(Generator             &g,
 				gen_named_node(g, "child", "leitzentrale", [&] {
 					g.attribute("label", "inspect"); }); });
 
-			connect_config_rom(g, "terminal.config", "fonts");
+			connect_config_rom(g, "terminal.config", "child/font");
 			connect_config_rom(g, "vimrc", "vimrc");
 
 			g.node("rom", [&] {

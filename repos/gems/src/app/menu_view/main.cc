@@ -44,12 +44,12 @@ struct Menu_view::Main : Dialog::Action
 
 	Vfs::Env &_vfs_env;
 
-	Directory _root_dir   { _vfs_env };
-	Directory _fonts_dir  { _root_dir, "fonts" };
-	Directory _styles_dir { _root_dir, "styles" };
+	Directory _root_dir  { _vfs_env };
+	Directory _font_dir  { _root_dir, "font" };
+	Directory _style_dir { _root_dir, "style" };
 
 	Style_database _styles { _env.ep(), _env.ram(), _env.rm(), _heap,
-	                         _fonts_dir, _styles_dir, _config_handler };
+	                         _font_dir, _style_dir, _config_handler };
 
 	Animator _global_animator { };
 

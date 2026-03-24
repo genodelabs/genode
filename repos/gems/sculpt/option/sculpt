@@ -71,6 +71,17 @@ option
     + rom hover        | + child report | label: gui/hover
     + rom leitzentrale | + child report | label: global_keys/leitzentrale
 
++ child font | binary: vfs | caps: 150 | ram: 4M
+  + provides | + fs
+  + connect
+    + rom config         | + child model | label: child/font
+    + rom vfs.lib.so     | + parent
+    + rom vfs_ttf.lib.so | + parent
+    + rom libc.lib.so    | + parent
+    + rom libm.lib.so    | + parent
+    + rom Vera.ttf       | + parent
+    + rom VeraMono.ttf   | + parent
+
 + child pointer | binary: pointer | ram: 2M | caps: 100 | priority: -1
   + provides | + report
   + config | shapes: yes
@@ -123,7 +134,6 @@ option
     + gui
     + capture
     + event
-    + fs     | . fonts
     + rom    | . view dialog ROMs
     + report | . view hover reports
   + connect
@@ -138,6 +148,7 @@ option
     + rom | label_prefix: manager -> config -> | + child model
     + rom | label_prefix: config ->            | + child model
     + fs config                                | + child model
+    + fs font                                  | + child font
     + fs report                                | + child report
     + report                                   | + child report
     + rom ld.lib.so                            | + parent
@@ -163,7 +174,6 @@ option
     + rom sculpt_manager                       | + parent
     + rom phone_manager                        | + parent
     + rom stdin2out                            | + parent
-    + rom Vera.ttf                             | + parent
     + rom VeraMono.ttf                         | + parent
     + rom genode_logo.png                      | + parent
     + rom drop_shadow.png                      | + parent

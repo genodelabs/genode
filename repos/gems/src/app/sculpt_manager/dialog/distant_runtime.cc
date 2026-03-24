@@ -156,15 +156,15 @@ void Distant_runtime::gen_child_nodes(Generator &g) const
 
 			g.node("vfs", [&] {
 				g.node("tar", [&] {
-					g.attribute("name", "menu_view_styles.tar"); });
+					g.attribute("name", "menu_view_style.tar"); });
 				g.node("dir", [&] {
 					g.attribute("name", "dev");
 					g.node("log", [&] { });
 				});
 				g.node("dir", [&] {
-					g.attribute("name", "fonts");
+					g.attribute("name", "font");
 					g.node("fs", [&] {
-						g.attribute("label", "fonts -> /");
+						g.attribute("label", "font -> /");
 					});
 				});
 			});
@@ -181,7 +181,7 @@ void Distant_runtime::gen_child_nodes(Generator &g) const
 			connect_parent_rom(g, "libm.lib.so");
 			connect_parent_rom(g, "libpng.lib.so");
 			connect_parent_rom(g, "zlib.lib.so");
-			connect_parent_rom(g, "menu_view_styles.tar");
+			connect_parent_rom(g, "menu_view_style.tar");
 
 			_views.for_each([&] (View const &view) {
 				view._gen_view_connections(g); });
@@ -190,9 +190,9 @@ void Distant_runtime::gen_child_nodes(Generator &g) const
 				g.node("child", [&] {
 					g.attribute("name", "leitzentrale"); }); });
 
-			gen_named_node(g, "fs", "fonts", [&] {
+			gen_named_node(g, "fs", "font", [&] {
 				g.node("child", [&] {
-					g.attribute("name", "leitzentrale"); }); });
+					g.attribute("name", "font"); }); });
 		});
 	});
 }

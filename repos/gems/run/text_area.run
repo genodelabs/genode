@@ -2,7 +2,7 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
-                  [depot_user]/pkg/fonts_fs \
+                  [depot_user]/pkg/font \
                   [depot_user]/src/init \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/nitpicker \
@@ -75,11 +75,11 @@ config
       + parent
       + any-child
 
-+ start fonts_fs | caps: 300 | ram: 8M
++ start font | caps: 300 | ram: 8M
   + binary vfs
   + provides | + service File_system
   + route
-    + service ROM | label: config | + parent | label: fonts_fs.config
+    + service ROM | label: config | + parent | label: font.config
     + any-service                 | + parent
 
 + start data_fs | caps: 300 | ram: 8M
@@ -104,9 +104,9 @@ config
   |
   | + vfs | + dir data | + fs | label: data -> /
   + route
-    + service ROM | label: hover                   | + child report_rom
-    + service File_system | label_prefix: fonts -> | + child fonts_fs
-    + service File_system | label_prefix: data ->  | + child data_fs
+    + service ROM | label: hover                  | + child report_rom
+    + service File_system | label_prefix: font -> | + child font
+    + service File_system | label_prefix: data -> | + child data_fs
     + any-service
       + parent
       + any-child
@@ -124,10 +124,10 @@ config
   | + save | version: 1
   | + vfs | + dir data | + fs | label: data -> /
   + route
-    + service Report                               | + child report_rom
-    + service ROM | label: clipboard               | + child report_rom
-    + service File_system | label_prefix: fonts -> | + child fonts_fs
-    + service File_system | label_prefix: data ->  | + child data_fs
+    + service Report                              | + child report_rom
+    + service ROM | label: clipboard              | + child report_rom
+    + service File_system | label_prefix: font -> | + child font
+    + service File_system | label_prefix: data -> | + child data_fs
     + any-service
       + parent
       + any-child

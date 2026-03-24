@@ -422,7 +422,6 @@ config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8 | depot_rom: dep
 
 # configs that are expected to be always present
 set required_global_configs {
-	fonts
 	deploy
 	system
 	manager
@@ -440,6 +439,7 @@ foreach config $required_global_configs {
 set required_child_configs {
 	wifi
 	event_filter
+	font
 	gui
 	clipboard
 	numlock_remap

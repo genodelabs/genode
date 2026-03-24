@@ -12,7 +12,7 @@ import_from_depot [depot_user]/src/[base_src] \
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                [depot_user]/pkg/chroot \
                                [depot_user]/pkg/system_shell \
-                               [depot_user]/pkg/fonts_fs \
+                               [depot_user]/pkg/font \
                                [depot_user]/pkg/wm \
                                [depot_user]/pkg/nano3d \
                                [depot_user]/pkg/window_layouter \
@@ -271,11 +271,11 @@ puts " TEST 2 --- Delete non existing archive -- SUCCESS"
 
 puts "\n--------------- TEST 3 --- Delete a PKG archive with deps to keep"
 
-set context [mark_pkg_for_deletion [build_depot_context] "fonts_fs"]
+set context [mark_pkg_for_deletion [build_depot_context] "font"]
 
 install_test_config {
 config | arch: } [depot_spec] { | report: yes
-+ remove | user: } [depot_user] { | pkg: fonts_fs
++ remove | user: } [depot_user] { | pkg: font
 + vfs | + dir depot | + fs
 -
 }

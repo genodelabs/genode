@@ -61,11 +61,10 @@ void Sculpt::gen_touch_keyboard(Generator &g, Touch_keyboard_attr const attr)
 			connect_parent_rom(g, "zlib.lib.so");
 			connect_parent_rom(g, "sandbox.lib.so");
 			connect_parent_rom(g, "dialog.lib.so");
-			connect_parent_rom(g, "menu_view_styles.tar");
+			connect_parent_rom(g, "menu_view_style.tar");
 
-			gen_named_node(g, "fs", "fonts", [&] {
-				gen_named_node(g, "child", "leitzentrale", [&] {
-					g.attribute("identity", "fonts"); }); });
+			gen_named_node(g, "fs", "font", [&] {
+				gen_named_node(g, "child", "font"); });
 
 			g.node("gui", [&] {
 				gen_named_node(g, "child", "leitzentrale", [&] {

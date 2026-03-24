@@ -5,7 +5,7 @@ index
 + index GUI
   + pkg | path: sticks_blue_backdrop | info: default desktop background
   + pkg | path: themed_wm            | info: ready-to-use window manager
-  + pkg | path: fonts_fs             | info: font provider
+  + pkg | path: font                 | info: font provider
   + pkg | path: wm                   | info: window manager
   + pkg | path: motif_decorator      | info: Motif-style window decorator
   + pkg | path: themed_decorator     | info: modern-looking window decorator

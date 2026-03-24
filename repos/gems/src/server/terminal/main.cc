@@ -66,7 +66,7 @@ struct Terminal::Main : Character_consumer
 
 		Font(Allocator &alloc, Directory &root_dir, Cached_font::Limit limit)
 		:
-			_vfs_font(alloc, root_dir, "fonts/monospace/regular"),
+			_vfs_font(alloc, root_dir, "font/monospace/regular"),
 			_cached_font(alloc, _vfs_font, limit)
 		{ }
 
@@ -92,7 +92,7 @@ struct Terminal::Main : Character_consumer
 	 *     an application-level watch handler.
 	 */
 	Io::Watch_handler<Main> _glyphs_changed_handler {
-		_root_dir, "fonts/monospace/regular/glyphs", *this,
+		_root_dir, "font/monospace/regular/glyphs", *this,
 		&Main::_handle_glyphs_changed };
 
 	Color_palette _color_palette { };

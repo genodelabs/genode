@@ -137,7 +137,7 @@ struct Sculpt::File_browser_state : Noncopyable
 				connect_parent_rom(g, "libpng.lib.so");
 				connect_parent_rom(g, "zlib.lib.so");
 				connect_parent_rom(g, "menu_view");
-				connect_parent_rom(g, "menu_view_styles.tar");
+				connect_parent_rom(g, "menu_view_style.tar");
 
 				gen_named_node(g, "report", "clipboard", [&] {
 					gen_named_node(g, "child", "clipboard"); });
@@ -151,8 +151,8 @@ struct Sculpt::File_browser_state : Noncopyable
 					gen_named_node(g, "child", "leitzentrale", [&] {
 						g.attribute("label", "editor"); }); });
 
-				gen_named_node(g, "fs", "fonts", [&] {
-					gen_named_node(g, "child", "leitzentrale"); });
+				gen_named_node(g, "fs", "font", [&] {
+					gen_named_node(g, "child", "font"); });
 
 				g.node("fs", [&] {
 					if (browsed_fs == "config") {

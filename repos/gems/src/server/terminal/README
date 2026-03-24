@@ -6,7 +6,7 @@ via a VFS configuration like the following.
 !   ...
 !   <vfs>
 !     <rom name="VeraMono.ttf"/>
-!     <dir name="fonts">
+!     <dir name="font">
 !       <dir name="monospace">
 !         <ttf name="regular" path="/VeraMono.ttf" size_px="16"/>
 !       </dir>

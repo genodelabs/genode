@@ -2,7 +2,7 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
-                  [depot_user]/pkg/fonts_fs \
+                  [depot_user]/pkg/font \
                   [depot_user]/src/init \
                   [depot_user]/src/dynamic_rom \
                   [depot_user]/src/report_rom \
@@ -63,7 +63,7 @@ config
       + parent
       + any-child
 
-+ start fonts_fs_config_rom | ram: 4M
++ start font_config_rom | ram: 4M
   + binary dynamic_rom
   + provides | + service ROM
   + config | verbose: yes
@@ -73,24 +73,24 @@ config
       |   + vfs
       |   | + rom Vera.ttf
       |   | + rom VeraMono.ttf
-      |   | + dir fonts
+      |   | + dir font
       |   |   + dir title      | + ttf regular | path: /Vera.ttf     | size_px: 18 | cache: 256K
       |   |   + dir text       | + ttf regular | path: /Vera.ttf     | size_px: 14 | cache: 256K
       |   |   + dir annotation | + ttf regular | path: /Vera.ttf     | size_px: 11 | cache: 256K
       |   |   + dir monospace  | + ttf regular | path: /VeraMono.ttf | size_px: 14 | cache: 256K
-      |   + default-policy | root: /fonts
+      |   + default-policy | root: /font
       + sleep | milliseconds: 1000
       + inline | description: big
       | + config
       |   + vfs
       |   | + rom Vera.ttf
       |   | + rom VeraMono.ttf
-      |   | + dir fonts
+      |   | + dir font
       |   |   + dir title      | + ttf regular | path: /Vera.ttf     | size_px: 28 | cache: 256K
       |   |   + dir text       | + ttf regular | path: /Vera.ttf     | size_px: 24 | cache: 256K
       |   |   + dir annotation | + ttf regular | path: /Vera.ttf     | size_px: 21 | cache: 256K
       |   |   + dir monospace  | + ttf regular | path: /VeraMono.ttf | size_px: 24 | cache: 256K
-      |   + default-policy | root: /fonts
+      |   + default-policy | root: /font
       + sleep | milliseconds: 1000
 
 + start dynamic_rom | ram: 4M
@@ -192,11 +192,11 @@ config
     + service ROM
   + config | verbose: yes
 
-+ start fonts_fs | caps: 300 | ram: 8M
++ start font | caps: 300 | ram: 8M
   + binary vfs
   + provides | + service File_system
   + route
-    + service ROM | label: config | + child fonts_fs_config_rom
+    + service ROM | label: config | + child font_config_rom
     + any-service                 | + parent
 
 + start menu_view | caps: 200 | ram: 8M
@@ -204,15 +204,15 @@ config
   | + report | hover: yes
   | + libc | stderr: /dev/log
   | + vfs
-  |   + tar menu_view_styles.tar
-  |   + dir dev   | + log
-  |   + dir fonts | + fs | label: fonts -> /
+  |   + tar menu_view_style.tar
+  |   + dir dev  | + log
+  |   + dir font | + fs | label: font -> /
   | + dialog dialog | xpos: 200 | ypos: 150
   | + dialog fixed_dialog | xpos: 400 | ypos: 50 | width: 400
   + route
-    + service ROM    | label: dialog          | + child dynamic_rom
-    + service Report | label: hover           | + child report_rom
-    + service File_system | label: fonts -> / | + child fonts_fs
+    + service ROM    | label: dialog         | + child dynamic_rom
+    + service Report | label: hover          | + child report_rom
+    + service File_system | label: font -> / | + child font
     + any-service
       + parent
       + any-child

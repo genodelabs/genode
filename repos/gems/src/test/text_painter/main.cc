@@ -80,7 +80,7 @@ struct Test::Main
 		[&] (Node const &config) -> Root_directory { return { _env, _heap, config }; },
 		[&] ()                   -> Root_directory { return { _env, _heap, Node() }; });
 
-	Vfs_font _font_4 { _heap, _root, "fonts/regular" };
+	Vfs_font _font_4 { _heap, _root, "font/regular" };
 
 	void _refresh() { _fb.refresh({ { 0, 0 }, _size }); }
 

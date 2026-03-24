@@ -13,10 +13,9 @@ config
 + default-route | + any-service | + parent
 + default | caps: 100
 
-+ service Gui         | + default-policy | + child wm
-+ service File_system | + default-policy | + child fonts_fs
-+ service ROM         | + default-policy | + child report_rom
-+ service Report      | + default-policy | + child report_rom
++ service Gui    | + default-policy | + child wm
++ service ROM    | + default-policy | + child report_rom
++ service Report | + default-policy | + child report_rom
 
 + start report_rom | caps: 200 | ram: 4M
   + provides
@@ -116,11 +115,4 @@ config
     + service ROM | label: clicked                 | + child report_rom
     + service Gui                                  | + parent | label: manager -> fader ->
     + any-service                                  | + parent
-
-+ start fonts_fs | caps: 100 | ram: 4M
-  + binary vfs
-  + provides | + service File_system
-  + route
-    + service ROM | label: config | + parent | label: config -> fonts
-    + any-service                 | + parent
 -

@@ -255,15 +255,15 @@ void Sandboxed_runtime::Menu_view_state::gen_start_node(Generator &g, Views cons
 
 			g.node("vfs", [&] () {
 				g.node("tar", [&] () {
-					g.attribute("name", "menu_view_styles.tar"); });
+					g.attribute("name", "menu_view_style.tar"); });
 				g.node("dir", [&] () {
 					g.attribute("name", "dev");
 					g.node("log", [&] () { });
 				});
 				g.node("dir", [&] () {
-					g.attribute("name", "fonts");
+					g.attribute("name", "font");
 					g.node("fs", [&] () {
-						g.attribute("label", "fonts -> /");
+						g.attribute("label", "font -> /");
 					});
 				});
 			});
@@ -290,9 +290,9 @@ void Sandboxed_runtime::Menu_view_state::gen_start_node(Generator &g, Views cons
 
 			g.node("service", [&] () {
 				g.attribute("name", "File_system");
-				g.attribute("label_prefix", "fonts ->");
+				g.attribute("label_prefix", "font ->");
 				g.node("parent", [&] () {
-					g.attribute("identity", "fonts"); });
+					g.attribute("identity", "font"); });
 			});
 
 			auto parent_route = [&] (auto const &service)
@@ -322,7 +322,7 @@ void Sandboxed_runtime::Menu_view_state::gen_start_node(Generator &g, Views cons
 			parent_rom_route("libpng.lib.so");
 			parent_rom_route("zlib.lib.so");
 			parent_rom_route("vfs.lib.so");
-			parent_rom_route("menu_view_styles.tar");
+			parent_rom_route("menu_view_style.tar");
 		});
 	});
 }
