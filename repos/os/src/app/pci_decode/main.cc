@@ -106,6 +106,7 @@ static uint64_t fixup_bar_base_address(Config const &cfg,
 	C0 const cfg0(cfg.range());
 
 	auto const vendor_id = cfg0.read<C0::Vendor>();
+	auto const device_id = cfg0.read<C0::Device>();
 
 	auto const subsystem_vendor_id = cfg0.read<C0::Subsystem_vendor>();
 
@@ -122,6 +123,12 @@ static uint64_t fixup_bar_base_address(Config const &cfg,
 		if (subsystem_vendor_id == 0x103c /* HP */) {
 			if (bdf == Bdf { 0, 0x15, 0 } && bar == 0) base_address = 0x501931d000; /* I2C */
 			if (bdf == Bdf { 0, 0x1e, 2 } && bar == 0) base_address = 0x5019320000; /* SPI */
+		}
+
+		/* StarLite Alder Lake-N */
+		if (subsystem_vendor_id == 0x8086 && (device_id == 0x54e8 || device_id == 0x54ea)) {
+			if (bdf == Bdf { 0, 0x15, 0 } && bar == 0) base_address = 0x80626000;
+			if (bdf == Bdf { 0, 0x15, 2 } && bar == 0) base_address = 0x80627000;
 		}
 	}
 
