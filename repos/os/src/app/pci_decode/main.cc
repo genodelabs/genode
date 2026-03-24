@@ -138,6 +138,41 @@ static uint64_t fixup_bar_base_address(Config const &cfg,
 	return base_address;
 }
 
+
+/*
+ * Similar to 'fixup_bar_base_address', we report a fixed IRQ number for
+ * known devices.
+ */
+static irq_line_t fixup_irq_number(Config const &cfg,
+                                   Bdf bdf, irq_line_t irq)
+{
+	irq_line_t remapped_irq = irq;
+
+	using C0 = Config_type0;
+	C0 const cfg0(cfg.range());
+
+	auto const vendor_id = cfg0.read<C0::Vendor>();
+	auto const device_id = cfg0.read<C0::Device>();
+
+	auto const subsystem_vendor_id = cfg0.read<C0::Subsystem_vendor>();
+
+	/* Intel LPSS (I2C) devices - values taken from Linux boot */
+	if (vendor_id == 0x8086 /* Intel */) {
+
+		/* StarLite Alder Lake-N */
+		if (subsystem_vendor_id == 0x8086 && (device_id == 0x54e8 || device_id == 0x54ea)) {
+			if (bdf == Bdf { 0, 0x15, 0 } && irq == 255) remapped_irq = 37;
+			if (bdf == Bdf { 0, 0x15, 2 } && irq == 255) remapped_irq = 39;
+		}
+	}
+
+	if (irq != remapped_irq)
+		log(bdf, " remap IRQ ", irq, " to ", remapped_irq);
+
+	return remapped_irq;
+}
+
+
 /*
  * The bus and function parsers return either the current bus number or the
  * subordinate bus number (highest bus number of all of the busses that can be
@@ -361,6 +396,8 @@ bus_t Main::parse_pci_function(Bdf        bdf,
 
 				irq_override_list.for_each([&] (Irq_override &io) {
 					io.generate(g, irq); });
+
+				irq = fixup_irq_number(cfg, bdf, irq);
 
 				g.attribute("number", irq);
 			});
