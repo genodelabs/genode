@@ -131,6 +131,10 @@ static inline bool pud_sect_supported(void) { return 1; }
 
 bool por_el0_allows_pkey(u8 pkey, bool write, bool execute);
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,18,16)
+#define __pgprot_modify(prot,mask,bits) (prot)
+#endif
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ASM_PGTABLE_H */

@@ -200,8 +200,8 @@ $(eval $(call CC_OPT_LX_RULES,dummies))
 # Generate crc32table.h header
 #
 
-# by 6.18.5 things got moved around
-ifeq ($(LINUX_VERSION_CODE),6185)
+# by 6.18.19 things got moved around
+ifeq ($(LINUX_VERSION_CODE),61819)
 crc32table.h: gen_crc32table
 	./gen_crc32table > $@
 

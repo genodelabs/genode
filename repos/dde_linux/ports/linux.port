@@ -1,9 +1,9 @@
 LICENSE   := GPLv2
-VERSION   := 6.18.5
+VERSION   := 6.18.19
 DOWNLOADS := linux.archive
 
 URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(VERSION).tar.xz
-SHA(linux) := 189d1f409cef8d0d234210e04595172df392f8cb297e14b447ed95720e2fd940
+SHA(linux) := eaaf78271cd07c68ad9c4c9a70c72718b33abbd716239d82bac96b1751eb090c
 DIR(linux) := src/linux
 
 #
@@ -25,6 +25,7 @@ PATCH_FILES := \
                i915_memcpy_32bit.patch \
                i915_meteorlake.patch \
                i915_dsb.patch \
+               i915_shmem_folio.patch \
                audio_distinguish_irq.patch \
                audio_hda_bus_repsonse.patch \
                audio_hp_jack_event_sleep.patch \

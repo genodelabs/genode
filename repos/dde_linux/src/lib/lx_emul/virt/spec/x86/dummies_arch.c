@@ -34,3 +34,23 @@ struct cpuinfo_x86 boot_cpu_data =
     .x86_phys_bits       = (sizeof(void*) == 8) ? 36 : 32,
     .x86_virt_bits       = (sizeof(void*) == 8) ? 48 : 32
 };
+
+
+/*
+ * Normally this is only called as ALTERNATIVE on CPUs that do not
+ * support cx8/cx16 that, pratically speaking, will not be used with
+ * Genode and is here to prevent a undefined reference linking
+ * error.
+ */
+
+void this_cpu_cmpxchg8b_emu(void)
+{
+	printk("%s: this function should never be called\n", __func__);
+	lx_emul_trace_and_stop(__func__);
+}
+
+void this_cpu_cmpxchg16b_emu(void)
+{
+	printk("%s: this function should never be called\n", __func__);
+	lx_emul_trace_and_stop(__func__);
+}

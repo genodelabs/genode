@@ -1,0 +1,21 @@
+Partially revert commit [1] as our current page/folio
+implementation cannot handle unconsecutive requests.
+
+[1] drm/i915: Fix potential overflow of shmem scatterlist length
+--- src/linux/drivers/gpu/drm/i915/gem/i915_gem_shmem.c
++++ src/linux/drivers/gpu/drm/i915/gem/i915_gem_shmem.c
+@@ -151,12 +151,8 @@ int shmem_sg_alloc_table(struct drm_i915_private *i915, struct sg_table *st,
+ 			}
+ 		} while (1);
+ 
+-		nr_pages = min_array(((unsigned long[]) {
+-					folio_nr_pages(folio),
+-					page_count - i,
+-					max_segment / PAGE_SIZE,
+-				      }), 3);
+-
++		nr_pages = min_t(unsigned long,
++				folio_nr_pages(folio), page_count - i);
+ 		if (!i ||
+ 		    sg->length >= max_segment ||
+ 		    folio_pfn(folio) != next_pfn) {

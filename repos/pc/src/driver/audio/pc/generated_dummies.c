@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2026-02-27
+ * \date   2026-03-26
  */
 
 #include <lx_emul.h>
@@ -218,6 +218,14 @@ void call_srcu(struct srcu_struct * ssp,struct rcu_head * rhp,rcu_callback_t fun
 #include <linux/cdev.h>
 
 int cdev_device_add(struct cdev * cdev,struct device * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cdev.h>
+
+void cdev_device_del(struct cdev * cdev,struct device * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }

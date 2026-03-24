@@ -1050,6 +1050,7 @@ include/net/rps.h
 include/net/rstreason.h
 include/net/rtnetlink.h
 include/net/scm.h
+include/net/secure_seq.h
 include/net/snmp.h
 include/net/sock.h
 include/net/tcp_ao.h
