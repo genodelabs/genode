@@ -70,6 +70,16 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 
 		/**
 		 * Filter interface
+		 *
+		 * The order of incoming events is as follows.
+		 *
+		 * TOUCH         id x y
+		 * PRESS         BTN_TOUCH
+		 * TOUCH_RELEASE id
+		 * RELEASE       BTN_TOUCH
+		 *
+		 * Whenever the coordinates x,y match a tap area, this sequence is
+		 * replaced by a PRESS-RELEASE with configured key code.
 		 */
 		void filter_event(Sink &destination, Input::Event const &event) override
 		{
@@ -94,8 +104,8 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 			if (!_pressed)
 				destination.submit(ev);
 
-			ev.handle_touch_release([&] (Input::Touch_id id) {
-				if (id.value == 0)
+			ev.handle_release([&] (Input::Keycode key) {
+				if (key == Input::BTN_TOUCH)
 					_pressed = false;
 			});
 		}

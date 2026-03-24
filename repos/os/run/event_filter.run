@@ -492,14 +492,20 @@ config
   + policy | label_suffix: usb | input: usb
 + sleep | ms: 100
 + usb
-  + touch | x:  10 | y: 500 |  | . hits special area
+  + touch   | x:  10 | y: 500 |  | . hits special area
+  + press   | code: BTN_TOUCH
   + touch-release
-  + touch | x: 100 | y: 500 |  | . besides special area
+  + release | code: BTN_TOUCH
+  + touch   | x: 100 | y: 500 |  | . besides special area
+  + press   | code: BTN_TOUCH
   + touch-release
+  + release | code: BTN_TOUCH
 + expect_press   | code: KEY_DASHBOARD
 + expect_release | code: KEY_DASHBOARD
 + expect_touch   | x: 100 | y: 500
++ expect_press   | code: BTN_TOUCH
 + expect_touch_release
++ expect_release | code: BTN_TOUCH
 
 + message | string: test touch gestures (hold)
 + filter_config
