@@ -1,10 +1,24 @@
 option
-+ child touchpad | pkg: chelmuth/pkg/pc_i2c_hid/2025-10-30 | priority: -2
-  + config | info: Fujtisu U7411 (SYNAPTICS)
-  x config | gpio_pin: 266 | bus_addr: 21 | hid_addr: 1  | info: Fujtisu U7511 (ELAN)
-  x config | gpio_pin: 174 | bus_addr: 44 | hid_addr: 32 | info: Fujtisu U7412 (SYNAPTICS)
-  x config | gpio_pin: 174 | bus_addr: 44 | hid_addr: 32 | info: Fujtisu U7413 (SYNAPTICS)
-  x config | gpio_pin: 3   | bus_addr: 44 | hid_addr: 32 | info: Framework Gen12/Gen13
++ child touchpad | pkg: pc_i2c_hid | priority: -2
+  + config
+    + i2c_slave  | irq: 266 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
+                 | info: Fujitsu U7411 (SYNAPTICS)
+    x i2c_slave  | irq: 266 | bus_addr: 21 | hid_addr: 1  | gpio_chip: INT34C5
+                 | info: Fujitsu U7511 (ELAN)
+    x i2c_slave  | irq: 174 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
+                 | info: Fujitsu U7412/U7413 (SYNAPTICS)
+    x i2c_slave  | irq: 3   | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
+                 | info: Framework Gen12/Gen13
+    x i2c_slave  | irq: 352 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INTC1083
+                 | info: Framework Core Ultra Series 1
+    x i2c_slave  | irq: 104 | bus_addr: 93 | hid_addr: 1
+                 | info: StarLabs StarLite V
+
+    + i2c_master | bus_speed_hz: 400 | info: Tigerlake
+      + fmcn | hcnt: 193 | lcnt: 313 | hold_time: 80
+    x i2c_master | bus_speed_hz: 400 | info: StarLabs StarLite V
+      + fmcn | hcnt: 106 | lcnt: 213 | hold_time: 80
+
   + heartbeat | restart_after_skipped: 4
   + connect
     + platform | + child platform | label: touchpad
