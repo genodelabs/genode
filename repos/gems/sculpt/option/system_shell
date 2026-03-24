@@ -4,10 +4,10 @@ option
     + gui              | + child wm
     + fs fonts         | + child fonts_fs
     + fs target        | + child default_fs_rw
-    + fs config        | + parent | identity: config
+    + fs model         | + child model
     + fs report        | + child report
     + report clipboard | + child wm
     + rom    clipboard | + child wm
-    + rom    vimrc     | + parent | label: config -> vimrc
+    + rom    vimrc     | + child model | label: vimrc
     + rm               | + parent
 -

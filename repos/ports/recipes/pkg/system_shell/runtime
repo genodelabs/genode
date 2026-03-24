@@ -2,7 +2,7 @@ runtime | ram: 108M | caps: 1100 | binary: init | config: system_shell.config
 + requires
   + gui
   + timer
-  + fs config | writeable: yes
+  + fs model  | writeable: yes
   + fs report | writeable: no
   + fs target | writeable: yes
   + fs fonts  | writeable: no

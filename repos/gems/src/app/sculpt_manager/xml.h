@@ -246,17 +246,10 @@ namespace Sculpt {
 		g.node("i2c", [&] { gen_named_node(g, "child", "platform"); });
 	}
 
-	static inline void connect_config_fs(Generator &g)
-	{
-		g.node("fs", [&] {
-			g.node("parent", [&] { g.attribute("identity", "config"); }); });
-	}
-
-	static inline void connect_config_rom(Generator &g, Rom_name const &name, Rom_name const &config_rom)
+	static inline void connect_config_rom(Generator &g, Rom_name const &name, Rom_name const &label)
 	{
 		gen_named_node(g, "rom", name, [&] {
-			g.node("parent", [&] {
-				Session_label const label { "config -> ", config_rom };
+			gen_named_node(g, "child", "model", [&] {
 				g.attribute("label", label); }); });
 	}
 

@@ -448,6 +448,7 @@ set required_child_configs {
 	usb
 	ram_fs
 	report
+	model
 }
 
 foreach config $required_child_configs {

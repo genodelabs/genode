@@ -85,7 +85,7 @@ static void gen_vfs_start(Generator &g,
 						g.attribute("buffer_size", 272u << 10);
 						g.attribute("label", prefixed_label(label, String<8>("/"))); }); }); };
 
-			fs_dir("config");
+			fs_dir("model");
 			fs_dir("report");
 
 			for_each_inspected_storage_target(devices, [&] (Storage_target const &target) {
@@ -115,8 +115,8 @@ static void gen_vfs_start(Generator &g,
 	g.tabular_node("route", [&] {
 
 		gen_service_node<::File_system::Session>(g, [&] {
-			g.attribute("label_prefix", "config ->");
-			g.node("parent", [&] { g.attribute("identity", "config"); });
+			g.attribute("label_prefix", "model ->");
+			g.node("parent", [&] { g.attribute("identity", "model"); });
 		});
 
 		gen_service_node<::File_system::Session>(g, [&] {
@@ -244,8 +244,8 @@ void Sculpt::gen_inspect_view(Generator             &g,
 
 		g.tabular_node("connect", [&] {
 
-			gen_named_node(g, "fs", "config", [&] {
-				g.node("parent", [&] { g.attribute("identity", "config"); }); });
+			gen_named_node(g, "fs", "model", [&] {
+				gen_named_node(g, "child", "model"); });
 
 			gen_named_node(g, "fs", "report", [&] {
 				gen_named_node(g, "child", "report"); });
@@ -268,7 +268,6 @@ void Sculpt::gen_inspect_view(Generator             &g,
 			connect_parent_rom(g, "hid.tar");
 			connect_parent_rom(g, "ncurses.lib.so");
 			connect_parent_rom(g, "posix.lib.so");
-			connect_parent_rom(g, "vimrc", "config -> vimrc");
 			connect_parent_rom(g, "VERSION");
 			connect_parent_rom(g, "Vera.ttf");
 			connect_parent_rom(g, "VeraMono.ttf");
@@ -286,6 +285,7 @@ void Sculpt::gen_inspect_view(Generator             &g,
 					g.attribute("label", "inspect"); }); });
 
 			connect_config_rom(g, "terminal.config", "fonts");
+			connect_config_rom(g, "vimrc", "vimrc");
 
 			g.node("rom", [&] {
 				g.attribute("label", "terminal -> clipboard");

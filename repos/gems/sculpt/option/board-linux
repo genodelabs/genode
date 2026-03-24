@@ -1,7 +1,7 @@
 option
 + child fb | binary: fb_sdl | caps: 100 | ram: 32M | ld: no
   + connect
-    + rom config | + parent | label: config -> fb
+    + rom config | + child model        | label: fb
     + event      | + child event_filter | label: sdl
     + capture    | + child gui          | label: sdl
 -

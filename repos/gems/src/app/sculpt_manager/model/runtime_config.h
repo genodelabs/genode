@@ -349,7 +349,6 @@ class Sculpt::Runtime_config
 				_event     { _r, Type::EVENT,       "filtered input events" },
 				_lz_capture{ _r, Type::CAPTURE,     "management GUI",                 "leitzentrale" },
 				_capture   { _r, Type::CAPTURE,     "system GUI",                     "global" },
-				_config_fs { _r, Type::FS,          "writeable system configuration", "config", Service::Match_label::FS },
 				_capslock  { _r, Type::ROM,         "global capslock state",          "capslock" },
 				_vimrc     { _r, Type::ROM,         "default vim configuration",      "config -> vimrc" },
 				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> fonts" },

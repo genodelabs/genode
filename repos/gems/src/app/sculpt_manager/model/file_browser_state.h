@@ -92,16 +92,7 @@ struct Sculpt::File_browser_state : Noncopyable
 			g.tabular_node("connect", [&] {
 				connect_parent_rom(g, "vfs.lib.so");
 				connect_report(g);
-
-				g.node("fs", [&] {
-					if (browsed_fs == "config") {
-						g.node("parent", [&] {
-							g.attribute("identity", "config"); });
-					}
-					else {
-						gen_named_node(g, "child", browsed_fs);
-					}
-				});
+				g.node("fs", [&] { gen_named_node(g, "child", browsed_fs); });
 			});
 		});
 

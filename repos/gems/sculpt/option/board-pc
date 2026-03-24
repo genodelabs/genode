@@ -3,8 +3,8 @@ option
 + child platform | binary: init | caps: 1500 | ram: 32M | managing_system: yes
   + provides | + platform
   + connect
-    + rom config        | + parent       | label: config -> child/platform
-    + rom system        | + parent       | label: config -> system
+    + rom config        | + child model  | label: child/platform
+    + rom system        | + child model  | label: system
     + rom sleep_states  | + child report | label: acpi_support/sleep_states
     + report            | + child report
     + rm                | + parent
