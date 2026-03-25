@@ -104,23 +104,12 @@ struct Sculpt::Main : Input_event_handler,
 
 	Input::Seq_number_generator _seq_number_generator { };
 
-	Gui::Connection _gui { _env, "input" };
+	Rom_handler<Main> _panorama {
+		_env, "report -> gui/panorama", *this, &Main::_handle_panorama };
 
-	Gui::Connection::Panorama_result _panorama = Gui::Undefined { };
-
-	/* becomes true once the graphics driver is up */
-	bool _gui_mode_ready() const { return _panorama.ok(); };
+	void _handle_panorama(Node const &) { _handle_gui_mode(); }
 
 	Gui::Root _gui_root { _env, _heap, *this, _seq_number_generator };
-
-	Signal_handler<Main> _input_handler {
-		_env.ep(), *this, &Main::_handle_input };
-
-	void _handle_input()
-	{
-		_gui.input.for_each_event([&] (Input::Event const &ev) {
-			handle_input_event(ev); });
-	}
 
 	System_state _system_state { };
 
@@ -1953,9 +1942,6 @@ struct Sculpt::Main : Input_event_handler,
 				                                  node.attribute_value("height", 1U)); }); });
 
 		_drivers.update_soc(_soc);
-		_gui.input.sigh(_input_handler);
-		_gui.info_sigh(_gui_mode_handler);
-		_handle_gui_mode();
 		_gui_config.trigger_update();
 
 		/*
@@ -1975,8 +1961,16 @@ struct Sculpt::Main : Input_event_handler,
 void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
                                          Node const &window_list)
 {
+	auto gui_mode_ready = [&]
+	{
+		bool result = false;
+		_panorama.with_node([&] (Node const &node) {
+			if (node.type() != "empty") result = true; });
+		return result;
+	};
+
 	/* skip window-layout handling (and decorator activity) while booting */
-	if (!_gui_mode_ready())
+	if (!gui_mode_ready())
 		return;
 
 	struct Decorator_margins
@@ -2264,15 +2258,13 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 
 void Sculpt::Main::_handle_gui_mode()
 {
-	_panorama = _gui.panorama();
-
 	/* place leitzentrale at pointed display */
 	Rect                const orig_screen_rect { _screen_pos, _screen_size };
 	Fb_connectors::Name const orig_hovered_display = _hovered_display;
 	{
 		Rect rect { };
 
-		_gui.with_info_node([&] (Node const &info) {
+		_panorama.with_node([&] (Node const &info) {
 			rect = Rect::from_node(info); /* entire panorama */
 
 			if (!_pointer_pos.constructed())
