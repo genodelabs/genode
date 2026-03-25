@@ -6,6 +6,7 @@ event_filter: phone_linux
 build:        app/phone_manager server/nitpicker app/menu_view server/wm
 build:        server/event_filter
 build:        app/dummy_modem
+build:        server/lx_fs
 import:       pkg/drivers_interactive-linux pkg/touch_keyboard
 deploy:       example
 ram_fs:       depot
