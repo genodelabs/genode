@@ -289,11 +289,12 @@ void Sculpt::gen_inspect_view(Generator             &g,
 
 			g.node("rom", [&] {
 				g.attribute("label", "terminal -> clipboard");
-				gen_named_node(g, "child", "clipboard"); });
+				gen_named_node(g, "child", "clipboard", [&] {
+					g.attribute("label", "leitzentrale -> clipboard"); }); });
 
 			g.node("report", [&] {
-				g.attribute("label", "terminal -> clipboard");
-				gen_named_node(g, "child", "clipboard"); });
+				gen_named_node(g, "child", "clipboard", [&] {
+					g.attribute("label", "leitzentrale -> clipboard"); }); });
 		});
 	});
 }

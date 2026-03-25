@@ -21,13 +21,13 @@ config | focus: rom | managed: yes
 + policy | label: lock_screen            | domain: lock
 + policy | label: slides                 | domain: slides
 + policy | label: backdrop               | domain: background
++ policy | label: leitzentrale           | domain: leitzentrale
 + policy | label_prefix: wm              | domain: desktop
 + policy | label_prefix: themed_wm       | domain: desktop
 + policy | label_prefix: touch_keyboard  | domain: touch_keyboard
 + policy | label_prefix: follow_touch    | domain: follow_touch
 + policy | label_prefix: overlay         | domain: overlay
 + policy | label_prefix: pointer         | domain: pointer
-+ policy | label_prefix: leitzentrale -> | domain: leitzentrale
 
 + default-policy | domain: default
 

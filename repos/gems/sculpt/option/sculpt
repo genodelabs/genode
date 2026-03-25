@@ -63,10 +63,8 @@ option
   |     + else
   |       + if
   |         + has_value | input: leitzentrale_enabled | value: yes
-  |         + then
-  |         | + attribute label | value: leitzentrale -> manager -> fader ->
-  |         + else
-  |           + attribute label | value: focus
+  |         + then | + attribute label | value: leitzentrale
+  |         + else | + attribute label | value: focus
   + connect
     + rom hover        | + child report | label: gui/hover
     + rom leitzentrale | + child report | label: global_keys/leitzentrale
@@ -137,7 +135,7 @@ option
     + rom    | . view dialog ROMs
     + report | . view hover reports
   + connect
-    + gui                                      | + child gui
+    + gui                                      | + child gui    | label: leitzentrale
     + rom config                               | + child model  | label: child/leitzentrale
     + rom focus                                | + child report | label: gui/focus
     + rom hover                                | + child report | label: gui/hover
