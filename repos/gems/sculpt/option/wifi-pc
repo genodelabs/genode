@@ -1,0 +1,32 @@
+option
++ child wifi | binary: wifi | ram: 24M | caps: 260 | priority: -3
+  + config
+  | + libc | stdout: /dev/log | stderr: /dev/null | rtc: /dev/rtc
+  | + vfs
+  |   + dir dev
+  |     + null
+  |     + zero
+  |     + log
+  |     + null
+  |     + jitterentropy random
+  |     + jitterentropy urandom
+  |   + inline rtc | : 2018-01-01 00:01
+  |   + dir firmware
+  |     + tar pc_wifi_firmware.tar
+  + connect
+    + platform                      | + child platform   | label: wifi
+    + uplink                        | + child nic_router | label: wifi
+    + report                        | + child report
+    + rom wifi_config               | + child model      | label: child/wifi
+    + rom libcrypto.lib.so          | + parent
+    + rom vfs.lib.so                | + parent
+    + rom libc.lib.so               | + parent
+    + rom libm.lib.so               | + parent
+    + rom vfs_jitterentropy.lib.so  | + parent
+    + rom libssl.lib.so             | + parent
+    + rom wifi.lib.so               | + parent | label: pc_wifi.lib.so
+    + rom pc_wifi_firmware.tar      | + parent
+    + rom wpa_driver_nl80211.lib.so | + parent
+    + rom wpa_supplicant.lib.so     | + parent
+    + rm                            | + parent
+-

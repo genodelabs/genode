@@ -176,9 +176,6 @@ import_from_depot [depot_user]/src/[base_src] \
 # each line in the following definitions must be indented with 4 spaces
 
 set driver_routes(pc) {
-    + service ROM | label: nic               | + parent | label: pc_nic
-    + service ROM | label: wifi.lib.so       | + parent | label: pc_wifi.lib.so
-    + service ROM | label: wifi_firmware.tar | + parent | label: pc_wifi_firmware.tar
     + service ROM | label: usb               | + parent | label: pc_usb_host
 }
 
@@ -215,11 +212,6 @@ set driver_routes(imx8q_evk) {
 }
 
 set driver_routes(pinephone) {
-    + service ROM | label: wifi.lib.so       | + parent | label: a64_wifi.lib.so
-    + service ROM | label: wifi.dtb          | + parent | label: wifi-pinephone.dtb
-    + service ROM | label: wifi_firmware.tar | + parent | label: a64_wifi_firmware.tar
-    + service ROM | label: usb               | + parent | label: a64_usb_host
-    + service ROM | label: usb.dtb           | + parent | label: usb-pinephone.dtb
     + service ROM | label: mmc               | + parent | label: a64_sd_card
     + service ROM | label: mmc.dtb           | + parent | label: sd_card-pinephone.dtb
     + service ROM | label: fb                | + parent | label: de_fb
@@ -442,6 +434,7 @@ set required_child_configs {
 	font
 	gui
 	clipboard
+	nic_router
 	numlock_remap
 	global_keys
 	leitzentrale
@@ -466,7 +459,6 @@ copy_config $from $to
 
 # optional child configs that are managed by the sculpt manager if absent
 set optional_configs {
-	nic_router
 	gpu
 }
 

@@ -391,15 +391,30 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Network_widget::Action
 	 */
-	void nic_target(Nic_target::Type const type) override
+	void nic_target(Network_widget::Target const target) override
 	{
-		_network.nic_target(type);
-		_driver_options.usb_net = (type == Nic_target::MODEM);
-		_driver_options.wifi    = (type == Nic_target::WIFI);
-		_driver_options.nic     = (type == Nic_target::WIRED);
-		_drivers.update_options(_driver_options);
-		_update_soc_feature_selection();
-		generate_runtime_config();
+		using Target = Network_widget::Target;
+
+		auto disable_if_unused = [&] (auto const &name, Target driver)
+		{
+			if (_runtime_state.present_in_runtime(name) && driver != target)
+				disable_option(name);
+		};
+
+		disable_if_unused("wifi",   Target::WIFI);
+		disable_if_unused("nic",    Target::NIC);
+		disable_if_unused("mobile", Target::MOBILE);
+
+		auto enable_if_targeted = [&] (auto const &name, Target driver)
+		{
+			if (driver == target && !_runtime_state.present_in_runtime(name))
+				enable_option(name);
+		};
+
+		enable_if_targeted("wifi",   Target::WIFI);
+		enable_if_targeted("nic",    Target::NIC);
+		enable_if_targeted("mobile", Target::MOBILE);
+		enable_if_targeted("usb",    Target::MOBILE); /* usb_net depends on usb */
 	}
 
 	/**
@@ -820,7 +835,7 @@ struct Sculpt::Main : Input_event_handler,
 	Conditional_widget<Network_widget>
 		_network_widget { Conditional_widget<Network_widget>::Attr { .centered = true },
 		                  Id { "net settings" },
-		                  _network._nic_target, _network._access_points,
+		                  _network._access_points,
 		                  _network._wifi_connection, _network._nic_state,
 		                  _network.wpa_passphrase, _network._wlan_config_policy };
 
@@ -883,32 +898,26 @@ struct Sculpt::Main : Input_event_handler,
 
 			s.widget(_network_title_bar, [&] (auto &s) {
 
+				auto const attr = Network_widget::View_attr::from_runtime(_runtime_state);
+
 				auto network_status_message = [&]
 				{
-					switch (_network._nic_target.type()) {
-					case Nic_target::Type::UNDEFINED:
-					case Nic_target::Type::OFF:
-						break;
+					bool const ready = _network._nic_state.ready();
 
-					case Nic_target::Type::DISCONNECTED:
-						return "disconnected";
+					if (!attr.enabled.any()) return "disconnected";
+					if (attr.enabled.nic)    return ready ? "LAN"    : "LAN ...";
+					if (attr.enabled.wifi)   return ready ? "WLAN"   : "WLAN ...";
+					if (attr.enabled.mobile) return ready ? "mobile" : "mobile ...";
 
-					case Nic_target::Type::WIRED:
-						return _network._nic_state.ready() ? "LAN" : "LAN ...";
-
-					case Nic_target::Type::WIFI:
-						return _network._nic_state.ready() ? "WLAN" : "WLAN ...";
-
-					case Nic_target::Type::MODEM:
-						return _network._nic_state.ready() ? "mobile" : "mobile ...";
-					}
 					return "off";
 				};
+
 				_network_title_bar.view_status(s, network_status_message());
 			});
 
 			_drivers.with_board_info([&] (Board_info const &board_info) {
-				s.widget(_network_widget, _network_title_bar.selected(), board_info); });
+				s.widget(_network_widget, _network_title_bar.selected(), board_info,
+					Network_widget::View_attr::from_runtime(_runtime_state)); });
 
 			s.widget(_software_title_bar, [&] (auto &s) {
 				_software_title_bar.view_status(s, _software_status_message()); });
@@ -1695,10 +1704,6 @@ struct Sculpt::Main : Input_event_handler,
 		_soc.modem = _power_state.modem_present() && _modem_state.ready();
 		_soc.wifi  = _power_state.wifi_present();
 
-		/* start USB host driver only when needed for USB net */
-		if (_phone_hardware)
-			_soc.usb = (_network._nic_target.type() == Nic_target::MODEM);
-
 		bool const changed = (orig_soc != _soc);
 		if (changed)
 			_drivers.update_soc(_soc);
@@ -2383,7 +2388,6 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 	_dialog_runtime.gen_child_nodes(g);
 	_storage.gen_child_nodes(g);
 	_dir_query.gen_child_nodes(g);
-	_network.gen_child_nodes(g);
 
 	g.node("child", [&] {
 		gen_config_query_child_content(g); });

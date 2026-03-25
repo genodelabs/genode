@@ -54,8 +54,7 @@ struct Sculpt::Network : Noncopyable
 
 	using Wlan_config_policy = Network_widget::Wlan_config_policy;
 
-	Nic_target _nic_target { };
-	Nic_state  _nic_state  { };
+	Nic_state _nic_state { };
 
 	Access_point::Bssid _selected_ap { };
 
@@ -70,32 +69,24 @@ struct Sculpt::Network : Noncopyable
 	Rom_handler<Network> _nic_router_state_rom {
 		_env, "report -> nic_router/state", *this, &Network::_handle_nic_router_state };
 
-	void _generate_nic_router_config();
-
-	void _generate_nic_router_uplink(Generator &, char const *label);
-
 	Access_points _access_points { };
 
 	Wifi_connection _wifi_connection = Wifi_connection::disconnected_wifi_connection();
 
 	void gen_child_nodes(Generator &) const;
 
-	bool ready() const { return _nic_target.ready() && _nic_state.ready(); }
+	bool ready() const { return _nic_state.ready(); }
 
 	void handle_key_press(Codepoint);
 
 	void _handle_wlan_accesspoints(Node const &);
 	void _handle_wlan_state(Node const &);
 	void _handle_nic_router_state(Node const &);
-	void _handle_nic_router_config(Node const &);
-
-	Managed_config<Network> _nic_router_config {
-		_env, _alloc, "config", "child/nic_router", *this, &Network::_handle_nic_router_config };
 
 	Wlan_config_policy _wlan_config_policy = Wlan_config_policy::MANAGED;
 
 	Network_widget dialog {
-		_nic_target, _access_points,
+		_access_points,
 		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy };
 
 	Managed_config<Network> _wlan_config {
@@ -117,18 +108,6 @@ struct Sculpt::Network : Noncopyable
 				wifi_connect(_wifi_connection.bssid);
 			else
 				wifi_disconnect();
-		}
-	}
-
-	void _update_nic_target_from_config(Node const &);
-
-	void nic_target(Nic_target::Type const type)
-	{
-		if (type != _nic_target.managed_type) {
-			_nic_target.managed_type = type;
-			_generate_nic_router_config();
-			_runtime_config_generator.generate_runtime_config();
-			_action.network_config_changed();
 		}
 	}
 
@@ -194,16 +173,7 @@ struct Sculpt::Network : Noncopyable
 		_env(env), _alloc(alloc), _action(action), _info(info),
 		_child_states(child_states),
 		_runtime_config_generator(runtime_config_generator)
-	{
-		/*
-		 * Evaluate and forward initial manually managed config
-		 */
-		_nic_router_config.with_node([&] (Node const &config) {
-			_update_nic_target_from_config(config); });
-
-		if (_nic_target.manual())
-			_generate_nic_router_config();
-	}
+	{ }
 };
 
 #endif /* _NETWORK_H_ */

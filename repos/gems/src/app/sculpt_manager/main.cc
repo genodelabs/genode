@@ -464,9 +464,15 @@ struct Sculpt::Main : Input_event_handler,
 
 		void view(Scope<> &s) const override
 		{
+			Runtime_state const &runtime = _main._runtime_state;
 			_main._drivers.with_board_info([&] (Board_info const &board_info) {
 				s.sub_scope<Frame>([&] (Scope<Frame> &s) {
-					_main._network.dialog.view(s, board_info); });
+					if (!runtime.present_in_runtime("nic_router"))
+						return;
+
+					_main._network.dialog.view(s, board_info,
+						Network_widget::View_attr::from_runtime(runtime));
+				});
 			});
 		}
 
@@ -484,10 +490,29 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Network_widget::Action
 	 */
-	void nic_target(Nic_target::Type const type) override
+	void nic_target(Network_widget::Target const target) override
 	{
-		_network.nic_target(type);
-		generate_runtime_config();
+		using Target = Network_widget::Target;
+
+		auto disable_if_unused = [&] (auto const &name, Target driver)
+		{
+			if (_runtime_state.present_in_runtime(name) && driver != target)
+				disable_option(name);
+		};
+
+		disable_if_unused("wifi",   Target::WIFI);
+		disable_if_unused("nic",    Target::NIC);
+		disable_if_unused("mobile", Target::MOBILE);
+
+		auto enable_if_targeted = [&] (auto const &name, Target driver)
+		{
+			if (driver == target && !_runtime_state.present_in_runtime(name))
+				enable_option(name);
+		};
+
+		enable_if_targeted("wifi",   Target::WIFI);
+		enable_if_targeted("nic",    Target::NIC);
+		enable_if_targeted("mobile", Target::MOBILE);
 	}
 
 	/**
@@ -508,12 +533,6 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void network_config_changed() override
 	{
-		Nic_target::Type const type = _network._nic_target.type();
-		_driver_options.usb_net = (type == Nic_target::MODEM);
-		_driver_options.wifi    = (type == Nic_target::WIFI);
-		_driver_options.nic     = (type == Nic_target::WIRED);
-		_drivers.update_options(_driver_options);
-
 		_network_dialog.refresh();
 		_system_dialog.refresh();
 	}
@@ -911,6 +930,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_diag_dialog.refresh();
 		_graph_view.refresh();
+		_network_dialog.refresh();
 		if (_popup.state == Popup::VISIBLE)
 			_popup_dialog.refresh();
 
@@ -2601,7 +2621,6 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 	_dialog_runtime.gen_child_nodes(g);
 	_file_browser_state.gen_child_nodes(g);
 	_dir_query.gen_child_nodes(g);
-	_network.gen_child_nodes(g);
 
 	g.node("child", [&] {
 		gen_config_query_child_content(g); });

@@ -18,7 +18,6 @@
 #include <model/ram_fs_state.h>
 #include <model/storage_devices.h>
 #include <model/storage_target.h>
-#include <model/nic_target.h>
 #include <model/child_state.h>
 
 namespace Sculpt {

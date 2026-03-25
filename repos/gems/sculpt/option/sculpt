@@ -180,4 +180,12 @@ option
     + rom build_info                           | + parent
     + rom platform_info                        | + parent
     + rom VERSION                              | + parent
+
++ child nic_router | binary: nic_router | ram: 10M | caps: 300 | priority: -3
+  + provides
+    + nic
+    + uplink
+  + connect
+    + rom config | + child model | label: child/nic_router
+    + report     | + child report
 -

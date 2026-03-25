@@ -15,9 +15,9 @@
 #define _VIEW__NETWORK_WIDGET_H_
 
 /* local includes */
-#include <model/nic_target.h>
 #include <model/nic_state.h>
 #include <model/board_info.h>
+#include <model/runtime_state.h>
 #include <view/ap_selector_widget.h>
 
 namespace Sculpt { struct Network_widget; }
@@ -27,58 +27,59 @@ struct Sculpt::Network_widget : Widget<Frame>
 {
 	using Wlan_config_policy = Ap_selector_widget::Wlan_config_policy;
 
-	Nic_target const &_nic_target;
-	Nic_state  const &_nic_state;
+	Nic_state const &_nic_state;
+
+	enum class Target { DISCONNECTED, NIC, WIFI, MOBILE };
 
 	struct Action : Ap_selector_widget::Action
 	{
-		virtual void nic_target(Nic_target::Type) = 0;
+		virtual void nic_target(Target) = 0;
+	};
+
+	struct View_attr
+	{
+		struct {
+			bool nic, wifi, mobile;
+			bool any() const { return nic || wifi || mobile; }
+
+		} enabled;
+
+		static View_attr from_runtime(Runtime_state const &runtime)
+		{
+			return { .enabled = { .nic    = runtime.present_in_runtime("nic"),
+			                      .wifi   = runtime.present_in_runtime("wifi"),
+			                      .mobile = runtime.present_in_runtime("mobile") } };
+		}
 	};
 
 	struct Target_selector : Widget<Hbox>
 	{
-		using Type = Nic_target::Type;
+		Hosted<Hbox, Toggle_button>
+			_local  { Id { "Disconected" } },
+			_nic    { Id { "Wired"       } },
+			_wifi   { Id { "Wifi"        } },
+			_mobile { Id { "Mobile data" } };
 
-		Hosted<Hbox, Select_button<Type>>
-			_off   { Id { "Off"          }, Type::OFF          },
-			_local { Id { "Disconnected" }, Type::DISCONNECTED },
-			_wired { Id { "Wired"        }, Type::WIRED        },
-			_wifi  { Id { "Wifi"         }, Type::WIFI         },
-			_modem { Id { "Mobile data"  }, Type::MODEM        };
-
-		void view(Scope<Hbox> &s, Nic_target const &target, Board_info const &board_info) const
+		void view(Scope<Hbox> &s, View_attr const attr, Board_info const &board_info) const
 		{
-			Type const selected = target.type();
+			s.widget(_local, !attr.enabled.any());
 
-			s.widget(_off, selected);
+			if (board_info.detected.nic || board_info.soc.nic)
+				s.widget(_nic, attr.enabled.nic);
 
-			/*
-			 * Allow interactive selection only if NIC-router configuration
-			 * is not manually maintained.
-			 */
-			if (target.managed() || target.manual_type == Nic_target::DISCONNECTED)
-				s.widget(_local, selected);
+			if (board_info.wifi_avail())
+				s.widget(_wifi, attr.enabled.wifi);
 
-			if (target.managed() || target.manual_type == Nic_target::WIRED)
-				if (board_info.detected.nic || board_info.soc.nic)
-					s.widget(_wired, selected);
-
-			if (target.managed() || target.manual_type == Nic_target::WIFI)
-				if (board_info.wifi_avail())
-					s.widget(_wifi, selected);
-
-			if (target.managed() || target.manual_type == Nic_target::MODEM)
-				if (board_info.soc.modem)
-					s.widget(_modem, selected);
+			if (board_info.soc.modem)
+				s.widget(_mobile, attr.enabled.mobile);
 		}
 
 		void click(Clicked_at const &at, Action &action)
 		{
-			_off  .propagate(at, [&] (Type t) { action.nic_target(t); });
-			_local.propagate(at, [&] (Type t) { action.nic_target(t); });
-			_wired.propagate(at, [&] (Type t) { action.nic_target(t); });
-			_wifi .propagate(at, [&] (Type t) { action.nic_target(t); });
-			_modem.propagate(at, [&] (Type t) { action.nic_target(t); });
+			_local .propagate(at, [&] { action.nic_target(Target::DISCONNECTED); });
+			_nic   .propagate(at, [&] { action.nic_target(Target::NIC); });
+			_wifi  .propagate(at, [&] { action.nic_target(Target::WIFI); });
+			_mobile.propagate(at, [&] { action.nic_target(Target::MOBILE); });
 		}
 	};
 
@@ -88,32 +89,30 @@ struct Sculpt::Network_widget : Widget<Frame>
 
 	void _gen_connected_ap(Generator &, bool) const;
 
-	Network_widget(Nic_target           const &nic_target,
-	               Access_points        const &access_points,
+	Network_widget(Access_points        const &access_points,
 	               Wifi_connection      const &wifi_connection,
 	               Nic_state            const &nic_state,
 	               Blind_wpa_passphrase const &wpa_passphrase,
 	               Wlan_config_policy   const &wlan_config_policy)
 	:
-		_nic_target(nic_target), _nic_state(nic_state),
+		_nic_state(nic_state),
 		_ap_selector(Id { "aps" },
 		             access_points, wifi_connection,
 		             wlan_config_policy, wpa_passphrase)
 	{ }
 
-	void view(Scope<Frame> &s, Board_info const &board_info) const
+	void view(Scope<Frame> &s, Board_info const &board_info, View_attr attr) const
 	{
 		s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
 			s.sub_scope<Min_ex>(35);
 
-			s.widget(_target_selector, _nic_target, board_info);
+			s.widget(_target_selector, attr, board_info);
 
-			if (_nic_target.wifi() || _nic_target.wired() || _nic_target.modem()) {
-
+			if (attr.enabled.any()) {
 				s.sub_scope<Frame>([&] (Scope<Frame, Vbox, Frame> &s) {
 					s.sub_scope<Vbox>([&] (Scope<Frame, Vbox, Frame, Vbox> &s) {
 
-						if (_nic_target.wifi())
+						if (attr.enabled.wifi)
 							s.widget(_ap_selector);
 
 						if (_nic_state.ready())
@@ -132,8 +131,7 @@ struct Sculpt::Network_widget : Widget<Frame>
 
 	bool need_keyboard_focus_for_passphrase() const
 	{
-		return _nic_target.wifi()
-		    && _ap_selector.need_keyboard_focus_for_passphrase();
+		return _ap_selector.need_keyboard_focus_for_passphrase();
 	}
 
 	bool ap_list_hovered(Hovered_at const &at) const

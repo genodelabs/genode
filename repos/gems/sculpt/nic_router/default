@@ -1,0 +1,40 @@
+config | verbose_domain_state: yes
+
++ report | interval_sec: 5 | bytes: yes | config: yes | config_triggers: yes
+
++ policy | label: nic     | domain: uplink
++ policy | label: wifi    | domain: uplink
++ policy | label: mobile  | domain: uplink
++ policy | label: usb_net | domain: uplink
++ policy | label: http    | domain: http
++ policy | label: telnet  | domain: telnet
++ policy | label: gdb     | domain: gdb
++ policy | label: vnc     | domain: vnc
+
++ default-policy | domain: default
+
++ domain uplink
+  + nat | domain: default | tcp-ports: 1000 | udp-ports: 1000 | icmp-ids: 1000
+  + tcp-forward | port: 80   | domain: http   | to: 10.0.80.2
+  + tcp-forward | port: 23   | domain: telnet | to: 10.0.23.2
+  + tcp-forward | port: 9999 | domain: gdb    | to: 10.0.99.2
+  + tcp-forward | port: 5900 | domain: vnc    | to: 10.0.59.2
+
++ domain default | interface: 10.0.1.1/24
+  + dhcp-server | ip_first: 10.0.1.2 | ip_last: 10.0.1.200 | dns_config_from: uplink
+  + tcp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+  + udp  | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+  + icmp | dst: 0.0.0.0/0 | domain: uplink
+
++ domain http | interface: 10.0.80.1/24
+  + dhcp-server | ip_first: 10.0.80.2 | ip_last: 10.0.80.2 | dns_config_from: uplink
+
++ domain telnet | interface: 10.0.23.1/24
+  + dhcp-server | ip_first: 10.0.23.2 | ip_last: 10.0.23.2 | dns_config_from: uplink
+
++ domain gdb | interface: 10.0.99.1/24
+  + dhcp-server | ip_first: 10.0.99.2 | ip_last: 10.0.99.2 | dns_config_from: uplink
+
++ domain vnc | interface: 10.0.59.1/24
+  + dhcp-server | ip_first: 10.0.59.2 | ip_last: 10.0.59.2 | dns_config_from: uplink
+-
