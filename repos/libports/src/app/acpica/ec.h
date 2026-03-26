@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -28,6 +28,9 @@ class Ec : Acpica::Callback<Ec> {
 		Genode::Env          &_env;
 		Genode::Allocator    &_heap;
 		Acpica::Reportstate * _report;
+
+		ACPI_HANDLE           _ec_handle;
+		bool                  _poll_reg;
 
 		/* 12.2.1 Embedded Controller Status, EC_SC (R) */
 		struct State : Genode::Register<8> {
@@ -52,11 +55,13 @@ class Ec : Acpica::Callback<Ec> {
 	public:
 
 		Ec(Genode::Env &env, Genode::Allocator &heap,
-		   Acpica::Reportstate *report)
+		   Acpica::Reportstate *report, ACPI_HANDLE ec, bool reg)
 		:
 			_env(env),
 			_heap(heap),
-			_report(report)
+			_report(report),
+			_ec_handle(ec),
+			_poll_reg(reg)
 		{ }
 
 		static UINT32 handler_gpe(ACPI_HANDLE dev, UINT32 gpe, void *context)
@@ -115,6 +120,14 @@ class Ec : Acpica::Callback<Ec> {
 
 				ec->_report->ec_event();
 			}
+
+			/*
+			 * Call ACPI _REG method, which triggers an internal state update
+			 * for some notebooks, so that AC adapter _PRS reports current
+			 * state.
+			 */
+			if (ec->_poll_reg)
+				ec->execute_reg();
 
 			return ACPI_REENABLE_GPE; /* gpe is acked and re-enabled */
 		}
@@ -217,9 +230,15 @@ class Ec : Acpica::Callback<Ec> {
 
 		static ACPI_STATUS detect(ACPI_HANDLE ec, UINT32, void *m, void **)
 		{
-			Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
-			Ec *ec_obj = new (main->heap) Ec(main->env, main->heap,
-			                                 main->report);
+			if (!m)
+				return AE_OK;
+
+			auto &main = *reinterpret_cast<Acpica::Main *>(m);
+
+			bool poll_reg = main.config.node().attribute_value("poll_reg", true);
+
+			Ec *ec_obj = new (main.heap) Ec(main.env, main.heap,
+			                                main.report, ec, poll_reg);
 
 			ACPI_STATUS res = AcpiWalkResources(ec, ACPI_STRING("_CRS"),
 			                                    Ec::detect_io_ports, ec_obj);
@@ -279,6 +298,26 @@ class Ec : Acpica::Callback<Ec> {
 				ec_obj->_report->add_notify(ec_obj);
 
 			return AE_OK;
+		}
+
+		void execute_reg()
+		{
+			/* ACPI spec 6.1, chapter 6.5.4 _REG (Region) */
+
+			ACPI_OBJECT_LIST para_in   { };
+			ACPI_OBJECT      values[2] { };
+
+			values[0].Type          = ACPI_TYPE_INTEGER;
+			values[0].Integer.Value = ACPI_ADR_SPACE_EC;
+			values[1].Type          = ACPI_TYPE_INTEGER;
+			values[1].Integer.Value = ACPI_REG_CONNECT;
+
+			para_in.Count   = 2;
+			para_in.Pointer = values;
+
+			Acpica::Buffer<ACPI_OBJECT> out { };
+			AcpiEvaluateObjectTyped(_ec_handle, ACPI_STRING("_REG"),
+			                        &para_in, &out, ACPI_TYPE_INTEGER);
 		}
 
 		void generate(Genode::Generator &g)

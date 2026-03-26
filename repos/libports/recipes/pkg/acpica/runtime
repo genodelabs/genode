@@ -1,4 +1,4 @@
-runtime | ram: 10M | caps: 300 | binary: acpica
+runtime | ram: 10M | caps: 400 | binary: acpica
 
 + requires
   + io_mem
@@ -20,4 +20,5 @@ runtime | ram: 10M | caps: 300 | binary: acpica
          report_period_ms: 20000
          use_gpe:          no
          sleep:            yes
+         poll_reg:         no
 -
