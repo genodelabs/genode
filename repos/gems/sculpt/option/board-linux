@@ -1,9 +1,9 @@
 option
 + child fb | binary: fb_sdl | caps: 100 | ram: 32M | ld: no
   + connect
+    + capture    | + child gui          | label: sdl
     + rom config | + child model        | label: fb
     + event      | + child event_filter | label: sdl
-    + capture    | + child gui          | label: sdl
 
 + child lx_fs | binary: lx_fs | caps: 200 | ram: 4M | ld: no
   + provides | + fs

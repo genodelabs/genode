@@ -57,78 +57,24 @@ class Sculpt::Runtime_config
 			if (result.valid())
 				return result;
 
-			node.with_optional_sub_node("parent", [&] (Node const &parent) {
+			node.with_optional_sub_node("parent", [&] (Node const &) {
 
 				Service::Type_name const service =
 					node.attribute_value("name", Service::Type_name());
 
-				Service::Name const dst_label =
-					parent.attribute_value("label", Service::Name());
-
 				bool const ignored_service = (service == "CPU")
 				                          || (service == "PD")
-				                          || (service == "Report")
 				                          || (service == "Timer")
-				                          || (service == "LOG");
+				                          || (service == "LOG")
+				                          || (service == "TRACE");
 				if (ignored_service)
 					return;
 
-				bool const hardware = (service == "Platform")
-				                   || (service == "IO_PORT")
+				bool const hardware = (service == "IO_PORT")
 				                   || (service == "IO_MEM")
-				                   || (service == "Rtc")
-				                   || (service == "IRQ")
-				                   || (service == "TRACE");
+				                   || (service == "IRQ");
 				if (hardware) {
 					result = "hardware";
-					return;
-				}
-
-				bool const usb = (service == "Usb");
-				if (usb) {
-					result = "usb";
-					return;
-				}
-
-				if (service == "ROM") {
-
-					/*
-					 * ROM sessions for plain binaries (e.g, as requested by
-					 * the sculpt-managed inspect or part_block instances) are
-					 * not interesting for the graph. Non-sculpt-managed
-					 * subsystems can only be connected to the few ROMs
-					 * whitelisted in the 'Parent_services' definition below.
-					 */
-					bool const interesting_rom =
-						dst_label.valid() &&
-						(strcmp("config", dst_label.string(), 5) == 0 ||
-						 dst_label == "platform_info" ||
-						 dst_label == "capslock");
-
-					if (interesting_rom) {
-						result = "info";
-						return;
-					}
-				}
-
-				if (service == "File_system") {
-
-					if (dst_label == "config") {
-						result = "config";
-						return;
-					}
-
-					if (dst_label == "font" || dst_label == "report") {
-						result = "info";
-						return;
-					}
-				}
-
-				bool const gui = (service == "Gui")
-				              || (service == "Event")
-				              || (service == "Capture");
-				if (gui) {
-					result = "GUI";
 					return;
 				}
 			});

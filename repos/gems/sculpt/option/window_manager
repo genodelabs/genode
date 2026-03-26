@@ -12,10 +12,10 @@ option
 
 + child themed_decorator | priority: -2 | pkg: themed_decorator
   + connect
+    + gui               | + child wm
     + rom window_layout | + child wm
     + rom pointer       | + child wm
     + report            | + child wm
-    + gui               | + child wm
 
 + child wm | priority: -2 | pkg: wm
   + connect

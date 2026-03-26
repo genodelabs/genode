@@ -127,9 +127,6 @@ void Graph::view(Scope<Depgraph> &s) const
 
 	/* parent roles */
 	s.sub_scope<Parent_node>(Id { "hardware" }, "Hardware");
-	s.sub_scope<Parent_node>(Id { "config" },   "Config");
-	s.sub_scope<Parent_node>(Id { "info" },     "Info");
-	s.sub_scope<Parent_node>(Id { "GUI" },      "GUI");
 
 	using Component = Runtime_config::Component;
 
@@ -150,6 +147,7 @@ void Graph::view(Scope<Depgraph> &s) const
 		bool const hidden = (name == "runtime_view"
 		                  || name == "editor"
 		                  || name == "config_query"
+		                  || name == "model_query"
 		                  || name == "update"
 		                  || name == "fs_tool"
 		                  || name == "depot_rw"
