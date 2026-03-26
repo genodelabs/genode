@@ -508,11 +508,23 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 				g.attribute("width",  attr.location.width());
 				g.attribute("height", attr.location.height()); });
 
+		auto provides_anything = [&]
+		{
+			bool result = false;
+			if (_pkg_node.constructed())
+				_pkg_node->with_optional_sub_node("runtime", [&] (Node const &runtime) {
+					result = runtime.has_sub_node("provides"); });
+			else if (_pkg == Pkg::NONE)
+				result = child.has_sub_node("provides");
+			return result;
+		};
+
 		/* supplement deploy info and diagnostics */
 		bool const augment_deploy_info = _blueprint_pkg_path.length() > 1
 		                              || option.length() > 1
 		                              || _deps == Deps::MISSING
-		                              || _deps == Deps::STALLED;
+		                              || _deps == Deps::STALLED
+		                              || provides_anything();
 		if (augment_deploy_info)
 			g.node("deploy", [&] {
 
@@ -558,6 +570,25 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 								if (deps == Deps::STALLED) gen_missing_dep("stalled_server", conn);
 						});
 					});
+
+				auto copy_provided_services = [&] (Node const &node)
+				{
+					using Value = String<32>;
+					node.with_optional_sub_node("provides", [&] (Node const &provides) {
+						g.tabular_node("provides", [&] {
+							provides.for_each_sub_node([&] (Node const &node) {
+								if (global.resource_types.dict.exists(node.type()))
+									g.node(node.type().string(), [&] {
+										auto name = node.attribute_value("name", Value());
+										if (node.has_attribute("name"))
+											g.attribute("name", name); }); }); }); });
+				};
+
+				if (_pkg_node.constructed())
+					_pkg_node->with_optional_sub_node("runtime", [&] (Node const &runtime) {
+						copy_provided_services(runtime); });
+				else if (_pkg == Pkg::NONE)
+					copy_provided_services(child);
 			});
 
 		/* lookup if PD/CPU service is configured and use shim in such cases */
