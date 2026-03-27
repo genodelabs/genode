@@ -38,6 +38,42 @@ struct Sculpt::Service
 	Info        info;
 	Match_label match_label;
 
+	static char const *node_type(Service::Type type)
+	{
+		switch (type) {
+		case Type::AUDIO_IN:    return "audio_in";
+		case Type::AUDIO_OUT:   return "audio_out";
+		case Type::BLOCK:       return "block";
+		case Type::EVENT:       return "event";
+		case Type::CAPTURE:     return "capture";
+		case Type::FS:          return "fs";
+		case Type::NIC:         return "nic";
+		case Type::UPLINK:      return "uplink";
+		case Type::GUI:         return "gui";
+		case Type::GPU:         return "gpu";
+		case Type::RM:          return "rm";
+		case Type::I2C:         return "i2c";
+		case Type::IO_MEM:      return "io_mem";
+		case Type::IO_PORT:     return "io_port";
+		case Type::IRQ:         return "irq";
+		case Type::REPORT:      return "report";
+		case Type::ROM:         return "rom";
+		case Type::TERMINAL:    return "terminal";
+		case Type::TRACE:       return "trace";
+		case Type::USB:         return "usb";
+		case Type::RTC:         return "rtc";
+		case Type::PLATFORM:    return "platform";
+		case Type::PIN_STATE:   return "pin_state";
+		case Type::PIN_CONTROL: return "pin_control";
+		case Type::VM:          return "vm";
+		case Type::PD:          return "pd";
+		case Type::PLAY:        return "play";
+		case Type::RECORD:      return "record";
+		case Type::UNDEFINED:   break;
+		}
+		return "undefined";
+	}
+
 	/**
 	 * Return name attribute value of <service name="..."> node
 	 */
@@ -77,12 +113,20 @@ struct Sculpt::Service
 		return "undefined";
 	}
 
+
+	static Info _info(Start_name const &server, Name const &name)
+	{
+		Info result { server };
+		if (name.length() > 1) result = Info { result, " (", name, ")" };
+		return Subst("_", " ", result);
+	}
+
 	/**
 	 * Constructor for child service
 	 */
 	Service(Start_name const &server, Type type, Name const &name)
 	:
-		server(server), type(type), name(name), info(Subst("_", " ", server)),
+		server(server), type(type), name(name), info(_info(server, name)),
 		match_label(type == Type::FS ? Match_label::FS : Match_label::EXACT)
 	{ }
 
@@ -123,18 +167,6 @@ struct Sculpt::Service
 	}
 
 	void generate(Generator &g) const { generate(g, [] { }); }
-
-	/**
-	 * Return name of file-system service
-	 */
-	Start_name fs_name() const
-	{
-		bool const parent = !server.valid();
-		if (parent)
-			return name;   /* "report" and "config" file system */
-
-		return server;      /* file system provided by a child */
-	}
 };
 
 #endif /* _MODEL__SERVICE_H_ */

@@ -27,42 +27,6 @@ struct Sculpt::Route : List_model<Route>::Element
 	using Info = String<80>;
 	using Name = Service::Name;
 
-	static char const *node_type(Service::Type type)
-	{
-		switch (type) {
-		case Service::Type::AUDIO_IN:    return "audio_in";
-		case Service::Type::AUDIO_OUT:   return "audio_out";
-		case Service::Type::BLOCK:       return "block";
-		case Service::Type::EVENT:       return "event";
-		case Service::Type::CAPTURE:     return "capture";
-		case Service::Type::FS:          return "fs";
-		case Service::Type::NIC:         return "nic";
-		case Service::Type::UPLINK:      return "uplink";
-		case Service::Type::GUI:         return "gui";
-		case Service::Type::GPU:         return "gpu";
-		case Service::Type::RM:          return "rm";
-		case Service::Type::I2C:         return "i2c";
-		case Service::Type::IO_MEM:      return "io_mem";
-		case Service::Type::IO_PORT:     return "io_port";
-		case Service::Type::IRQ:         return "irq";
-		case Service::Type::REPORT:      return "report";
-		case Service::Type::ROM:         return "rom";
-		case Service::Type::TERMINAL:    return "terminal";
-		case Service::Type::TRACE:       return "trace";
-		case Service::Type::USB:         return "usb";
-		case Service::Type::RTC:         return "rtc";
-		case Service::Type::PLATFORM:    return "platform";
-		case Service::Type::PIN_STATE:   return "pin_state";
-		case Service::Type::PIN_CONTROL: return "pin_control";
-		case Service::Type::VM:          return "vm";
-		case Service::Type::PD:          return "pd";
-		case Service::Type::PLAY:        return "play";
-		case Service::Type::RECORD:      return "record";
-		case Service::Type::UNDEFINED:   break;
-		}
-		return "undefined";
-	}
-
 	static char const *_pretty_name(Service::Type type)
 	{
 		switch (type) {
@@ -106,7 +70,7 @@ struct Sculpt::Route : List_model<Route>::Element
 
 		for (unsigned i = 0; i < (unsigned)Service::Type::UNDEFINED; i++) {
 			Service::Type const s = (Service::Type)i;
-			if (type == node_type(s))
+			if (type == Service::node_type(s))
 				return s;
 		}
 

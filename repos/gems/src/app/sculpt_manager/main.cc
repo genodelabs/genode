@@ -1518,21 +1518,19 @@ struct Sculpt::Main : Input_event_handler,
 	/*
 	 * File_browser_dialog::Action interface
 	 */
-	void browse_file_system(File_browser_state::Fs_name const &name) override
+	void browse_file_system(File_browser_state::Fs const &fs) override
 	{
-		using Fs_name = File_browser_state::Fs_name;
-
 		_close_edited_file();
 
-		if (name == _file_browser_state.browsed_fs) {
-			_file_browser_state.browsed_fs = Fs_name();
+		if (fs == _file_browser_state.browsed) {
+			_file_browser_state.browsed = { };
 			_file_browser_state.fs_query.destruct();
 
 		} else {
-			_file_browser_state.browsed_fs = name;
+			_file_browser_state.browsed = fs;
 			_file_browser_state.path = File_browser_state::Path("/");
 
-			Child_name const child_name(name, ".query");
+			Child_name const child_name = fs.query_name();
 			_file_browser_state.fs_query.construct(_child_states, Priority::LEITZENTRALE,
 			                                       child_name,
 			                                       Binary_name { "fs_query" },

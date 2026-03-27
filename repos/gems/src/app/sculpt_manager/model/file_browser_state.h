@@ -16,17 +16,48 @@
 
 #include "types.h"
 #include <model/child_state.h>
+#include <model/service.h>
 
 namespace Sculpt { struct File_browser_state; }
 
 struct Sculpt::File_browser_state : Noncopyable
 {
-	using Fs_name = Start_name;
-	using Path    = String<256>;
-	using File    = Path;
-	using Sub_dir = Path;
+	using Name     = Start_name;
+	using Resource = Start_name;
 
-	Fs_name browsed_fs { };
+	struct Fs
+	{
+		Child_name    server;
+		Service::Name resource;
+
+		static Fs from_service(Service const &service)
+		{
+			if (service.type != Service::Type::FS)
+				return { };
+
+			return { .server  = service.server,
+			        .resource = service.name };
+		}
+
+		bool operator == (Fs const &other) const
+		{
+			return server == other.server && resource == other.resource;
+		}
+
+		Child_name query_name() const
+		{
+			Child_name result = server;
+			if (resource.length() > 1)
+				result = { result, ".", resource };
+			return { result, ".query" };
+		}
+	};
+
+	using Path     = String<256>;
+	using File     = Path;
+	using Sub_dir  = Path;
+
+	Fs browsed { };
 
 	Constructible<Child_state> fs_query { };
 	Constructible<Child_state> text_area { };
@@ -70,7 +101,15 @@ struct Sculpt::File_browser_state : Noncopyable
 						fn(entry); }); }); });
 	}
 
-	bool any_browsed_fs() const { return browsed_fs.length() > 0; }
+	bool any_browsed_fs() const { return browsed.server.length() > 1; }
+
+	void _connect_browsed_fs(Generator &g) const
+	{
+		g.node("fs", [&] {
+			gen_named_node(g, "child", browsed.server, [&] {
+				if (browsed.resource.length() > 1)
+					g.attribute("identity", browsed.resource); }); });
+	}
 
 	void gen_child_nodes(Generator &g) const
 	{
@@ -92,7 +131,7 @@ struct Sculpt::File_browser_state : Noncopyable
 			g.tabular_node("connect", [&] {
 				connect_parent_rom(g, "vfs.lib.so");
 				connect_report(g);
-				g.node("fs", [&] { gen_named_node(g, "child", browsed_fs); });
+				_connect_browsed_fs(g);
 			});
 		});
 
@@ -156,15 +195,7 @@ struct Sculpt::File_browser_state : Noncopyable
 				gen_named_node(g, "fs", "font", [&] {
 					gen_named_node(g, "child", "font"); });
 
-				g.node("fs", [&] {
-					if (browsed_fs == "config") {
-						g.node("parent", [&] {
-							g.attribute("identity", "config"); });
-					}
-					else {
-						gen_named_node(g, "child", browsed_fs);
-					}
-				});
+				_connect_browsed_fs(g);
 			});
 		});
 	}

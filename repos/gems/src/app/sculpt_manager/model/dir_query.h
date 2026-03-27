@@ -50,16 +50,30 @@ struct Sculpt::Dir_query : Noncopyable
 	Query _query { };
 
 	/*
+	 * Name of directory where the file system is mounted
+	 */
+	static Fs_name fs_dir_name(Service const &service)
+	{
+		Fs_name result { service.server };
+		if (service.name.length() > 1) result = Fs_name { result, ".", service.name };
+		return result;
+	}
+
+	/*
 	 * Dictionary of known file systems
 	 */
 	struct Fs;
 	using Fs_dict = Dictionary<Fs, Fs_name>;
 	struct Fs : Fs_dict::Element
 	{
-		bool const parent;
+		Start_name    const server;
+		Service::Name const resource;
 
-		Fs(Fs_dict &dict, Fs_name const &fs_name, bool parent)
-		: Fs_dict::Element(dict, fs_name), parent(parent) { }
+		Fs(Fs_dict &dict, Service const &service)
+		:
+			Fs_dict::Element(dict, fs_dir_name(service)),
+			server(service.server), resource(service.name)
+		{ }
 	};
 	Fs_dict _fs_dict { };
 
@@ -117,7 +131,7 @@ struct Sculpt::Dir_query : Noncopyable
 	Dir_query(Env &env, Allocator &alloc, Action &action)
 	:
 		_action(action),
-		_fs_query_config(env, alloc, "config", "dir_query",
+		_fs_query_config(env, alloc, "config", "child/dir_query",
 		                 *this, &Dir_query::_handle_fs_query_config)
 	{
 		_fs_query_config.trigger_update();
@@ -135,7 +149,7 @@ struct Sculpt::Dir_query : Noncopyable
 			bool exists = false;
 			runtime_config.for_each_service([&] (Service const &service) {
 				exists |= (service.type == Service::Type::FS)
-				       && (service.fs_name() == fs.name); });
+				       && (fs_dir_name(service) == fs.name); });
 			if (!exists) {
 				any_file_system_vanished = true;
 			}
@@ -148,8 +162,8 @@ struct Sculpt::Dir_query : Noncopyable
 		bool file_systems_changed = any_file_system_vanished;
 		runtime_config.for_each_service([&] (Service const &service) {
 			if (service.type == Service::Type::FS)
-				if (!_fs_dict.exists(service.fs_name())) {
-					new (alloc) Fs(_fs_dict, service.fs_name(), !service.server.valid());
+				if (!_fs_dict.exists(fs_dir_name(service))) {
+					new (alloc) Fs(_fs_dict, service);
 					file_systems_changed = true; } });
 
 		if (file_systems_changed) {
@@ -234,15 +248,23 @@ struct Sculpt::Dir_query : Noncopyable
 		auto gen_fs_connect = [&] (Generator &g, Fs const &fs)
 		{
 			gen_named_node(g, "fs", fs.name, [&] {
-				if (fs.parent)
-					g.node("parent", [&] {
-						g.attribute("identity", fs.name);
-						g.attribute("resource", "/"); });
-				else
-					g.node("child", [&] {
-						g.attribute("name",     fs.name);
+				g.node("child", [&] {
+					g.attribute("name", fs.server);
+
+					/*
+					 * If a specific server-side resource selected, use the
+					 * resource as identity. Otherwise, use the identity of
+					 * the designated file-system client to make sure that the
+					 * policy of the client is applied while querying (e.g.,
+					 * recall_fs showing the client's content).
+					 */
+					if (fs.resource.length() > 1)
+						g.attribute("identity", fs.resource);
+					else
 						g.attribute("identity", _query.identity);
-						g.attribute("resource", "/"); });
+
+					g.attribute("resource", "/");
+				});
 			});
 		};
 

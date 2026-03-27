@@ -245,7 +245,8 @@ void Sculpt::gen_inspect_view(Generator             &g,
 		g.tabular_node("connect", [&] {
 
 			gen_named_node(g, "fs", "model", [&] {
-				gen_named_node(g, "child", "model"); });
+				gen_named_node(g, "child", "model", [&] {
+					g.attribute("identity", "rw"); }); });
 
 			gen_named_node(g, "fs", "report", [&] {
 				gen_named_node(g, "child", "report"); });

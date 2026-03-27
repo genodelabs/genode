@@ -99,18 +99,24 @@ class Sculpt::Runtime_config
 		{
 			static Service::Type type_from_node(Node const &service)
 			{
-				auto const name = service.attribute_value("name", Service::Type_name());
+				Service::Type_name const type = service.type();
 				for (unsigned i = 0; i < (unsigned)Type::UNDEFINED; i++) {
 					Type const t = (Type)i;
-					if (name == Service::name_attr(t))
+					if (type == Service::node_type(t))
 						return t;
 				}
-
 				return Type::UNDEFINED;
 			}
 
-			Child_service(Start_name server, Node const &provides)
-			: Service(server, type_from_node(provides), { }) { }
+			static Service::Name name_from_node(Node const &service)
+			{
+				return service.attribute_value("name", Service::Name());
+			}
+
+			Child_service(Start_name server, Node const &service)
+			:
+				Service(server, type_from_node(service), name_from_node(service))
+			{ }
 
 			static bool type_matches(Node const &node)
 			{
@@ -119,7 +125,8 @@ class Sculpt::Runtime_config
 
 			bool matches(Node const &node) const
 			{
-				return type_from_node(node) == type;
+				return type_from_node(node) == type
+				    && name_from_node(node) == name;
 			}
 		};
 
@@ -248,9 +255,11 @@ class Sculpt::Runtime_config
 					if (update_route_from_node(alloc, route).progressed)
 						result = PROGRESSED; });
 
-				node.with_optional_sub_node("provides", [&] (Node const &provides) {
-					if (update_provides_from_node(alloc, provides).progressed)
-						result = PROGRESSED; });
+				node.with_optional_sub_node("deploy", [&] (Node const &deploy) {
+					deploy.with_optional_sub_node("provides", [&] (Node const &provides) {
+						if (update_provides_from_node(alloc, provides).progressed)
+							result = PROGRESSED; });
+				});
 
 				bool const stalled_differs =
 					stalled(node) ? !_stalled.constructed() || _stalled->differs_from(node)

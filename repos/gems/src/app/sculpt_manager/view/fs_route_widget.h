@@ -206,7 +206,7 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 			bool const expanded = route.browsed.path.length() > 1;
 			bool const has_subdirs = expanded ||
 				dir_query.dir_entry_has_sub_dirs(browsed_path_query(component, route),
-				                                 service.fs_name());
+				                                 Dir_query::fs_dir_name(service));
 
 			Fs_entry entry { service_id, };
 			s.widget(entry, service.info, Dir_entry::Attr {
@@ -293,7 +293,7 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 						if (route.browsed.path.length() > 1) {
 							route.browsed = { };
 						} else {
-							route.browsed.path = { "/", service.fs_name() };
+							route.browsed.path = { "/", Dir_query::fs_dir_name(service) };
 							route.browsed.service_id = service_id;
 						}
 					});

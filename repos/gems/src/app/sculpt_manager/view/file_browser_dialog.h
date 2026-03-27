@@ -26,7 +26,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 	Runtime_config     const &_runtime_config;
 	File_browser_state const &_state;
 
-	using Fs_name = File_browser_state::Fs_name;
+	using Fs      = File_browser_state::Fs;
 	using Sub_dir = File_browser_state::Path;
 	using Path    = File_browser_state::Path;
 	using File    = File_browser_state::Path;
@@ -34,7 +34,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 
 	struct Action : Interface, Noncopyable
 	{
-		virtual void browse_file_system(Fs_name const &) = 0;
+		virtual void browse_file_system(Fs const &) = 0;
 		virtual void browse_sub_directory(Sub_dir const &) = 0;
 		virtual void browse_abs_directory(Path const &) = 0;
 		virtual void browse_parent_directory() = 0;
@@ -266,12 +266,25 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 
 	using Hosted_entry = Hosted<Vbox, Frame, Vbox, Entry>;
 
-	void _view_file_system(Scope<Vbox> &s, Service const &service) const
+	void _for_each_file_system(auto const &fn) const
 	{
-		bool       const parent = !service.server.valid();
-		Start_name const name   = parent ? Start_name(service.name) : service.server;
-		Start_name const pretty_name { Pretty(name) };
-		bool       const selected = (_state.browsed_fs == name);
+		unsigned id = 0;
+		_runtime_config.for_each_service([&] (Service const &service) {
+			if (service.type == Service::Type::FS)
+				fn(File_browser_state::Fs::from_service(service), Id { { "fs", id++ } });
+		});
+	}
+
+	void _view_file_system(Scope<Vbox> &s, File_browser_state::Fs const &fs, Id const fs_id) const
+	{
+		using Detail = Start_name;
+		using Name   = Start_name;
+
+		bool   const resource = fs.resource.length() > 1;
+		Detail const detail = resource ? Detail(" (", fs.resource, ")") : Detail();
+		Name   const name { fs.server, detail };
+		Name   const pretty_name { Pretty(name) };
+		bool   const selected = (_state.browsed == fs);
 
 		if (_state.text_area.constructed() && _state.modified && !selected)
 			return;
@@ -279,7 +292,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 		s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
 			s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
 				s.sub_scope<Min_ex>(50);
-				s.sub_scope<Button>(Id { name }, [&] (Scope<Vbox, Frame, Vbox, Button> &s) {
+				s.sub_scope<Button>(fs_id, [&] (Scope<Vbox, Frame, Vbox, Button> &s) {
 
 					if (!_state.modified && s.hovered())
 						s.attribute("hovered", "yes");
@@ -319,9 +332,8 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 	void view(Scope<> &s) const override
 	{
 		s.sub_scope<Vbox>([&] (Scope<Vbox> &s) {
-			_runtime_config.for_each_service([&] (Service const &service) {
-				if (service.type == Service::Type::FS)
-					_view_file_system(s, service); }); });
+			_for_each_file_system([&] (File_browser_state::Fs const &fs, Id const &id) {
+				_view_file_system(s, fs, id); }); });
 	}
 
 	File_browser_dialog(Runtime_config     const &runtime_config,
@@ -334,10 +346,15 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 
 	void click(Clicked_at const &at) override
 	{
-		Id const fs_id = at.matching_id<Vbox, Frame, Vbox, Button>();
-		if (fs_id.valid()) {
+		Id const clicked_id = at.matching_id<Vbox, Frame, Vbox, Button>();
+		File_browser_state::Fs clicked_fs { };
+		_for_each_file_system([&] (File_browser_state::Fs const &fs, Id const id) {
+			if (clicked_id == id)
+				clicked_fs = fs; });
+
+		if (clicked_fs.server.valid()) {
 			if (!_state.modified)
-				_action.browse_file_system(fs_id.value);
+				_action.browse_file_system(clicked_fs);
 			return;
 		}
 
