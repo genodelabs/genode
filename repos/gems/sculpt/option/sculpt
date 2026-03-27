@@ -3,7 +3,8 @@ option
 + child model | binary: init | caps: 300 | ram: 15M | priority: -1
   + provides
     + rom
-    + fs
+    + fs ro
+    + fs rw
   + connect
     + rom config    | + parent | label: config -> child/model
     + fs            | + parent | identity: config -> rw
@@ -147,7 +148,7 @@ option
     + rom | label_prefix: report ->            | + child report
     + rom | label_prefix: manager -> config -> | + child model
     + rom | label_prefix: config ->            | + child model
-    + fs config                                | + child model
+    + fs config                                | + child model | identity: rw
     + fs font                                  | + child font
     + fs report                                | + child report
     + report                                   | + child report

@@ -12,13 +12,15 @@ config
 
 + start chroot | caps: 100 | ram: 3M
   + provides | + service File_system
-  + config | + default-policy | path: / | writeable: yes
   + route | + any-service | + parent
+  + config
+    + policy | label_prefix: rw -> | path: / | writeable: yes
+    + policy | label_prefix: ro -> | path: / | writeable: no
 
 + start fs_rom | caps: 100 | ram: 10M
   + provides | + service ROM
   + config
   + route
-    + service File_system | + child chroot
+    + service File_system | + child chroot | identity: ro
     + any-service         | + parent
 -

@@ -4,7 +4,7 @@ option
     + gui              | + child wm
     + fs font          | + child font
     + fs target        | + child default_fs_rw
-    + fs model         | + child model
+    + fs model         | + child model | identity: rw
     + fs report        | + child report
     + report clipboard | + child wm
     + rom    clipboard | + child wm
