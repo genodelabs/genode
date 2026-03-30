@@ -261,8 +261,6 @@ config | prio_levels: 2
   + service TRACE
   + service VM
 
-+ affinity-space | width: 2 | height: 1
-
 + default-route
   + any-service
     + parent
