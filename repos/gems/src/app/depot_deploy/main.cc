@@ -54,7 +54,7 @@ struct Depot_deploy::Main : Option::Action
 		 */
 		Depot_rom_server depot_rom;
 
-		static Attr from_config(Node const &config)
+		static Attr from_config(Node const &config, Affinity::Space probed_affinity_space)
 		{
 			return {
 				.verbose     =   config.attribute_value("verbose", false),
@@ -63,7 +63,7 @@ struct Depot_deploy::Main : Option::Action
 
 				.affinity_space = config.with_sub_node("affinity-space",
 					[&] (Node const &node) { return Affinity::Space::from_node(node); },
-					[&]                    { return Affinity::Space(1, 1); }),
+					[&]                    { return probed_affinity_space; }),
 
 				.blueprint_buffer = config.attribute_value("blueprint_buffer", Num_bytes { }),
 
@@ -138,7 +138,7 @@ struct Depot_deploy::Main : Option::Action
 	{
 		_config.update();
 
-		_attr = Attr::from_config(_config.node());
+		_attr = Attr::from_config(_config.node(), _env.cpu().affinity_space());
 
 		if (!_attr.arch.valid())
 			warning("config lacks 'arch' attribute");
@@ -163,6 +163,10 @@ struct Depot_deploy::Main : Option::Action
 		if (_attr.prio_levels.value)
 			g.attribute("prio_levels", _attr.prio_levels.value);
 
+		g.node("affinity-space", [&] {
+			g.attribute("width",  _attr.affinity_space.width());
+			g.attribute("height", _attr.affinity_space.height()); });
+
 		config.with_sub_node("static",
 			[&] (Node const &static_config) {
 				if (!g.append_node_content(static_config, MAX_NODE_DEPTH))
@@ -175,7 +179,6 @@ struct Depot_deploy::Main : Option::Action
 				(void)g.append_node(node, Generator::Max_depth { 2 }); });
 		};
 
-		copy_nodes("affinity-space");
 		copy_nodes("report");
 		copy_nodes("heartbeat");
 		copy_nodes("alias");
