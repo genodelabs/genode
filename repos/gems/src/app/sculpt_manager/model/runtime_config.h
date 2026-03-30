@@ -50,6 +50,17 @@ class Sculpt::Runtime_config
 		 */
 		static Start_name _to_name(Node const &node)
 		{
+			Service::Type_name const service =
+				node.attribute_value("name", Service::Type_name());
+
+			bool const ignored_service = (service == "CPU")
+			                          || (service == "PD")
+			                          || (service == "Timer")
+			                          || (service == "LOG")
+			                          || (service == "TRACE");
+			if (ignored_service)
+				return { };
+
 			Start_name result { };
 			node.with_optional_sub_node("child", [&] (Node const &child) {
 				result = child.attribute_value("name", Start_name()); });
@@ -58,17 +69,6 @@ class Sculpt::Runtime_config
 				return result;
 
 			node.with_optional_sub_node("parent", [&] (Node const &) {
-
-				Service::Type_name const service =
-					node.attribute_value("name", Service::Type_name());
-
-				bool const ignored_service = (service == "CPU")
-				                          || (service == "PD")
-				                          || (service == "Timer")
-				                          || (service == "LOG")
-				                          || (service == "TRACE");
-				if (ignored_service)
-					return;
 
 				bool const hardware = (service == "IO_PORT")
 				                   || (service == "IO_MEM")

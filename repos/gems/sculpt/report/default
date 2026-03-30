@@ -1,4 +1,4 @@
-config | verbose: yes
+config | verbose: no
 
 + parent-provides
   + service ROM

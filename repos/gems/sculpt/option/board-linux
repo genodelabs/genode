@@ -8,4 +8,5 @@ option
 + child lx_fs | binary: lx_fs | caps: 200 | ram: 4M | ld: no
   + provides | + fs
   + config | + default-policy | root: / | writeable: yes
+  + connect | + log | + parent
 -

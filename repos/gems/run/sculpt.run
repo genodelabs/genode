@@ -365,8 +365,12 @@ foreach subdir { option depot keyboard child } {
 if {[llength [ingredients_of_type presets]] > 0} {
 	file mkdir [file join [initial_config_dir] presets] }
 
+proc log_route { } {
+	if {[log_core]} { return "parent" } else { return "child report" }
+}
+
 install_hid [initial_config_file runtime] w] {
-config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8 | depot_rom: depot_rom
+config | arch: } [depot_spec] { | verbose: no | prio_levels: 8 | depot_rom: depot_rom
 + report  | init_ram: yes | init_caps: yes | child_ram: yes | child_caps: yes
           | requested: no | provided: no | delay_ms: 2000 | buffer: 1M
 + heartbeat | rate_ms: 2000
@@ -391,7 +395,7 @@ config | arch: } [depot_spec] { | verbose: yes | prio_levels: 8 | depot_rom: dep
   + service ROM | label_last: init      | + parent
   + service CPU                         | + parent
   + service PD                          | + parent
-  + service LOG                         | + parent
+  + service LOG                         | + } [log_route] {
   + service Timer                       | + parent
 -
 }
@@ -549,12 +553,12 @@ close $fd
 # dummy kernel/core log ROMs for kernels w/o log-export feature
 if {![have_spec nova]} {
 	set fd [open [file join [run_dir] genode kernel_log] w]
-	puts $fd "kernel log not available\n"
+	puts $fd ""
 	close $fd
 }
 if {[have_board linux]} {
 	set fd [open [file join [run_dir] genode core_log] w]
-	puts $fd "core log not available\n"
+	puts $fd ""
 	close $fd
 }
 

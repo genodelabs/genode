@@ -8,6 +8,7 @@ option
     + fs ro
     + fs rw
   + connect
+    + log           | + parent
     + rom config    | + parent | label: config -> child/model
     + fs            | + parent | identity: config -> rw
     + rom ld.lib.so | + parent
@@ -22,6 +23,7 @@ option
     + rom global_keys/capslock
     + fs
   + connect
+    + log                    | + parent
     + rom runtime_config     | + parent      | label: runtime_config
     + rom runtime_state      | + parent      | label: runtime_state
     + rom kernel_log         | + parent      | label: kernel_log
