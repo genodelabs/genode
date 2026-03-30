@@ -75,7 +75,12 @@ proc run_log { wait_for_re timeout_value } {
 	# prepare command
 	#
 	if {[have_installed meshcmd] && ( $amt_tool == "meshcmd" )} {
-		set amt_cmd "meshcmd amtterm --host [log_amt_host] --password [log_amt_password]"
+		set tls_arg ""
+		if { [cmd_arg --meshcmd-tls "no"] == "yes" } {
+			set tls_arg "--tls"
+		}
+
+		set amt_cmd "meshcmd amtterm $tls_arg --host [log_amt_host] --password [log_amt_password]"
 		set amt_log ".*Connected"
 	} else {
 		#

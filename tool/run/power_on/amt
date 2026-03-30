@@ -116,11 +116,16 @@ proc amt_reset_wsman { } {
 # Executes a power on or power cycle depending on the current power state
 #
 proc amt_reset_meshcmd { } {
-	set power_state [exec meshcmd amtpower --reset --host [power_on_amt_host] --password [power_on_amt_password]]
+	set tls_arg ""
+	if { [cmd_arg --meshcmd-tls "no"] == "yes" } {
+		set tls_arg "--tls"
+	}
+
+	set power_state [exec meshcmd amtpower $tls_arg --reset --host [power_on_amt_host] --password [power_on_amt_password]]
 	if { $power_state == "Current power state: Soft off" } {
-		exec meshcmd amtpower --powercycle --host [power_on_amt_host] --password [power_on_amt_password]
+		exec meshcmd amtpower $tls_arg --powercycle --host [power_on_amt_host] --password [power_on_amt_password]
 	} else {
-		exec meshcmd amtpower --poweron --host [power_on_amt_host] --password [power_on_amt_password]
+		exec meshcmd amtpower $tls_arg --poweron --host [power_on_amt_host] --password [power_on_amt_password]
 	}
 }
 
