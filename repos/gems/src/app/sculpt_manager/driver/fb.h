@@ -86,7 +86,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				connect_capture(g);
 				connect_report(g);
 				connect_config_rom(g, "config", "fb");
-				connect_report_rom(g, "intel_opregion", "runtime/platform/intel_opregion");
+				connect_report_rom(g, "intel_opregion", "platform/intel_opregion");
 				g.node("rm", [&] { g.node("parent"); });
 			});
 		});
