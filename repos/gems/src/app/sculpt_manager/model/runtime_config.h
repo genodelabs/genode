@@ -296,12 +296,8 @@ class Sculpt::Runtime_config
 			Registry<Parent_service> _r { };
 
 			Parent_service const
-				_capslock  { _r, Type::ROM,      "global capslock state",     "capslock" },
-				_vimrc     { _r, Type::ROM,      "default vim configuration", "config -> vimrc" },
-				_font      { _r, Type::ROM,      "system font configuration", "config -> child/font" },
-				_pf_info   { _r, Type::ROM,      "platform information",      "platform_info" },
-				_bld_info  { _r, Type::ROM,      "build information",         "build_info" },
-				_system    { _r, Type::ROM,      "system status",             "config -> system" },
+				_pf_info   { _r, Type::ROM,      "platform information", "platform_info" },
+				_bld_info  { _r, Type::ROM,      "build information",    "build_info" },
 				_rm        { _r, Type::RM,       "custom virtual memory objects" },
 				_io_mem    { _r, Type::IO_MEM,   "raw hardware access" },
 				_io_port   { _r, Type::IO_PORT,  "raw hardware access" },

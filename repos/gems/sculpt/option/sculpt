@@ -3,6 +3,8 @@ option
 + child model | binary: init | caps: 300 | ram: 15M | priority: -1
   + provides
     + rom
+    + rom vimrc
+    + rom system
     + fs ro
     + fs rw
   + connect
@@ -17,6 +19,7 @@ option
     + log
     + report
     + rom
+    + rom global_keys/capslock
     + fs
   + connect
     + rom runtime_config     | + parent      | label: runtime_config
