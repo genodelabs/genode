@@ -40,6 +40,9 @@ option
   + affinity | xpos: 1 | width: 1 | . decouple nitpicker from boot CPU
   + provides
     + gui
+    + gui focus
+    + gui backdrop
+    + gui lock_screen
     + capture
     + event
   + connect
