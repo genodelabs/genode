@@ -1,7 +1,12 @@
 option
 
 + child platform | binary: init | caps: 1500 | ram: 32M | managing_system: yes
-  + provides | + platform
+  + provides
+    + platform
+    + platform nic
+    + platform wifi
+    + platform audio
+    + platform acpica
   + connect
     + io_mem            | + parent | . attached to hardware node in the graph
     + io_port           | + parent
