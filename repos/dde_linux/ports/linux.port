@@ -12,6 +12,7 @@ DIR(linux) := src/linux
 PATCH_FILES := \
                arm64_disable_jump_label.patch \
                i2c_hid_timeout.patch \
+               i2c_hid_configure.patch \
                kernel_types.patch \
                lxip_checksum_32.patch \
                lxip_ip_config.patch \

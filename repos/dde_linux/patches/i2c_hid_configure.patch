@@ -1,0 +1,52 @@
+This patch adds lx_emul hooks to configure the Designware I2C controller as
+well as the Intel pincontrol driver, which are used by I2C HID devices from
+Tiger Lake on. Settings currently get lost in rudimentary ACPI emulation.
+
+--- src/linux/drivers/i2c/busses/i2c-designware-common.c
++++ src/linux/drivers/i2c/busses/i2c-designware-common.c
+@@ -34,6 +34,10 @@
+ 
+ #include "i2c-designware-core.h"
+ 
++#ifdef I2C_HID_CONFIGURE_HOOK
++extern void lx_emul_i2c_configure(struct device *);
++#endif
++
+ static const char *const abort_sources[] = {
+ 	[ABRT_7B_ADDR_NOACK] =
+ 		"slave address not acknowledged (7bit mode)",
+@@ -395,6 +399,10 @@
+ 	else if (is_acpi_node(fwnode))
+ 		i2c_dw_acpi_configure(device);
+ 
++#ifdef I2C_HID_CONFIGURE_HOOK
++	lx_emul_i2c_configure(device);
++#endif
++
+ 	return i2c_dw_validate_speed(dev);
+ }
+ EXPORT_SYMBOL_GPL(i2c_dw_fw_parse_and_configure);
+--- src/linux/drivers/pinctrl/intel/pinctrl-intel.c
++++ src/linux/drivers/pinctrl/intel/pinctrl-intel.c
+@@ -1683,10 +1683,21 @@
+ }
+ EXPORT_SYMBOL_NS_GPL(intel_pinctrl_probe, "PINCTRL_INTEL");
+ 
++#ifdef I2C_HID_CONFIGURE_HOOK
++extern bool lx_emul_configured_gpio_chip(char const *name);
++#endif
++
+ int intel_pinctrl_probe_by_hid(struct platform_device *pdev)
+ {
+ 	const struct intel_pinctrl_soc_data *data;
+ 
++#ifdef I2C_HID_CONFIGURE_HOOK
++	struct list_head *ids = &ACPI_COMPANION(&pdev->dev)->pnp.ids;
++	char const *hid = list_first_entry(ids, struct acpi_hardware_id, list)->id;
++	if (!lx_emul_configured_gpio_chip(hid))
++		return -ENODEV;
++#endif
++
+ 	data = device_get_match_data(&pdev->dev);
+ 	if (!data)
+ 		return -ENODATA;
