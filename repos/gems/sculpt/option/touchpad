@@ -21,6 +21,6 @@ option
 
   + heartbeat | restart_after_skipped: 4
   + connect
-    + platform | + child platform | label: touchpad
-    + event    | + parent | label: touchpad
+    + platform | + child platform     | label: touchpad
+    + event    | + child event_filter | label: touchpad
 -
