@@ -105,7 +105,7 @@ struct Sculpt::Deploy
 				if (_runtime_info.abandoned_by_user(name))
 					return;
 
-				g.node("start", [&] {
+				g.node(node.type().string(), [&] {
 
 					/*
 					 * Copy attributes while overriding the version, which is
