@@ -1,4 +1,4 @@
-content: include lib/symbols/zlib LICENSE FindZLIB.cmake zlib.pc
+content: include lib/symbols/zlib LICENSE zlib.pc
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/zlib)
 
@@ -11,9 +11,6 @@ lib/symbols/zlib:
 
 LICENSE:
 	echo "zlib license" > $@
-
-FindZLIB.cmake:
-	echo 'set(ZLIB_FOUND True)' > $@
 
 VERSION := $(shell sed -n 's/VERSION.*:=[ ]*\(.*\)/\1/p' $(REP_DIR)/ports/zlib.port)
 

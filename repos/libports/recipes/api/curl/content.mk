@@ -17,13 +17,10 @@ include:
 
 content: src/lib/curl
 
-content: LICENSE FindCURL.cmake libcurl.pc
+content: LICENSE libcurl.pc
 
 LICENSE:
 	cp $(PORT_DIR)/src/lib/curl/COPYING $@
-
-FindCURL.cmake:
-	echo 'set(CURL_FOUND True)' > $@
 
 VERSION := $(shell sed -n 's/VERSION.*:=[ ]*\(.*\)/\1/p' $(REP_DIR)/ports/curl.port)
 
