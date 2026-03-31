@@ -35,12 +35,6 @@ namespace Sculpt {
 		 * Return true if specified child is present in the runtime subsystem
 		 */
 		virtual bool present_in_runtime(Start_name const &) const = 0;
-
-		virtual bool abandoned_by_user(Start_name const &) const = 0;
-
-		virtual Version restarted_version(Start_name const &) const = 0;
-
-		virtual void gen_launched_deploy_start_nodes(Generator &) const = 0;
 	};
 
 	void gen_chroot_child_content(Generator &, Child_name const &,

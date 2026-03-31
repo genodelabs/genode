@@ -43,6 +43,7 @@
 #include <network.h>
 #include <deploy.h>
 #include <graph.h>
+#include <vfs.h>
 #include <view/selectable_title_bar.h>
 #include <view/device_controls_widget.h>
 #include <view/device_power_widget.h>
@@ -95,6 +96,8 @@ struct Sculpt::Main : Input_event_handler,
 	Heap _heap { _env.ram(), _env.rm() };
 
 	Sculpt_version const _sculpt_version { _env };
+
+	Vfs _vfs { _env, _heap };
 
 	Build_info const _build_info =
 		Build_info::from_node(Attached_rom_dataspace(_env, "build_info").node());
@@ -626,20 +629,14 @@ struct Sculpt::Main : Input_event_handler,
 
 	Deploy _deploy { _heap, _child_states, _runtime_state };
 
-	Managed_config<Main> _deploy_config {
-		_env, _heap, "deploy", "deploy", *this, &Main::_handle_deploy_config };
+	Rom_handler<Main> _deploy_handler {
+		_env, "model -> deploy", *this, &Main::_handle_deploy };
 
 	Expanding_reporter _managed_option { _env, "option", "option/managed" };
 
-	void _handle_deploy_config(Node const &deploy)
+	void _handle_deploy(Node const &deploy)
 	{
-		/* force managed mode regardless if 'deploy' has a 'managed' attribute */
-		_deploy_config.managed = true;
-
-		_deploy_config.generate([&] (Generator &g) {
-			_deploy.handle_deploy_config(g, deploy); });
-
-		_runtime_state.reset_abandoned_and_launched_children();
+		_deploy.handle_deploy(deploy);
 	}
 
 	Managed_config<Main> _managed_depot_version {
@@ -1039,15 +1036,18 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Component::Construction_action interface
 	 */
-	void discard_construction() override { _runtime_state.discard_construction(); }
+	void discard_construction() override { _runtime_state.reset_construction(); }
 
 	/**
 	 * Component::Construction_action interface
 	 */
 	void launch_construction()  override
 	{
-		_runtime_state.launch_construction();
-		_deploy_config.trigger_update();
+		_vfs.edit("/model/deploy", [&] (Hid_edit &edit) {
+			edit.append("deploy", [&] (Generator &g) {
+				_runtime_state.gen_construction(g); }); });
+
+		_runtime_state.reset_construction();
 	}
 
 	void _generate_runtime_config(Generator &) const;
@@ -1411,8 +1411,18 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void remove_deployed_component(Start_name const &name) override
 	{
-		_runtime_state.abandon(name);
-		_deploy_config.trigger_update();
+		_cached_init_config.with_component(name, [&] (Runtime_config::Component const &c) {
+
+			bool const option = (c.option.length() > 1);
+
+			auto const path = option ? Path { "/model/option/", c.option }
+			                         : Path { "/model/deploy" };
+
+			_vfs.edit(path, [&] (Hid_edit &edit) {
+				edit.remove({ option ? "option" : "deploy", " | : child ", name });
+			});
+
+		}, [&] { warning("attempt to remove unknown child '", name, "'"); });
 	}
 
 	/*
@@ -1420,21 +1430,26 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void restart_deployed_component(Start_name const &name) override
 	{
-		auto restart = [&] (auto const &name)
-		{
-			_with_child(name, [&] (Child_state &child) {
-				child.trigger_restart();
-				generate_runtime_config();
-			});
-		};
+		_cached_init_config.with_component(name, [&] (Runtime_config::Component const &c) {
 
-		if (name == "nic" || name == "wifi")
-			restart(name);
-		else {
+			if (c.option == "managed") {
+				_with_child(name, [&] (Child_state &child) {
+					child.trigger_restart();
+					generate_runtime_config();
+				});
+				return;
+			}
 
-			_runtime_state.restart(name);
-			_deploy_config.trigger_update();
-		}
+			bool const option = (c.option.length() > 1);
+
+			auto const path = option ? Path { "/model/option/", c.option }
+			                         : Path { "/model/deploy" };
+
+			_vfs.edit(path, [&] (Hid_edit &edit) {
+				edit.adjust({ option ? "option" : "deploy", " | + child | : version" },
+				            0u, [&] (unsigned v) { return v + 1; }); });
+
+		}, [&] { warning("attempt to restart unknown child '", name, "'"); });
 	}
 
 	/*
@@ -1473,13 +1488,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_download_queue.remove_inactive_downloads();
 
-		_model_listing_rom.with_node([&] (Node const &listing) {
-			listing.for_each_sub_node("dir", [&] (Node const &dir) {
-				if (dir.attribute_value("path", Path()) == "/presets") {
-					dir.for_each_sub_node("file", [&] (Node const &file) {
-						if (file.attribute_value("name", Presets::Info::Name()) == name) {
-							file.with_optional_sub_node("deploy", [&] (Node const &config) {
-								_handle_deploy_config(config); }); } }); } }); });
+		_vfs.copy({ "/model/presets/", name }, "/model/deploy");
 	}
 
 	/**
@@ -1506,8 +1515,9 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void enable_option(Options::Name const &name) override
 	{
-		_deploy.enable_option(name);
-		_deploy_config.trigger_update();
+		_vfs.edit("/model/deploy", [&] (Hid_edit &edit) {
+			edit.append("deploy", [&] (Generator &g) {
+				g.node("option", [&] { g.attribute("name", name); }); }); });
 	}
 
 	/**
@@ -1515,8 +1525,8 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void disable_option(Options::Name const &name) override
 	{
-		_deploy.disable_option(name);
-		_deploy_config.trigger_update();
+		_vfs.edit("/model/deploy", [&] (Hid_edit &edit) {
+			edit.remove({ "deploy | : option ", name }); });
 	}
 
 	/**

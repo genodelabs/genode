@@ -192,6 +192,10 @@ class Sculpt::Runtime_config
 
 			Constructible<Buffered_node> _stalled { };
 
+			using Option = String<32>;
+
+			Option option { }; /* where the component's 'child' node is hosted */
+
 			Component(Start_name const &name, Graph_ids &graph_ids, Dialog::Id const &id)
 			:
 				name(name), graph_id(graph_ids, name, id)
@@ -255,11 +259,18 @@ class Sculpt::Runtime_config
 					if (update_route_from_node(alloc, route).progressed)
 						result = PROGRESSED; });
 
+				Option const orig_option = option;
+				option = { };
+
 				node.with_optional_sub_node("deploy", [&] (Node const &deploy) {
+					option = deploy.attribute_value("option", Option());
 					deploy.with_optional_sub_node("provides", [&] (Node const &provides) {
 						if (update_provides_from_node(alloc, provides).progressed)
 							result = PROGRESSED; });
 				});
+
+				if (orig_option != option)
+					result = PROGRESSED;
 
 				bool const stalled_differs =
 					stalled(node) ? !_stalled.constructed() || _stalled->differs_from(node)
@@ -388,6 +399,18 @@ class Sculpt::Runtime_config
 				if (component._stalled.constructed()) {
 					Node const &stalled = *component._stalled;
 					fn(stalled); } });
+		}
+
+		void with_component(Start_name const &name,
+		                    auto const &fn, auto const &missing_fn) const
+		{
+			bool found = false;
+			_components.for_each([&] (Component const &component) {
+				if (component.name == name) {
+					found = true;
+					fn(component); } });
+			if (!found)
+				missing_fn();
 		}
 
 		bool any_stalled() const { return _num_stalled > 0; }

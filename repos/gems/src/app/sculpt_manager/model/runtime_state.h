@@ -80,8 +80,6 @@ class Sculpt::Runtime_state : public Runtime_info
 			            .avail_caps    = 0,
 			            .version       = { 0 }};
 
-			bool abandoned_by_user = false;
-
 			Child(Start_name const &name) : name(name) { }
 
 			bool matches(Node const &node) const
@@ -120,69 +118,26 @@ class Sculpt::Runtime_state : public Runtime_info
 		bool _usb_in_tcb     = false;
 		bool _storage_in_tcb = false;
 
-		/**
-		 * Child present in initial deploy config but interactively removed
-		 */
-		struct Abandoned_child : Interface
-		{
-			Start_name const name;
-
-			Abandoned_child(Start_name const &name) : name(name) { };
-		};
-
-		Registry<Registered<Abandoned_child> > _abandoned_children { };
-
-		/**
-		 * Child that was interactively restarted
-		 */
-		struct Restarted_child : Interface
-		{
-			Start_name const name;
-
-			Version version;
-
-			Restarted_child(Start_name const &name, Version const &version)
-			: name(name), version(version) { };
-		};
-
-		Registry<Registered<Restarted_child> > _restarted_children { };
-
-		/**
-		 * Child that was interactively launched
-		 */
-		struct Launched_child : Interface
+		struct Emerging_child : Interface
 		{
 			Start_name const name;
 
 			Constructible<Component> construction { };
 
-			bool launched;
-
-			/**
-			 * Constructor used for interactively configured child
-			 */
-			Launched_child(Allocator &alloc, Start_name const &name,
+			Emerging_child(Allocator &alloc, Start_name const &name,
 			               Component::Path const &pkg_path,
 			               Verify          const  verify,
 			               Component::Info const &info,
 			               Affinity::Space const space)
 			:
-				name(name), launched(false)
+				name(name)
 			{
 				construction.construct(alloc, name, pkg_path, verify, info, space);
 			}
 
-			void gen_deploy_start_node(Generator &g, Runtime_state const &state) const
+			void gen_deploy_child_node(Generator &g) const
 			{
-				if (!launched)
-					return;
-
-				gen_named_node(g, "start", name, [&] {
-
-					Version const version = state.restarted_version(name);
-
-					if (version.value > 0)
-						g.attribute("version", version.value);
+				gen_named_node(g, "child", name, [&] {
 
 					/* interactively constructed */
 					if (construction.constructed()) {
@@ -203,28 +158,20 @@ class Sculpt::Runtime_state : public Runtime_info
 			}
 		};
 
-		Registry<Registered<Launched_child> > _launched_children { };
-
-		Registered<Launched_child> *_currently_constructed = nullptr;
+		Constructible<Emerging_child> _emerging { };
 
 		bool _construction_in_progress() const
 		{
-			return _currently_constructed
-			    && _currently_constructed->construction.constructed();
+			return _emerging.constructed()
+			    && _emerging->construction.constructed();
 		}
-
-		/*
-		 * Noncopyable
-		 */
-		Runtime_state(Runtime_state const &);
-		Runtime_state &operator = (Runtime_state const &);
 
 	public:
 
 		Runtime_state(Allocator &alloc, Storage_target const &storage_target)
 		: _alloc(alloc), _storage_target(storage_target) { }
 
-		~Runtime_state() { reset_abandoned_and_launched_children(); }
+		~Runtime_state() { }
 
 		Progress update_from_state_report(Node const &state)
 		{
@@ -261,51 +208,7 @@ class Sculpt::Runtime_state : public Runtime_info
 				if (!result && child.name == name)
 					result = true; });
 
-			_launched_children.for_each([&] (Launched_child const &child) {
-				if (!result && child.name == name && child.launched)
-					result = true; });
-
 			return result;
-		}
-
-		/**
-		 * Runtime_info interface
-		 */
-		bool abandoned_by_user(Start_name const &name) const override
-		{
-			bool result = false;
-
-			_abandoned_children.for_each([&] (Abandoned_child const &child) {
-				if (!result && child.name == name)
-					result = true; });
-
-			return result;
-		}
-
-		/**
-		 * Return version of restarted child
-		 *
-		 * If the returned value is version 0, the child has not been
-		 * restarted.
-		 */
-		Version restarted_version(Start_name const &name) const override
-		{
-			Version result { 0 };
-
-			_restarted_children.for_each([&] (Restarted_child const &child) {
-				if (!result.value && child.name == name)
-					result = child.version; });
-
-			return result;
-		}
-
-		/**
-		 * Runtime_info interface
-		 */
-		void gen_launched_deploy_start_nodes(Generator &g) const override
-		{
-			_launched_children.for_each([&] (Launched_child const &child) {
-				child.gen_deploy_start_node(g, *this); });
 		}
 
 		Info info(Start_name const &name) const
@@ -393,60 +296,12 @@ class Sculpt::Runtime_state : public Runtime_info
 			});
 		}
 
-		void abandon(Start_name const &name)
-		{
-			/*
-			 * If child was launched interactively, remove corresponding
-			 * entry from '_launched_children'.
-			 */
-			bool was_interactively_launched = false;
-			_launched_children.for_each([&] (Registered<Launched_child> &child) {
-				if (child.name == name) {
-					was_interactively_launched = true;
-					destroy(_alloc, &child);
-				}
-			});
-
-			if (was_interactively_launched)
-				return;
-
-			/*
-			 * Child was present at initial deploy config, mark as abandoned
-			 */
-			new (_alloc) Registered<Abandoned_child>(_abandoned_children, name);
-		}
-
-		void restart(Start_name const &name)
-		{
-			/* determin current version from most recent state report */
-			Version current_version { 0 };
-			_children.for_each([&] (Child const &child) {
-				if (child.name == name)
-					current_version = child.info.version; });
-
-			Version const next_version { current_version.value + 1 };
-
-			bool already_restarted = false;
-
-			_restarted_children.for_each([&] (Restarted_child &child) {
-				if (child.name == name) {
-					already_restarted = true;
-					child.version = next_version;
-				}
-			});
-
-			if (!already_restarted)
-				new (_alloc)
-					Registered<Restarted_child>(_restarted_children, name, next_version);
-		}
-
 		Start_name new_construction(Component::Path const  pkg,
 		                            Verify          const  verify,
 		                            Component::Info const &info,
 		                            Affinity::Space const  space)
 		{
-			/* allow only one construction at a time */
-			discard_construction();
+			_emerging.destruct();
 
 			return Depot::Archive::name(pkg).convert<Start_name>(
 				[&] (Depot::Archive::Name const &archive_name) {
@@ -457,9 +312,8 @@ class Sculpt::Runtime_state : public Runtime_info
 					while (present_in_runtime(unique_name))
 						unique_name = Start_name(archive_name, ".", ++cnt);
 
-					_currently_constructed = new (_alloc)
-						Registered<Launched_child>(_launched_children, _alloc,
-						                           unique_name, pkg, verify, info, space);
+					_emerging.construct(_alloc, unique_name, pkg, verify, info, space);
+
 					return unique_name;
 				},
 				[&] (Depot::Archive::Unknown) {
@@ -468,46 +322,27 @@ class Sculpt::Runtime_state : public Runtime_info
 				});
 		}
 
-		void discard_construction()
+		void reset_construction()
 		{
-			if (_currently_constructed) {
-				destroy(_alloc, _currently_constructed);
-				_currently_constructed = nullptr;
-			}
+			_emerging.destruct();
 		}
 
 		void apply_to_construction(auto const &fn)
 		{
 			if (_construction_in_progress())
-				fn(*_currently_constructed->construction);
+				fn(*_emerging->construction);
 		}
 
 		void with_construction(auto const &fn) const
 		{
 			if (_construction_in_progress())
-				fn(*_currently_constructed->construction);
+				fn(*_emerging->construction);
 		}
 
-		void launch_construction()
+		void gen_construction(Generator &g) const
 		{
-			if (_currently_constructed)
-				_currently_constructed->launched = true;
-
-			_currently_constructed = nullptr;
-		}
-
-		void reset_abandoned_and_launched_children()
-		{
-			_abandoned_children.for_each([&] (Abandoned_child &child) {
-				destroy(_alloc, &child); });
-
-			_launched_children.for_each([&] (Launched_child &child) {
-				/* don't leave '_currently_constructed' pointer dangling */
-				if (child.launched)
-					destroy(_alloc, &child); });
-
-			_restarted_children.for_each([&] (Restarted_child &child) {
-				destroy(_alloc, &child); });
+			if (_emerging.constructed())
+				_emerging->gen_deploy_child_node(g);
 		}
 };
 

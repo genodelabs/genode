@@ -89,7 +89,6 @@ config
   + route
     + service Report | label: runtime_config          | + child model_fs_report | label: init
     + service Report | label: depot_version_config    | + child model_fs_report | label: depot -> version
-    + service Report | label: deploy_config           | + child model_fs_report | label: deploy
     + service Report | label: child/wifi_config       | + child model_fs_report | label: child -> wifi
     + service Report | label: modem_config            | + child model_fs_report | label: modem
     + service Report | label: audio_config            | + child model_fs_report | label: audio
@@ -105,6 +104,7 @@ config
     + service ROM | label: config                  | + parent | label: model -> manager
     + service ROM | label_prefix: report ->        | + parent
     + service ROM | label: model -> depot_version  | + parent | label: model -> depot/version
+    + service ROM | label: model -> deploy         | + parent | label: model -> deploy
     + service ROM | label: nitpicker_focus         | + parent | label: focus
     + service ROM | label: nitpicker_hover         | + parent | label: hover
     + service ROM | label: leitzentrale            | + parent | label: leitzentrale_enabled
@@ -112,6 +112,8 @@ config
     + service ROM | label: window_list             | + child report_rom
     + service ROM | label: decorator_margins       | + child report_rom
     + service ROM | label: clicked                 | + child report_rom
+    + service File_system | label_prefix: model    | + parent | identity: model
+    + service File_system | label_prefix: report   | + parent | identity: report
     + service Gui                                  | + parent | label: manager -> fader ->
     + any-service                                  | + parent
 -

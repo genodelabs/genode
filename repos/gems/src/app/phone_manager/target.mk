@@ -8,7 +8,7 @@ SRC_CC  += $(addprefix view/,    $(notdir $(wildcard $(SCULPT_MANAGER_DIR)/view/
 SRC_CC  += $(addprefix runtime/, $(notdir $(wildcard $(SCULPT_MANAGER_DIR)/runtime/*.cc)))
 SRC_CC  += $(addprefix dialog/,  $(notdir $(wildcard $(SCULPT_MANAGER_DIR)/dialog/*.cc)))
 SRC_CC  += gui.cc graph.cc storage.cc network.cc drivers.cc dialog.cc
-LIBS    += base
+LIBS    += base vfs
 INC_DIR += $(PRG_DIR) $(SCULPT_MANAGER_DIR) $(DEPOT_DEPLOY_DIR)
 
 vpath %.cc      $(PRG_DIR)
