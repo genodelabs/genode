@@ -97,7 +97,7 @@ static Libc::Plugin_context *vfs_context(Genode::Vfs::Vfs_handle *vfs_handle)
  * Code shared between 'stat' and 'fstat'.
  */
 static void vfs_stat_to_libc_stat_struct(Genode::Vfs::Directory_service::Stat const &src,
-                                         struct stat *dst)
+                                         char const *path, struct stat *dst)
 {
 	using namespace Genode;
 
@@ -118,6 +118,22 @@ static void vfs_stat_to_libc_stat_struct(Genode::Vfs::Directory_service::Stat co
 		return 0;
 	};
 
+	auto pseudo_inode_from_path = [] (char const *path)
+	{
+		uint64_t checksum = 0;
+		for (uint8_t *s = (uint8_t *)path; *s; s++) {
+			checksum ^= *s;
+
+			/* xorshift64 */
+			uint64_t x = checksum;
+			x ^= x << 13;
+			x ^= x >> 7;
+			x ^= x << 17;
+			checksum = x;
+		}
+		return ino_t(checksum);
+	};
+
 	*dst = { };
 
 	timespec const mtime {
@@ -133,7 +149,7 @@ static void vfs_stat_to_libc_stat_struct(Genode::Vfs::Directory_service::Stat co
 	dst->st_size    = src.size;
 	dst->st_blksize = FS_BLOCK_SIZE;
 	dst->st_blocks  = (dst->st_size + FS_BLOCK_SIZE - 1) / FS_BLOCK_SIZE;
-	dst->st_ino     = src.inode;
+	dst->st_ino     = pseudo_inode_from_path(path);
 	dst->st_dev     = src.device;
 	dst->st_mtim    = mtime;
 	dst->st_nlink   = 1;
@@ -720,7 +736,7 @@ int Libc::Vfs_plugin::stat_from_kernel(const char *path, struct stat *buf)
 	case Result::STAT_OK:                           break;
 	}
 
-	vfs_stat_to_libc_stat_struct(stat, buf);
+	vfs_stat_to_libc_stat_struct(stat, path, buf);
 	return 0;
 }
 
@@ -742,7 +758,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 		case Result::STAT_ERR_NO_ENTRY: result_errno = ENOENT; break;
 		case Result::STAT_ERR_NO_PERM:  result_errno = EACCES; break;
 		case Result::STAT_OK:
-			vfs_stat_to_libc_stat_struct(stat, buf);
+			vfs_stat_to_libc_stat_struct(stat, path, buf);
 			result = 0;
 			break;
 		}
