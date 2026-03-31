@@ -105,8 +105,10 @@ config | verbose: yes
     | + pci | class: VGA
     | + pci | class: ISABRIDGE
     + policy | label: touchpad  | info: yes
-    | + device 00:15.3 | type: pci
-    | + device INT34C5 | type: acpi
+    | + pci | vendor_id: 0x8086 | device_id: 0xa0eb
+    | + pci | vendor_id: 0x8086 | device_id: 0x7e51
+    | + device INT34C5  | type: acpi
+    | + device INTC1083 | type: acpi
     + policy | label: wifi      | info: yes | msix: no
     | + pci | class: WIFI
     + policy | label: nic       | info: yes
