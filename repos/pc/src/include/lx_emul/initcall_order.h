@@ -238,6 +238,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_asymmetric_key_init6",
 	"__initcall_x509_key_init6",
 	"__initcall_percpu_counter_startup6",
+	"__initcall_mtl_pinctrl_driver_init6",
 	"__initcall_tgl_pinctrl_driver_init6",
 	"__initcall_pci_proc_init6",
 	"__initcall_ged_driver_init6",
