@@ -194,7 +194,8 @@ int clk_hw_register(struct device * dev, struct clk_hw * hw)
 
 #include <linux/sysctl.h>
 
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name,size_t table_size)
+void __init __register_sysctl_init(const char * path, const struct ctl_table * table,
+                                   const char * table_name, size_t table_size)
 {
 	lx_emul_trace(__func__);
 }

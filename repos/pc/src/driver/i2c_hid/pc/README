@@ -2,14 +2,33 @@ This driver support I2C HID devices connected to Intel Tigerlake/Alderlake
 LPSS I2C controllers.
 
 Configuration
--------------
+~~~~~~~~~~~~~
 
 Some properties of the used device must be configured via '<config>'
 attributes as the default configuration is tailored to Fujitsu LIFEBOOK
 U7411 with Synaptics touchpad.
 
-:gpio_pin: Touchpads are connected to a GPIO pin in interrupt mode to
-  request input-event handling.
+The default configuration is like follows.
+
+! <config>
+!   <i2c_slave irq="266" bus_addr="44" hid_addr="32" gpio_chip="INT34C5"/>
+!   <i2c_master bus_speed_hz="400000">
+!     <fmcn hcnt="193" lcnt="313" hold_time="80"/>
+!     <sscn hcnt="500" lcnt="588" hold_time="80"/>
+!   </i2c_master>
+! </config>
+
+I2C client configuration
+------------------------
+
+The '<i2c_slave>' node is used to configure how the HID device is reached via
+I2C with the following attributes.
+
+:gpio_chip: If the device is connected to a GPIO pin in interrupt mode, the
+  driver needs to know the name of the GPIO controller device.
+
+:irq: The interrupt number (GPIO pin or IO-APIC) used for requesting
+  input-event handling.
 
 :bus_addr: The I2C bus address of the concrete controllers differs among
   touchpad manufacturers and can be adjusted via this attribute.
@@ -18,6 +37,21 @@ U7411 with Synaptics touchpad.
   ACPI device-specific methods (which are not supported yet) and can be
   explicitly configured with this attribute.
 
-The default configuration is like follows.
+I2C master configuration
+------------------------
 
-! <config gpio_pin="266" bus_addr="44" hid_addr="32"/>
+The '<i2c_master>' node defines timing properties used by the Designware
+I2C controller. Since we have no mechanism for extracting these values from
+ACPI tables (yet), we resort to explicit configuration.
+
+:bus_speed_hz: The I2C bus frequency in Hz.
+
+The node may contain a '<fmcn>' (Fast Mode, 400KHz) and a
+'<sscn>' (Standard Mode, 100KHz) node. Each of those supports the following
+attributes.
+
+:hcnt: Value of the designware I2C controller's high count register.
+
+:lcnt: Value of the designware I2C controller's low count register.
+
+:hold_time: SDA hold time parameter.

@@ -66,7 +66,7 @@ static int find_match_name(struct gpio_chip *gc, const void *data)
 {
 	char const *name = data;
 
-	return !strcmp(gc->label, name);
+	return !strncmp(gc->label, name, strlen(name));
 }
 
 
@@ -82,25 +82,35 @@ int acpi_dev_gpio_irq_wake_get_by(struct acpi_device *adev, const char *name, in
 	if (index != 0)
 		return -ENOENT;
 
-	/* most interesting part happens in gpiod_to_irq(desc) */
-	if (!(gdev = gpio_device_find("INT34C5:00", find_match_name)))
-		return -ENODEV;
+	switch (i2c_hid_config.mode)
+	{
+		case GPIO:
+			/* most interesting part happens in gpiod_to_irq(desc) */
+			if (!(gdev = gpio_device_find(i2c_hid_config.gpiochip_name, find_match_name))) {
+				printk("GPIO chip '%s' not available\n", i2c_hid_config.gpiochip_name);
+				return -ENOENT;
+			}
+			gpio_device_put(gdev);
 
-	gpio_device_put(gdev);
+			desc = gpiochip_get_desc(gdev->chip , i2c_hid_config.irq);
+			irq  = gpiod_to_irq(desc);
 
-	desc = gpiochip_get_desc(gdev->chip , i2c_hid_config.gpio_pin);
-	irq  = gpiod_to_irq(desc);
+			snprintf(label, sizeof(label), "GpioInt() %d", index);
+			ret = gpiod_configure_flags(desc, label, lflags, dflags);
+			if (ret < 0)
+				return ret;
 
-	snprintf(label, sizeof(label), "GpioInt() %d", index);
-	ret = gpiod_configure_flags(desc, label, lflags, dflags);
-	if (ret < 0)
-		return ret;
+			ret = gpio_set_debounce_timeout(desc, 0);
+			if (ret < 0)
+				return ret;
 
-	ret = gpio_set_debounce_timeout(desc, 0);
-	if (ret < 0)
-		return ret;
+			irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
+			break;
+		case APIC:
+			irq = i2c_hid_config.irq;
+			break;
+	}
 
-	irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
 
 	return irq;
 }

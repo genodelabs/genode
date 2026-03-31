@@ -19,7 +19,7 @@
 
 u32 i2c_acpi_find_bus_speed(struct device *dev)
 {
-	return 400000;
+	return i2c_master_config.bus_speed_hz;
 }
 
 
@@ -41,7 +41,7 @@ void i2c_acpi_register_devices(struct i2c_adapter *adap)
 	info.addr = i2c_hid_config.bus_addr;
 	adev = lx_emul_acpi_device((acpi_handle)3);
 	info.fwnode = acpi_fwnode_handle(adev);
-	strcpy(info.type, "INT34C5:00");
+	strcpy(info.type, "I2C_CLIENT");
 	i2c_new_client_device(adap, &info);
 }
 

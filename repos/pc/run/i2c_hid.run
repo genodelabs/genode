@@ -19,93 +19,99 @@ import_from_depot \
 	[depot_user]/pkg/pc_i2c_hid
 
 append config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="CPU"/>
-		<service name="ROM"/>
-		<service name="IO_MEM"/>
-		<service name="IRQ"/>
-		<service name="RM"/>
-	</parent-provides>
+config | prio_levels: 2
++ parent-provides
+  + service LOG
+  + service PD
+  + service CPU
+  + service ROM
+  + service IO_MEM
+  + service IRQ
+  + service RM
 
-	<default caps="100"/>
++ default | caps: 100
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer" priority="0">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ start timer | priority: 0 | ram: 1M
+  + provides
+    + service Timer
 
-	<start name="drivers_reports" caps="100">
-		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides>
-			<service name="Report"/>
-			<service name="ROM"/>
-		</provides>
-		<config verbose="no">
-			<policy label="pci_decode -> system" report="acpi -> acpi"/>
-			<policy label="platform -> devices" report="pci_decode -> devices"/>
-		</config>
-	</start>
++ start drivers_reports | caps: 100 | ram: 1M
+  + binary report_rom
+  + provides
+  | + service Report
+  | + service ROM
+  + config | verbose: no
+    + policy
+    |        label:  pci_decode -> system
+    |        report: acpi -> acpi
+    + policy
+             label:  platform -> devices
+             report: pci_decode -> devices
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="6M"/>
-		<route>
-			<service name="Report"> <child name="drivers_reports"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start acpi | caps: 350 | ram: 6M
+  + route
+    + service Report
+    | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="1M"/>
-		<route>
-			<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
-			<service name="Report"> <child name="drivers_reports"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start pci_decode | caps: 350 | ram: 1M
+  + route
+    + service ROM | label: system
+    | + child drivers_reports
+    + service Report
+    | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-	<start name="platform" caps="400" managing_system="yes">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Platform"/>
-		</provides>
-		<config>
-			<report devices="yes"/>
-			<policy label_prefix="pc_i2c_hid" info="yes">
-				<device name="00:15.3" type="pci"/>
-				<device name="INT34C5" type="acpi"/>
-			</policy>
-		</config>
-		<route>
-			<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
-			<service name="Report"> <child name="drivers_reports"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start platform | caps: 400 | managing_system: yes | ram: 4M
+  + provides
+  | + service Platform
+  + config
+  | + report | devices: yes
+  | + policy | label_prefix: pc_i2c_hid | info: yes
+  |   + device 00:15.3 | type: pci
+  |   + device INT34C5 | type: acpi
+  + route
+    + service ROM | label: devices
+    | + child drivers_reports
+    + service Report
+    | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-	<start name="pc_i2c_hid" priority="-1" caps="120">
-		<resource name="RAM" quantum="8M"/>
-		<config ld_verbose="yes" info="Fujtisu U7411 (SYNAPTICS)"/>
-		<!--
-		<config ld_verbose="yes" gpio_pin="266" bus_addr="21" hid_addr="1"  info="Fujtisu U7511 (ELAN)"/>
-		<config ld_verbose="yes" gpio_pin="174" bus_addr="44" hid_addr="32" info="Fujtisu U7412 (SYNAPTICS)"/>
-		<config ld_verbose="yes" gpio_pin="174" bus_addr="44" hid_addr="32" info="Fujtisu U7413 (SYNAPTICS)"/>
-		<config ld_verbose="yes" gpio_pin="3"   bus_addr="44" hid_addr="32" info="Framework Gen12/Gen13"/>
-		-->
-	</start>
++ start pc_i2c_hid | priority: -1 | caps: 120 | ram: 8M
+  + config | ld_verbose: yes
+    + i2c_slave  | irq: 266 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
+                 | info: Fujitsu U7411 (SYNAPTICS)
+    x i2c_slave  | irq: 266 | bus_addr: 21 | hid_addr: 1  | gpio_chip: INT34C5
+                 | info: Fujitsu U7511 (ELAN)
+    x i2c_slave  | irq: 174 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
+                 | info: Fujitsu U7412/U7413 (SYNAPTICS)
+    x i2c_slave  | irq: 3   | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
+                 | info: Framework Gen12/Gen13
+    x i2c_slave  | irq: 352 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INTC1083
+                 | info: Framework Core Ultra Series 1
+    x i2c_slave  | irq: 104 | bus_addr: 93 | hid_addr: 1
+                 | info: StarLabs StarLite V
+  
+    + i2c_master | bus_speed_hz: 400 | info: Tigerlake
+      + fmcn | hcnt: 193 | lcnt: 313 | hold_time: 80
+    x i2c_master | bus_speed_hz: 400 | info: StarLabs StarLite V
+      + fmcn | hcnt: 106 | lcnt: 213 | hold_time: 80
 
-	<start name="event_dump">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Event"/> </provides>
-	</start>
-</config>
++ start event_dump | ram: 1M
+  + provides
+    + service Event
+-
 }
 
 install_config $config

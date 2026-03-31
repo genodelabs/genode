@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-09-26
+ * \date   2026-03-24
  */
 
 #include <lx_emul.h>
@@ -63,14 +63,6 @@ void __printk_deferred_enter(void)
 #include <linux/printk.h>
 
 void __printk_deferred_exit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -321,6 +313,14 @@ void drm_panel_remove_follower(struct drm_panel_follower * follower)
 }
 
 
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
@@ -377,6 +377,14 @@ void fput(struct file * file)
 }
 
 
+#include <linux/fs.h>
+
+struct file * get_file_active(struct file ** f)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/file.h>
 
 int get_unused_fd_flags(unsigned flags)
@@ -406,6 +414,13 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 bool initcall_debug;
 
 
+extern int input_bits_to_string(char * buf,int buf_size,unsigned long bits,bool skip_empty);
+int input_bits_to_string(char * buf,int buf_size,unsigned long bits,bool skip_empty)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/sched.h>
 
 void __sched io_schedule(void)
@@ -433,6 +448,14 @@ int io_schedule_prepare(void)
 #include <linux/sched.h>
 
 long __sched io_schedule_timeout(long timeout)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+bool irq_work_queue(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -488,17 +511,9 @@ int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 unsigned long loops_per_jiffy;
 
 
-#include <linux/preempt.h>
+#include <linux/mman.h>
 
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
+void mm_compute_batch(int overcommit_policy)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -560,14 +575,43 @@ int of_clk_hw_register(struct device_node * node,struct clk_hw * hw)
 }
 
 
+#include <linux/printk.h>
+
+int oops_in_progress;	/* If set, an oops, panic(), BUG() or die() is in progress */
+
+
 #include <linux/reboot.h>
 
 enum reboot_mode panic_reboot_mode;
 
 
+#include <linux/pci.h>
+
+const struct cpumask * pci_irq_get_affinity(struct pci_dev * dev,int nr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/percpu_counter.h>
+
+void percpu_counter_sync(struct percpu_counter * fbc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 void printk_legacy_allow_panic_sync(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+int proc_dointvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -584,6 +628,14 @@ int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,
 #include <linux/sysctl.h>
 
 int proc_douintvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+int proc_doulongvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -713,14 +765,6 @@ void set_rq_online(struct rq * rq)
 #include <linux/smp.h>
 
 unsigned int setup_max_cpus;
-
-
-#include <linux/sched/debug.h>
-
-void show_state_filter(unsigned int state_filter)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/smp.h>
