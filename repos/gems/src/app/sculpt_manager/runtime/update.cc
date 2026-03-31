@@ -54,8 +54,9 @@ void Sculpt::gen_update_child_content(Generator &g)
 		connect_parent_rom(g, "zlib.lib.so");
 		connect_parent_rom(g, "libarchive.lib.so");
 		connect_parent_rom(g, "liblzma.lib.so");
-		connect_parent_rom(g, "config",       "depot_download.config");
-		connect_parent_rom(g, "installation", "config -> install");
+		connect_parent_rom(g, "config", "depot_download.config");
+		gen_named_node(g, "rom", "install", [&] {
+			gen_named_node(g, "child", "model"); });
 		connect_report(g);
 
 		auto gen_relabeled_log = [&] (Label const &label, Label const &relabeled) {

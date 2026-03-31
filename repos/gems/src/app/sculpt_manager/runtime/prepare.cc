@@ -1,5 +1,5 @@
 /*
- * \brief  Configuration for config loading and depot initialization
+ * \brief  Configuration for model loading and depot initialization
  * \author Norman Feske
  * \date   2018-05-08
  */
@@ -29,9 +29,9 @@ void Sculpt::gen_prepare_vfs_start(Generator &g)
 
 	char const * const script =
 		"export VERSION=`cat /VERSION`\n"
-		"cp -r /rw/config/$VERSION/*  /config/\n"
+		"cp -r /rw/config/$VERSION/*  /model/\n"
 		"mkdir -p /rw/depot\n"
-		"cp -r /config/depot/* /rw/depot\n"
+		"cp -r /model/depot/* /rw/depot\n"
 		"exit\n";
 
 	gen_provides<::File_system::Session>(g);
@@ -60,8 +60,8 @@ void Sculpt::gen_prepare_vfs_start(Generator &g)
 			gen_named_node(g, "dir", "rw", [&] {
 				g.node("fs", [&] { g.attribute("label", "target -> /"); }); });
 
-			gen_named_node(g, "dir", "config", [&] {
-				g.node("fs", [&] { g.attribute("label", "config -> /"); }); });
+			gen_named_node(g, "dir", "model", [&] {
+				g.node("fs", [&] { g.attribute("label", "model -> /"); }); });
 
 			gen_named_node(g, "rom", "VERSION");
 		});
@@ -183,8 +183,9 @@ void Sculpt::gen_prepare_child_content(Generator &g, Prepare_version version)
 		gen_named_node(g, "fs", "vfs -> target", [&] {
 			gen_named_node(g, "child", "default_fs_rw"); });
 
-		gen_named_node(g, "fs", "vfs -> config", [&] {
-			g.node("parent", [&] { g.attribute("identity", "config"); }); });
+		gen_named_node(g, "fs", "vfs -> model", [&] {
+			gen_named_node(g, "child", "model", [&] {
+				g.attribute("identity", "rw"); }); });
 
 		connect_parent_rom(g, "vfs");
 		connect_parent_rom(g, "cached_fs_rom");

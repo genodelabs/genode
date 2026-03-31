@@ -154,39 +154,38 @@ config | prio_levels: 4
     + service Gui                               | + child wm
     + any-service                               | + parent
 
-+ start config_fs_report | ram: 2M | priority: -1
++ start model_fs_report | ram: 2M | priority: -1
   + binary fs_report
   + provides | + service Report
   + config | + vfs | + fs
   + route
-    + service File_system | + parent | identity: config
+    + service File_system | + parent | identity: model
     + any-service         | + parent
 
 + start manager | caps: 400 | ram: 4M | priority: -1
   + binary sculpt_manager
   + provides | + service Gui
   + route
-    + service Report | label: runtime_config            | + child config_fs_report | label: init
-    + service Report | label: depot_version_config      | + child config_fs_report | label: depot -> version
-    + service Report | label: deploy_config             | + child config_fs_report | label: deploy
-    + service Report | label: child/wifi_config         | + child config_fs_report | label: child -> wifi
-    + service Report | label: child/font_config         | + child config_fs_report | label: child -> font
-    + service Report | label: child/nic_router_config   | + child config_fs_report | label: child -> nic_router
-    + service Report | label: fb_config                 | + child config_fs_report | label: fb
-    + service Report | label: child/dir_query_config    | + child config_fs_report | label: child -> dir_query
-    + service Report | label: child/gui_config          | + child config_fs_report | label: child -> gui
-    + service Report | label: child/usb_config          | + child config_fs_report | label: child -> usb
-    + service Report | label: system_config             | + child config_fs_report | label: system
-    + service Report | label: child/event_filter_config | + child config_fs_report | label: child -> event_filter
-    + service Report | label: install_config            | + child config_fs_report | label: install
-    + service Report | label: child/depot_query         | + child config_fs_report | label: child -> depot_query
-    + service Report | label: child/blueprint_query     | + child config_fs_report | label: child -> blueprint_query
-    + service Report | label: option/managed            | + child config_fs_report | label: option -> managed
+    + service Report | label: runtime_config            | + child model_fs_report | label: init
+    + service Report | label: depot_version_config      | + child model_fs_report | label: depot -> version
+    + service Report | label: deploy_config             | + child model_fs_report | label: deploy
+    + service Report | label: child/wifi_config         | + child model_fs_report | label: child -> wifi
+    + service Report | label: child/font_config         | + child model_fs_report | label: child -> font
+    + service Report | label: child/nic_router_config   | + child model_fs_report | label: child -> nic_router
+    + service Report | label: fb_config                 | + child model_fs_report | label: fb
+    + service Report | label: child/dir_query_config    | + child model_fs_report | label: child -> dir_query
+    + service Report | label: child/gui_config          | + child model_fs_report | label: child -> gui
+    + service Report | label: child/usb_config          | + child model_fs_report | label: child -> usb
+    + service Report | label: system_config             | + child model_fs_report | label: system
+    + service Report | label: child/event_filter_config | + child model_fs_report | label: child -> event_filter
+    + service Report | label: install_config            | + child model_fs_report | label: install
+    + service Report | label: child/depot_query         | + child model_fs_report | label: child -> depot_query
+    + service Report | label: child/blueprint_query     | + child model_fs_report | label: child -> blueprint_query
+    + service Report | label: option/managed            | + child model_fs_report | label: option -> managed
     + service Report                                    | + child report_rom
-    + service ROM | label: config                  | + parent | label: config -> manager
-    + service ROM | label: runtime_init_config     | + parent | label: runtime_init_config
+    + service ROM | label: config                  | + parent | label: model -> manager
     + service ROM | label_prefix: report ->        | + parent
-    + service ROM | label: config -> depot_version | + parent | label: config -> depot/version
+    + service ROM | label: model -> depot_version  | + parent | label: model -> depot/version
     + service ROM | label: nitpicker_focus         | + parent | label: focus
     + service ROM | label: nitpicker_hover         | + parent | label: hover
     + service ROM | label: leitzentrale            | + parent | label: leitzentrale_enabled

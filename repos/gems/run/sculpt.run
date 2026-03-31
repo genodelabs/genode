@@ -10,13 +10,26 @@
 proc sculpt_version { } { return "26.03" }
 
 
-assert {[have_board pc]              ||
-        [have_board imx8q_evk]       ||
-        [have_board mnt_reform2]     ||
-        [have_board mnt_pocket]      ||
-        [have_board linux]           ||
-        [have_board pinephone]       ||
-        [have_board imx8mp_armstone]}
+proc install_hid { path args } {
+	set content ""
+	append content {*}$args
+	set fd [open $path w]
+	puts $fd [string trim $content]
+	close $fd
+}
+
+
+proc validate_hid { schema file } {
+
+	lappend cmd [genode_dir]/tool/hid check
+	lappend cmd --hsd-dir [run_dir]/genode --schema $schema $file
+
+	if {[catch {exec {*}$cmd } result]} {
+		puts stderr "Error: invalid $file (schema '$schema')"
+		puts stderr $result
+		if {[error_at_any_line $result]} { exit 1 }
+	}
+}
 
 
 proc log_core { } {
@@ -146,11 +159,14 @@ proc ingredient_path { type ingredient } {
 	return [lindex $paths 0]
 }
 
-proc initial_config_dir { } {
-	return [file join [run_dir] initial_config] }
 
-proc initial_config_file { rel_path } {
-	return [file join [initial_config_dir] $rel_path] }
+##
+# Return directory for assembling the initial model
+#
+# The directory structure for the initial model is created at the run
+# directory, which is imported as 'model.tar' into the model fs.
+#
+proc model { } { return [file join [run_dir] model] }
 
 
 ##
@@ -259,35 +275,33 @@ config | prio_levels: 2
   + provides | + service Timer
 
 + start report_rom | priority: -1 | ram: 2M
-  + binary report_rom
   + provides
     + service Report
     + service ROM
   + config | verbose: no
-    + policy | label: deploy -> blueprint       | report: runtime -> blueprint
-    + policy | label: runtime -> config         | report: deploy -> runtime
-    + policy | label: runtime -> query          | report: deploy -> query
-    + policy | label: report_fs -> init         | report: deploy -> runtime
-    + policy | label: runtime -> runtime_config | report: deploy -> runtime
-    + policy | label: runtime -> runtime_state  | report: runtime -> state
+    + policy | label: deploy -> blueprint | report: runtime -> blueprint
+    + policy | label: runtime -> config   | report: deploy -> runtime
+    + policy | label: runtime -> query    | report: deploy -> query
+    + policy | label: report_fs -> init   | report: deploy -> runtime
+    + policy | label: runtime -> state    | report: runtime -> state
 
-+ start config_fs | caps: 200 | ram: 12M | priority: -1
++ start model_fs | caps: 200 | ram: 12M | priority: -1
   + binary vfs
   + provides | + service File_system
   + config
     + vfs
-    | + dir orig | + tar initial_config.tar
+    | + dir orig | + tar model.tar
     | + ram
     | + import
-    |   + tar initial_config.tar
-    + policy | label_prefix: config_fs_rom -> | root: /
+    |   + tar model.tar
+    + policy | label_prefix: ro -> | root: /
     + policy | label_prefix: rw -> | root: / | writeable: yes
 
-+ start config_fs_rom | ram: 10M | priority: -1
++ start model_rom | ram: 10M | priority: -1
   + binary fs_rom
   + provides | + service ROM
   + route
-    + service File_system | + child config_fs
+    + service File_system | + child model_fs | identity: ro
     + any-service         | + parent
 
 + start terminal_monitor | ram: 2M | priority: -1
@@ -297,79 +311,49 @@ config | prio_levels: 2
 + start deploy
   + binary depot_deploy
   + route
-    + service ROM | label: config           | + child config_fs_rom | label: runtime
-    + service ROM | label: deploy           | + child config_fs_rom | label: deploy
-    + service ROM | label: depot            | + child config_fs_rom | label: depot/version
+    + service ROM | label: config           | + child model_rom | label: runtime
+    + service ROM | label: deploy           | + child model_rom | label: deploy
+    + service ROM | label: depot            | + child model_rom | label: depot/version
     + service ROM | label: blueprint        | + child report_rom
-    + service ROM | label_prefix: option -> | + child config_fs_rom | prepend_resource: option/
+    + service ROM | label_prefix: option -> | + child model_rom | prepend_resource: option/
     + service Report                        | + child report_rom
     + any-service                           | + parent
 
 + start runtime | caps: 50000 | ram: 32G | priority: -1 | managing_system: yes
   + binary monitor
   + route
-    + service ROM    | label: config                | + child report_rom
-    + service ROM    | label: query                 | + child report_rom
-    + service ROM    | label_prefix: config ->      | + child config_fs_rom
-    + service ROM    | label: runtime_config        | + child report_rom
-    + service ROM    | label: runtime_state         | + child report_rom
-    + service ROM    | label: kernel_log            | + parent
-    + service ROM    | label: core_log              | + parent
-    + service Report | label: state                 | + child report_rom
-    + service Report | label: blueprint             | + child report_rom
-    + service TRACE  | label: runtime               | + parent | label: runtime ->
-    + service TRACE  | label: global                | + parent | label:
-    + service File_system | label_prefix: config -> | + child config_fs | identity: rw
-    + service Timer                                 | + child timer
+    + service ROM         | label: config          | + child report_rom
+    + service ROM         | label: model_config    | + child model_rom | label: child/model
+    + service ROM         | label: query           | + child report_rom
+    + service ROM         | label: state           | + child report_rom
+    + service ROM         | label: kernel_log      | + parent
+    + service ROM         | label: core_log        | + parent
+    + service Report      | label: state           | + child report_rom
+    + service Report      | label: blueprint       | + child report_rom
+    + service TRACE       | label: runtime         | + parent | label: runtime ->
+    + service TRACE       | label: global          | + parent | label:
+    + service File_system | label_prefix: model -> | + child model_fs | identity: rw
+    + service Timer                                | + child timer
     } [driver_routes] {
-    + service Terminal                              | + child terminal_monitor
-    + any-service                                   | + parent
+    + service Terminal                             | + child terminal_monitor
+    + any-service                                  | + parent
 -
 }
 
 
-##
-## Initial content of the config file system
-##
-
-proc install_hid { path args } {
-	set content ""
-	append content {*}$args
-	set fd [open $path w]
-	puts $fd [string trim $content]
-	close $fd
-}
-
-proc validate_hid { schema file } {
-
-	lappend cmd [genode_dir]/tool/hid check
-	lappend cmd --hsd-dir [run_dir]/genode --schema $schema $file
-
-	if {[catch {exec {*}$cmd } result]} {
-		puts stderr "Error: invalid $file (schema '$schema')"
-		puts stderr $result
-		if {[error_at_any_line $result]} { exit 1 }
-	}
-}
-
-
 #
-# The directory structure for the initial content is created at the run
-# directory, which is imported as 'initial_config.tar' into the config fs.
 #
 
 # directory structure
-foreach subdir { option depot keyboard child } {
-	file mkdir [file join [initial_config_dir] $subdir] }
+foreach subdir { option depot keyboard child } { file mkdir [model]/$subdir }
 
-if {[llength [ingredients_of_type presets]] > 0} {
-	file mkdir [file join [initial_config_dir] presets] }
+if {[llength [ingredients_of_type presets]] > 0} { file mkdir [model]/presets }
 
 proc log_route { } {
 	if {[log_core]} { return "parent" } else { return "child report" }
 }
 
-install_hid [initial_config_file runtime] w] {
+install_hid [model]/runtime {
 config | arch: } [depot_spec] { | verbose: no | prio_levels: 8 | depot_rom: depot_rom
 + report  | init_ram: yes | init_caps: yes | child_ram: yes | child_caps: yes
           | requested: no | provided: no | delay_ms: 2000 | buffer: 1M
@@ -411,7 +395,7 @@ set required_global_configs {
 foreach config $required_global_configs {
 	set ingredient [single_ingredient $config "default"]
 	set from [ingredient_path $config $ingredient]
-	set to   [initial_config_file $config]
+	set to   [model]/$config
 	check_syntax $from
 	copy_config $from $to
 }
@@ -435,13 +419,13 @@ set required_child_configs {
 foreach config $required_child_configs {
 	set ingredient [single_ingredient $config "default"]
 	set from [ingredient_path $config $ingredient]
-	set to   [initial_config_file [file join "child" $config]]
+	set to   [model]/child/$config
 	check_syntax $from
 	copy_config $from $to
 }
 
 set from [ingredient_path platform [board]]
-set to   [initial_config_file [file join "child" platform]]
+set to   [model]/child/platform
 check_syntax $from
 copy_config $from $to
 
@@ -454,7 +438,7 @@ foreach config $optional_configs {
 	set ingredient [single_ingredient $config ""]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]
-		set to   [initial_config_file [file join "child" $config]]
+		set to   [model]/child/$config
 		copy_config $from $to } }
 
 ##
@@ -462,7 +446,7 @@ foreach config $optional_configs {
 #
 proc deploy_files { } {
 
-	set deploy_files [initial_config_file deploy]
+	set deploy_files [model]/deploy
 	foreach preset [ingredients_of_type presets] {
 		lappend deploy_files [ingredient_path deploy $preset] }
 	return $deploy_files
@@ -511,68 +495,49 @@ proc deploy_options { } {
 # selection of depot users (pubkey and download files), options, and presets
 foreach ingredient [ingredients_of_type depot] {
 	set from [ingredient_path depot $ingredient]
-	set to   [file join [initial_config_dir] depot $ingredient]
+	set to   [model]/depot/$ingredient
 	copy_file $from $to }
 
 foreach opt [deploy_options] {
 	set from [ingredient_path option $opt]
-	set to   [file join [initial_config_dir] option $opt]
+	set to   [model]/option/$opt
 	copy_config $from $to }
 
 foreach ingredient [ingredients_of_type presets] {
 	set from [ingredient_path deploy $ingredient]
-	set to   [file join [initial_config_dir] presets $ingredient]
+	set to   [model]/presets/$ingredient
 	copy_config $from $to }
 
-copy_file [genode_dir]/repos/gems/recipes/pkg/sculpt/README [initial_config_file README]
-copy_file [genode_dir]/repos/gems/run/sculpt/vimrc          [initial_config_file vimrc]
+copy_file [genode_dir]/repos/gems/recipes/pkg/sculpt/README [model]/README
+copy_file [genode_dir]/repos/gems/run/sculpt/vimrc          [model]/vimrc
 
 # keyboard layouts
 foreach file { en_us de_ch de_de fr_ch fr_fr fr_bepo special } {
 	set from [genode_dir]/repos/os/src/server/event_filter/$file.chargen
-	set to   [file join [initial_config_dir] keyboard $file]
+	set to   [model]/keyboard/$file
 	check_syntax $from
 	copy_config $from $to }
 
-set fd [open [file join [initial_config_dir] install] w]
-puts $fd "install | managed: yes | arch: [depot_spec]\n-"
-close $fd
-
-set fd [open [file join [initial_config_dir] child depot_query] w]
-puts $fd "query\n-"
-close $fd
-
-set fd [open [file join [initial_config_dir] child blueprint_query] w]
-puts $fd "query\n-"
-close $fd
-
-set fd [open [file join [initial_config_dir] depot version] w]
-puts $fd "depot | managed: yes | version: 1\n-"
-close $fd
+install_hid [model]/install "install | managed: yes | arch: [depot_spec]\n-"
+install_hid [model]/child/depot_query     "query\n-"
+install_hid [model]/child/blueprint_query "query\n-"
+install_hid [model]/depot/version "depot | managed: yes | version: 1\n-"
 
 # dummy kernel/core log ROMs for kernels w/o log-export feature
-if {![have_spec nova]} {
-	set fd [open [file join [run_dir] genode kernel_log] w]
-	puts $fd ""
-	close $fd
-}
-if {[have_board linux]} {
-	set fd [open [file join [run_dir] genode core_log] w]
-	puts $fd ""
-	close $fd
-}
+if {![have_spec nova]}  { install_hid [run_dir]/genode/kernel_log "" }
+if {[have_board linux]} { install_hid [run_dir]/genode/core_log   "" }
 
 
 #
 # VERSION file at the root of the config fs, add newline for 'cat /VERSION'
 #
 
-set fd [open [initial_config_file VERSION] w]
+set fd [open [model]/VERSION w]
 puts $fd "[sculpt_version]"
 close $fd
 
 # supply VERSION as a boot module to the sculpt manager
-file copy [initial_config_file VERSION] [run_dir]/genode/VERSION
+file copy [model]/VERSION [run_dir]/genode/VERSION
 
 
 #
@@ -604,9 +569,7 @@ append build_info "  board:          $board_var\n"
 append build_info "  base:           [depot_user]/bin/[depot_spec]/[base_src]/[_current_depot_archive_version src [base_src]]\n"
 append build_info "-"
 
-set fd [open [run_dir]/genode/build_info w]
-puts $fd $build_info
-close $fd
+install_hid [run_dir]/genode/build_info $build_info
 
 
 ##
@@ -631,20 +594,20 @@ proc referenced_pkg_values { } {
 
 	# scan options
 	foreach opt [deploy_options] {
-		set path [file join [initial_config_dir] option $opt]
+		set path [model]/option/$opt
 		lappend values {*}[pkg_attribute_values $path "option | + child"]
 	}
 
 	# scan presets
 	foreach preset [ingredients_of_type presets] {
-		set path [file join [initial_config_dir] presets $preset]
+		set path [model]/presets/$preset
 		lappend values {*}[pkg_attribute_values $path "config | + start"]
 		lappend values {*}[pkg_attribute_values $path "deploy | + child"]
 	}
 
 	# scan deploy config
-	lappend values {*}[pkg_attribute_values [initial_config_file deploy] "config | + start"]
-	lappend values {*}[pkg_attribute_values [initial_config_file deploy] "deploy | + child"]
+	lappend values {*}[pkg_attribute_values [model]/deploy "config | + start"]
+	lappend values {*}[pkg_attribute_values [model]/deploy "deploy | + child"]
 
 	return [lsort -unique $values]
 }
@@ -770,17 +733,17 @@ proc augment_start_node_pkg_versions { path } {
 
 # options
 foreach opt [deploy_options] {
-	augment_child_node_pkg_versions "option" [file join [initial_config_dir] option $opt] }
+	augment_child_node_pkg_versions "option" [model]/option/$opt }
 
 # presets
 foreach preset [ingredients_of_type presets] {
-	augment_child_node_pkg_versions "deploy" [file join [initial_config_dir] presets $preset]
-	augment_start_node_pkg_versions          [file join [initial_config_dir] presets $preset]
+	augment_child_node_pkg_versions "deploy" [model]/presets/$preset
+	augment_start_node_pkg_versions          [model]/presets/$preset
 }
 
 # deploy config
-augment_child_node_pkg_versions "deploy" [initial_config_file deploy]
-augment_start_node_pkg_versions          [initial_config_file deploy]
+augment_child_node_pkg_versions "deploy" [model]/deploy
+augment_start_node_pkg_versions          [model]/deploy
 
 
 ##
@@ -806,12 +769,12 @@ create_depot_archive
 
 
 #
-# Create initial_config.tar to be mounted at the root of the config fs
+# Create model.tar to be mounted at the root of the model fs
 #
 
-exec sh -c "tar cf [run_dir]/genode/initial_config.tar -C [initial_config_dir] ."
+exec sh -c "tar cf [run_dir]/genode/model.tar -C [model] ."
 
-file delete -force [initial_config_dir]
+file delete -force [model]
 
 
 ##

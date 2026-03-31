@@ -45,7 +45,7 @@ struct Main
 		_env.ep(), _root_dir, _runtime_config_path,
 		*this, &Main::_handle_runtime_config_update };
 
-	Expanding_reporter _installation { _env, "installation", "installation" };
+	Expanding_reporter _installation { _env, "install", "install" };
 
 
 	void _process_monitor_config(Node const &config, Node const &monitor)

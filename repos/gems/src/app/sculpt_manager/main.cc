@@ -699,11 +699,11 @@ struct Sculpt::Main : Input_event_handler,
 	Options _options { _heap };
 	Presets _presets { _heap };
 
-	Rom_handler<Main> _config_listing_rom {
-		_env, "report -> config_query/listing", *this,
-		&Main::_handle_config_listing };
+	Rom_handler<Main> _model_listing_rom {
+		_env, "report -> model_query/listing", *this,
+		&Main::_handle_model_listing };
 
-	void _handle_config_listing(Node const &listing)
+	void _handle_model_listing(Node const &listing)
 	{
 		listing.for_each_sub_node("dir", [&] (Node const &dir) {
 
@@ -1413,7 +1413,7 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_download_queue.remove_inactive_downloads();
 
-		_config_listing_rom.with_node([&] (Node const &listing) {
+		_model_listing_rom.with_node([&] (Node const &listing) {
 			listing.for_each_sub_node("dir", [&] (Node const &dir) {
 				if (dir.attribute_value("path", Path()) == "/presets") {
 					dir.for_each_sub_node("file", [&] (Node const &file) {
@@ -2615,7 +2615,7 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 	_dir_query.gen_child_nodes(g);
 
 	g.node("child", [&] {
-		gen_config_query_child_content(g); });
+		gen_model_query_child_content(g); });
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition

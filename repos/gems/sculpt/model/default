@@ -12,7 +12,9 @@ config
 
 + start chroot | caps: 100 | ram: 3M
   + provides | + service File_system
-  + route | + any-service | + parent
+  + route
+    + service File_system | + parent | identity: model
+    + any-service         | + parent
   + config
     + policy | label_prefix: rw -> | path: / | writeable: yes
     + policy | label_prefix: ro -> | path: / | writeable: no

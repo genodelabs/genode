@@ -56,7 +56,7 @@ struct Depot_download_manager::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Attached_rom_dataspace _installation      { _env, "installation"      };
+	Attached_rom_dataspace _install           { _env, "install"           };
 	Attached_rom_dataspace _dependencies      { _env, "dependencies"      };
 	Attached_rom_dataspace _index             { _env, "index"             };
 	Attached_rom_dataspace _image             { _env, "image"             };
@@ -158,11 +158,11 @@ struct Depot_download_manager::Main
 			_generate_init_config(g); });
 	}
 
-	void _handle_installation()
+	void _handle_install()
 	{
-		_installation.update();
+		_install.update();
 
-		_jobs.update_from_node(_installation.node(),
+		_jobs.update_from_node(_install.node(),
 
 			/* create */
 			[&] (Node const &node) -> Job & {
@@ -181,8 +181,8 @@ struct Depot_download_manager::Main
 		_generate_init_config();
 	}
 
-	Signal_handler<Main> _installation_handler {
-		_env.ep(), *this, &Main::_handle_installation };
+	Signal_handler<Main> _install_handler {
+		_env.ep(), *this, &Main::_handle_install };
 
 	Signal_handler<Main> _query_result_handler {
 		_env.ep(), *this, &Main::_handle_query_result };
@@ -316,10 +316,10 @@ struct Depot_download_manager::Main
 		_current_user     .sigh(_query_result_handler);
 		_init_state       .sigh(_init_state_handler);
 		_verified         .sigh(_init_state_handler);
-		_installation     .sigh(_installation_handler);
+		_install          .sigh(_install_handler);
 		_fetchurl_progress.sigh(_fetchurl_progress_handler);
 
-		_handle_installation();
+		_handle_install();
 		_generate_init_config();
 	}
 };
@@ -364,7 +364,7 @@ void Depot_download_manager::Main::_generate_init_config(Generator &g)
 	});
 
 	g.node("start", [&] {
-		gen_depot_query_start_content(g, _installation.node(),
+		gen_depot_query_start_content(g, _install.node(),
 		                              _next_user, _depot_query_count, _jobs); });
 
 	bool const fetchurl_running = _import.constructed()
@@ -492,7 +492,7 @@ void Depot_download_manager::Main::_handle_query_result()
 		log("installation complete.");
 		_update_state_report();
 
-		if (_installation.node().attribute_value("exit", false)) {
+		if (_install.node().attribute_value("exit", false)) {
 			_env.parent().exit(0);
 			sleep_forever();
 		}
@@ -550,7 +550,7 @@ void Depot_download_manager::Main::_handle_query_result()
 	_import.construct(_heap, _current_user_name(), _current_user_has_pubkey(),
 	                  dependencies, index, image, image_index);
 
-	if (_installation.node().attribute_value("download", true) == false)
+	if (_install.node().attribute_value("download", true) == false)
 		_import->all_downloads_completed();
 
 	/* mark imported jobs as started */

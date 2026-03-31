@@ -37,8 +37,8 @@ void Sculpt::gen_fs_tool_child_content(Generator &g, Fs_tool_version version,
 						g.attribute("buffer_size", buffer_size); }); });
 			};
 
-			gen_fs("rw",     "target -> /", "1M");
-			gen_fs("config", "config -> /", "128K");
+			gen_fs("rw",    "target -> /", "1M");
+			gen_fs("model", "model -> /", "128K");
 		});
 
 		operations.gen_fs_tool_config(g);
@@ -49,8 +49,9 @@ void Sculpt::gen_fs_tool_child_content(Generator &g, Fs_tool_version version,
 		gen_named_node(g, "fs", "target", [&] {
 			gen_named_node(g, "child", "default_fs_rw"); });
 
-		gen_named_node(g, "fs", "config", [&] {
-			g.node("parent", [&] { g.attribute("identity", "config"); }); });
+		gen_named_node(g, "fs", "model", [&] {
+			gen_named_node(g, "child", "model", [&] {
+				g.attribute("identity", "rw"); }); });
 
 		connect_parent_rom(g, "vfs.lib.so");
 	});

@@ -13,9 +13,9 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_config_query_child_content(Generator &g)
+void Sculpt::gen_model_query_child_content(Generator &g)
 {
-	gen_child_attr(g, Child_name { "config_query" }, Binary_name { "fs_query " },
+	gen_child_attr(g, Child_name { "model_query" }, Binary_name { "fs_query " },
 	               Cap_quota{200}, Ram_quota{2*1024*1024}, Priority::STORAGE);
 
 	g.node("config", [&] {
@@ -36,6 +36,6 @@ void Sculpt::gen_config_query_child_content(Generator &g)
 		connect_report(g);
 
 		g.node("fs", [&] {
-			g.node("parent", [&] { g.attribute("identity", "config"); }); });
+			gen_named_node(g, "child", "model", [&] { g.attribute("identity", "ro"); }); });
 	});
 }

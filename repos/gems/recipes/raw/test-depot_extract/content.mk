@@ -1,6 +1,6 @@
-content: public.tar installation download pubkey
+content: public.tar install download pubkey
 
-public.tar installation download:
+public.tar install download:
 	cp $(REP_DIR)/recipes/raw/test-depot_extract/$@ $@
 
 pubkey:

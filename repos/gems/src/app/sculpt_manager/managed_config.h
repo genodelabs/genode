@@ -92,7 +92,7 @@ struct Sculpt::Managed_config
 	               HANDLER &obj, void (HANDLER::*fn) (Node const &))
 	:
 		_env(env), _alloc(alloc), _obj(obj), _fn(fn),
-		_rom(_env, Label("config -> ", rom_name).string()),
+		_rom(_env, Label("model -> ", rom_name).string()),
 		_report(_env, node_type.string(), Label(rom_name, "_config").string())
 	{
 		_rom.sigh(_handler);

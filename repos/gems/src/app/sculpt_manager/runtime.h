@@ -48,7 +48,7 @@ namespace Sculpt {
 
 	void gen_depot_query_child_content(Generator &);
 	void gen_blueprint_query_child_content(Generator &);
-	void gen_config_query_child_content(Generator &);
+	void gen_model_query_child_content(Generator &);
 
 	struct Inspect_view_version { unsigned value; };
 	void gen_inspect_view(Generator &, Storage_devices const &,

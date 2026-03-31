@@ -9,8 +9,8 @@ option
     + fs rw
   + connect
     + log           | + parent
-    + rom config    | + parent | label: config -> child/model
-    + fs            | + parent | identity: config -> rw
+    + rom config    | + parent | label: model_config
+    + fs            | + parent | identity: model
     + rom ld.lib.so | + parent
     + rom chroot    | + parent
     + rom fs_rom    | + parent
@@ -24,8 +24,8 @@ option
     + fs
   + connect
     + log                    | + parent
-    + rom runtime_config     | + parent      | label: runtime_config
-    + rom runtime_state      | + parent      | label: runtime_state
+    + rom runtime_config     | + parent      | label: config
+    + rom runtime_state      | + parent      | label: state
     + rom kernel_log         | + parent      | label: kernel_log
     + rom core_log           | + parent      | label: core_log
     + rom config             | + child model | label: child/report
@@ -90,7 +90,7 @@ option
     + rom config                    | + child model  | label: child/event_filter
     + rom numlock.remap             | + child numlock_remap
     + rom capslock                  | + child report | label: global_keys/capslock
-    + rom | label_prefix: keyboard/ | + parent | identity: config
+    + rom | label_prefix: keyboard/ | + child model
 
 + child gui_focus | binary: rom_filter | ram: 1M | caps: 100 | priority: -1
   .
@@ -151,12 +151,12 @@ option
     + rom focus                                | + child report | label: gui/focus
     + rom hover                                | + child report | label: gui/hover
     + rom leitzentrale_enabled                 | + child report | label: global_keys/leitzentrale
-    + rom runtime_config                       | + parent | label: runtime_config
+    + rom runtime_config                       | + parent | label: config
     + rom | label_prefix: manager -> report -> | + child report
     + rom | label_prefix: report ->            | + child report
-    + rom | label_prefix: manager -> config -> | + child model
-    + rom | label_prefix: config ->            | + child model
-    + fs config                                | + child model | identity: rw
+    + rom | label_prefix: manager -> model ->  | + child model
+    + rom | label_prefix: model ->             | + child model
+    + fs model                                 | + child model | identity: rw
     + fs font                                  | + child font
     + fs report                                | + child report
     + report                                   | + child report

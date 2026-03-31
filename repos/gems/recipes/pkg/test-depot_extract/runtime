@@ -41,7 +41,7 @@ runtime | ram: 128M | caps: 5000 | binary: init
   + rom | label: vfs.lib.so
   + rom | label: vfs_lxip.lib.so
   + rom | label: zlib.lib.so
-  + rom | label: installation
+  + rom | label: install
   + rom | label: download      | . raw/test-depot_extract...
   + rom | label: pubkey
   + rom | label: public.tar

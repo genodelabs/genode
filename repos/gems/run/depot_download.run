@@ -117,9 +117,9 @@ config
 }
 
 
-set fd [open [run_dir]/genode/installation w]
+set fd [open [run_dir]/genode/install w]
 puts $fd {
-installation | arch: x86_64
+install | arch: x86_64
 + archive | path: genodelabs/pkg/wm/2019-03-17
 + archive | path: genodelabs/bin/x86_64/backdrop/2019-03-17
 + index   | path: genodelabs/index/19.02

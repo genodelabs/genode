@@ -56,14 +56,14 @@ runtime | ram: 128M | caps: 3000 | binary: init | config: depot_download.config
       + service Report
       + service ROM
     + config | verbose: no
-      + policy | label: depot_download -> installation | report: dbg_download -> installation
+      + policy | label: depot_download -> install | report: dbg_download -> install
     + route | + any-service | + parent
 
   + start depot_download | caps: 2000 | ram: 70M
     + binary init
     + route
       + service ROM | label: config                   | + parent | label: depot_download.config
-      + service ROM | label_suffix: installation      | + child report_rom | label: depot_download -> installation
+      + service ROM | label_suffix: install           | + child report_rom | label: depot_download -> install
       + service File_system | label_prefix: depot ->  | + parent | identity: depot
       + service File_system | label_prefix: public -> | + parent | identity: public
       + service Report                                | + child report_rom
