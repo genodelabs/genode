@@ -18,6 +18,7 @@
 #include <types.h>
 #include <runtime.h>
 #include <model/options.h>
+#include <vfs.h>
 
 namespace Sculpt { struct Deploy; }
 
@@ -46,7 +47,11 @@ struct Sculpt::Deploy
 		                 .initial   = { Ram_quota{8*1024*1024}, Cap_quota{200} },
 		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
 
-	Enabled_options enabled_options { _alloc };
+	Managed_children::Dict _dict { };
+
+	Managed_children _managed_children { };
+
+	Enabled_options enabled_options { _alloc, _dict };
 
 	static bool _present(auto const &registry, auto const &name)
 	{
@@ -56,10 +61,27 @@ struct Sculpt::Deploy
 		return result;
 	}
 
-	void handle_deploy(Node const &deploy)
+	Progress handle_deploy(Node const &deploy)
 	{
-		Progress progress = enabled_options.update_from_deploy(deploy);
-		(void)progress;
+		Progress result = STALLED;
+
+		if (_managed_children.update_from_deploy_or_option(_alloc, _dict, deploy).progressed)
+			result = PROGRESSED;
+
+		if (enabled_options.update_from_deploy(deploy, _dict).progressed)
+			result = PROGRESSED;
+
+		return result;
+	}
+
+	Progress apply_option(Options::Name const &name, Node const &node)
+	{
+		return enabled_options.apply_option(name, _dict, node);
+	}
+
+	void watch_options(Vfs &vfs, Enabled_options::Action &action)
+	{
+		enabled_options.watch_options(vfs, action);
 	}
 
 	void gen_child_nodes(Generator &g) const

@@ -77,7 +77,8 @@ struct Sculpt::Main : Input_event_handler,
                       Panel_dialog::State,
                       Screensaver::Action,
                       Drivers::Info,
-                      Drivers::Action
+                      Drivers::Action,
+                      Enabled_options::Action
 {
 	Env &_env;
 
@@ -730,7 +731,16 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_deploy(Node const &deploy)
 	{
-		_deploy.handle_deploy(deploy);
+		if (_deploy.handle_deploy(deploy).progressed)
+			_deploy.watch_options(_vfs, *this);
+	}
+
+	/**
+	 * Enabled_options::Action
+	 */
+	void deploy_option_changed(Options::Name const &name, Node const &node) override
+	{
+		_deploy.apply_option(name, node);
 	}
 
 	Managed_config<Main> _managed_depot_version {

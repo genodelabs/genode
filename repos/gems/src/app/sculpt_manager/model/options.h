@@ -16,6 +16,8 @@
 
 /* local includes */
 #include <model/file_listing.h>
+#include <model/managed_children.h>
+#include <vfs.h>
 
 namespace Sculpt {
 
@@ -29,21 +31,62 @@ class Sculpt::Enabled_options
 {
 	private:
 
-		Allocator &_alloc;
-
-		struct Item;
+		struct Option;
 
 		using Name = Options::Name;
-		using Dict = Dictionary<Item, Name>;
+		using Dict = Dictionary<Option, Name>;
+
+		using Managed_dict = Managed_children::Dict;
+
+	public:
+
+		struct Action : Interface
+		{
+			virtual void deploy_option_changed(Name const &, Node const &) = 0;
+		};
+
+	private:
+
+		Allocator &_alloc;
 
 		static Name node_name(Node const &node)
 		{
 			return node.attribute_value("name", Name());
 		}
 
-		struct Item : Dict::Element, List_model<Item>::Element
+		struct Option : Dict::Element, List_model<Option>::Element
 		{
 			using Dict::Element::Element;
+
+			struct Watched_option
+			{
+				Action &_action;
+
+				Name const &_name;
+
+				Vfs::Handler<Watched_option> _handler;
+
+				void _handle(Node const &option)
+				{
+					_action.deploy_option_changed(_name, option);
+				}
+
+				Watched_option(Vfs &vfs, Name const &name, Action &action)
+				:
+					_action(action), _name(name),
+					_handler(vfs, Path { "/model/option/", name }, *this, &Watched_option::_handle)
+				{ }
+			};
+
+			Constructible<Watched_option> _watched_option { };
+
+			Managed_children children { };
+
+			void watch(Vfs &vfs, Action &action)
+			{
+				if (!_watched_option.constructed())
+					_watched_option.construct(vfs, name, action);
+			}
 
 			bool matches(Node const &node) const { return node_name(node) == name; }
 
@@ -53,35 +96,52 @@ class Sculpt::Enabled_options
 			}
 		};
 
-		List_model<Item> _items { };
+		List_model<Option> _options { };
 
-		Dict _dict { }; /* avoid iterating over '_items' in 'exists' */
+		Dict _dict { }; /* avoid iterating over '_options' in 'exists' */
+
+		Managed_dict &_managed_dict;
 
 	public:
 
-		Enabled_options(Allocator &alloc) : _alloc(alloc) { }
+		Enabled_options(Allocator &alloc, Managed_dict &managed_dict)
+		: _alloc(alloc), _managed_dict(managed_dict) { }
 
-		~Enabled_options() { update_from_deploy(Node()); }
-
-		Progress update_from_deploy(Node const &deploy)
+		Progress update_from_deploy(Node const &deploy, Managed_dict &dict)
 		{
 			bool progress = false;
-			_items.update_from_node(deploy,
+			_options.update_from_node(deploy,
 
 				/* create */
-				[&] (Node const &node) -> Item & {
+				[&] (Node const &node) -> Option & {
 					progress = true;
-					return *new (_alloc) Item(_dict, node_name(node)); },
+					return *new (_alloc) Option(_dict, node_name(node)); },
 
 				/* destroy */
-				[&] (Item &i) {
+				[&] (Option &o) {
 					progress = true;
-					destroy(_alloc, &i); },
+					o.children.update_from_deploy_or_option(_alloc, dict, Node());
+					destroy(_alloc, &o); },
 
 				/* update */
-				[&] (Item &, Node const &) { }
+				[&] (Option &, Node const &) { }
 			);
 			return Progress { progress };
+		}
+
+		void watch_options(Vfs &vfs, Action &action)
+		{
+			_options.for_each([&] (Option &option) { option.watch(vfs, action); });
+		}
+
+		Progress apply_option(Name const &name, Managed_dict &dict, Node const &node)
+		{
+			Progress result = STALLED;
+			_options.for_each([&] (Option &option) {
+				if (option.name == name)
+					result = option.children.update_from_deploy_or_option(_alloc, dict, node);
+			});
+			return result;
 		}
 
 		bool exists(Name const &name) const { return _dict.exists(name); }
