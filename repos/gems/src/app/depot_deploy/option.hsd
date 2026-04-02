@@ -160,6 +160,11 @@ schema option
   + node connect | multiple: no
     + node | category: connect
 
+  + node managed
+    + attr max_caps | type: natural   | default:
+    + attr max_ram  | type: num_bytes | default:
+    + anything
+
   + node config
     + anything
 -
