@@ -3,6 +3,8 @@
 #
 # \param --power-on-amt-host       network address of target machine
 # \param --power-on-amt-password   AMT password for target machine
+# \param --wsman-tls               use TLS for wsman
+# \param --meshcmd-tls             use TLS for meshcmd
 #
 
 source [genode_dir]/tool/run/amt.inc
@@ -96,9 +98,7 @@ proc amt_reset_wsman { } {
 
 	close $fh
 
-	set use_tls [cmd_arg --wsman-tls "no"]
-
-	if { $use_tls == "yes" } {
+	if { [have_cmd_switch --wsman-tls] } {
 		exec wsman invoke -a RequestPowerStateChange -J $xml_request \
 		                  "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService" \
 		                   --https --endpoint https://admin:[power_on_amt_password]@[power_on_amt_host]:16993 \
@@ -117,7 +117,7 @@ proc amt_reset_wsman { } {
 #
 proc amt_reset_meshcmd { } {
 	set tls_arg ""
-	if { [cmd_arg --meshcmd-tls "no"] == "yes" } {
+	if { [have_cmd_switch --meshcmd-tls] } {
 		set tls_arg "--tls"
 	}
 

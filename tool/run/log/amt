@@ -5,6 +5,8 @@
 # \param --log-amt-password   AMT password for target machine
 # \param --log-amt-filter     Sanitize output by piping it through a filter
 # \param --log-amt-skip-test  Skip AMT SOL availability test
+# \param --amtterm-tls        use TLS for amtterm
+# \param --meshcmd-tls        use TLS for meshcmd
 #
 
 source [genode_dir]/tool/run/log.inc
@@ -76,7 +78,7 @@ proc run_log { wait_for_re timeout_value } {
 	#
 	if {[have_installed meshcmd] && ( $amt_tool == "meshcmd" )} {
 		set tls_arg ""
-		if { [cmd_arg --meshcmd-tls "no"] == "yes" } {
+		if { [have_cmd_switch --meshcmd-tls] } {
 			set tls_arg "--tls"
 		}
 
@@ -89,8 +91,7 @@ proc run_log { wait_for_re timeout_value } {
 		set ::env(AMT_PASSWORD) [log_amt_password]
 
 		set amtterm_cert ""
-		set use_tls [cmd_arg --amtterm-tls "no"]
-		if { $use_tls == "yes" } {
+		if { [have_cmd_switch --amtterm-tls] } {
 			if {![file exists [log_amt_host].cert] || [file size [log_amt_host].cert] == "0"} {
 				puts "Warning: machine cerificate [log_amt_host].cert required."
 				puts "         Use 'openssl(1)' to acquire the cerificate and place it in your build directory, .e.g:"
