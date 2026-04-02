@@ -184,12 +184,8 @@ set driver_routes(mnt_reform2) {
     + service ROM | label: fb.dtb            | + parent | label: imx8mq_fb-mnt_reform2.dtb
     + service ROM | label: mmc               | + parent | label: imx8mq_sd_card
     + service ROM | label: mmc.dtb           | + parent | label: imx8mq_sd_card-mnt_reform2.dtb
-    + service ROM | label: nic               | + parent | label: fec_nic
-    + service ROM | label: nic.dtb           | + parent | label: fec_nic-mnt_reform2.dtb
     + service ROM | label: usb               | + parent | label: imx8m_usb_host
     + service ROM | label: usb.dtb           | + parent | label: imx8m_usb_host-mnt_reform2.dtb
-    + service ROM | label: wifi.lib.so       | + parent | label: imx8mq_wifi.lib.so
-    + service ROM | label: wifi_firmware.tar | + parent | label: imx8mq_wifi_firmware.tar
 }
 
 set driver_routes(mnt_pocket) {
@@ -197,18 +193,8 @@ set driver_routes(mnt_pocket) {
     + service ROM | label: fb.dtb            | + parent | label: imx8mq_fb-mnt_pocket.dtb
     + service ROM | label: mmc               | + parent | label: imx8mq_sd_card
     + service ROM | label: mmc.dtb           | + parent | label: imx8mq_sd_card-mnt_pocket.dtb
-    + service ROM | label: nic               | + parent | label: stmmac_nic
-    + service ROM | label: nic.dtb           | + parent | label: stmmac_nic-mnt_pocket.dtb
     + service ROM | label: usb               | + parent | label: imx8m_usb_host
     + service ROM | label: usb.dtb           | + parent | label: imx8m_usb_host-mnt_pocket.dtb
-    + service ROM | label: wifi.dtb          | + parent | label: wifi-mnt_pocket.dtb
-    + service ROM | label: wifi.lib.so       | + parent | label: imx8mp_qcacld2_wifi.lib.so
-    + service ROM | label: wifi_firmware.tar | + parent | label: imx8mp_qcacld2_wifi_firmware.tar
-}
-
-set driver_routes(imx8q_evk) {
-    + service ROM | label: nic     | + parent | label: fec_nic
-    + service ROM | label: nic.dtb | + parent | label: fec_nic-imx8q_evk.dtb
 }
 
 set driver_routes(pinephone) {
@@ -225,8 +211,6 @@ set driver_routes(imx8mp_armstone) {
     + service ROM | label: fb.dtb  | + parent | label: imx8mp_armstone_fb-imx8mp_armstone.dtb
     + service ROM | label: mmc     | + parent | label: imx8mq_sd_card
     + service ROM | label: mmc.dtb | + parent | label: imx8mq_sd_card-imx8mp_armstone.dtb
-    + service ROM | label: nic     | + parent | label: fec_nic
-    + service ROM | label: nic.dtb | + parent | label: fec_nic-imx8mp_armstone.dtb
     + service ROM | label: usb     | + parent | label: imx8m_usb_host
     + service ROM | label: usb.dtb | + parent | label: imx8m_usb_host-imx8mp_armstone.dtb
 }

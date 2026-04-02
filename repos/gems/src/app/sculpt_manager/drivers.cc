@@ -33,7 +33,6 @@
 #include <driver/ps2.h>
 #include <driver/touch.h>
 #include <driver/usb.h>
-#include <driver/wifi.h>
 
 class Sculpt::Drivers::Instance : Noncopyable,
                                   Nvme_driver::Action,
@@ -86,7 +85,6 @@ class Sculpt::Drivers::Instance : Noncopyable,
 			_ahci_driver .update(_children, _board_info);
 			_nvme_driver .update(_children, _board_info);
 			_mmc_driver  .update(_children, _board_info);
-			_wifi_driver .update(_children, _board_info);
 
 			_action.handle_device_plug_unplug();
 		}
@@ -104,7 +102,6 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		Ahci_driver  _ahci_driver  { _env, *this };
 		Nvme_driver  _nvme_driver  { _env, *this };
 		Mmc_driver   _mmc_driver   { _env, *this };
-		Wifi_driver  _wifi_driver  { };
 
 		void gen_usb_storage_policies(Generator &g) const override
 		{
@@ -150,7 +147,6 @@ class Sculpt::Drivers::Instance : Noncopyable,
 			_ahci_driver .gen_child_node (g);
 			_nvme_driver .gen_child_node (g);
 			_mmc_driver  .gen_child_node (g);
-			_wifi_driver .gen_child_node (g);
 		}
 
 		void with(With_storage_devices::Ft const &fn) const
