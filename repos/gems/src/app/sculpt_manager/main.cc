@@ -239,30 +239,25 @@ struct Sculpt::Main : Input_event_handler,
 		_refresh_panel_and_window_layout();
 	}
 
-	Managed_config<Main> _event_filter_config {
-		_env, _heap, "config", "child/event_filter", *this, &Main::_handle_event_filter_config };
+	Vfs::Handler<Main> _event_filter_config {
+		_vfs, "/model/child/event_filter", *this, &Main::_handle_event_filter_config };
 
-	void _generate_event_filter_config(Generator &);
-
-	void _handle_event_filter_config(Node const &)
+	void _handle_event_filter_config(Node const &node)
 	{
-		_update_event_filter_config();
-	}
+		Settings::Keyboard_layout::Name const orig = _settings.keyboard_layout;
 
-	void _update_event_filter_config()
-	{
-		bool const orig_settings_available = _settings.interactive_settings_available();
-
-		_settings.manual_event_filter_config = !_event_filter_config.managed;
-
-		if (!_settings.manual_event_filter_config)
-			_event_filter_config.generate([&] (Generator &g) {
-				_generate_event_filter_config(g); });
-
-		_settings_dialog.refresh();
+		/* detect updated setting */
+		_settings.keyboard_layout = { };
+		node.with_optional_sub_node("output", [&] (Node const &node) {
+			node.with_optional_sub_node("chargen", [&] (Node const &node) {
+				node.for_each_sub_node("include", [&] (Node const &node) {
+					Path const rom = node.attribute_value("rom", Path());
+					Settings::with_layout_name(rom, [&] (auto const &name) {
+						_settings.keyboard_layout = name; }); }); }); });
 
 		/* visibility of the settings dialog may have changed */
-		if (orig_settings_available != _settings.interactive_settings_available()) {
+		if (orig != _settings.keyboard_layout) {
+			_settings_dialog.refresh();
 			_refresh_panel_and_window_layout();
 			_handle_gui_mode();
 		}
@@ -1479,9 +1474,12 @@ struct Sculpt::Main : Input_event_handler,
 		if (_settings.keyboard_layout == keyboard_layout)
 			return;
 
-		_settings.keyboard_layout = keyboard_layout;
-
-		_update_event_filter_config();
+		Settings::with_chargen(_settings.keyboard_layout, [&] (Path const &old) {
+			Settings::with_chargen(keyboard_layout, [&] (Path const &selected) {
+				_vfs.edit("/model/child/event_filter", [&] (Hid_edit &edit) {
+					edit.adjust("config | + output | + chargen | + include | : rom", Path(),
+						[&] (Path const &v) {
+							return (v == old) ? selected : v; }); }); }); });
 	}
 
 	/**
@@ -1966,7 +1964,6 @@ struct Sculpt::Main : Input_event_handler,
 		 * Generate initial configurations
 		 */
 		_network.wifi_disconnect();
-		_update_event_filter_config();
 
 		_handle_storage_devices();
 
@@ -2669,106 +2666,6 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 	if (_update_running())
 		g.node("child", [&] {
 			gen_update_child_content(g); });
-}
-
-
-void Sculpt::Main::_generate_event_filter_config(Generator &g)
-{
-	auto gen_include = [&] (auto rom) {
-		g.node("include", [&] {
-			g.attribute("rom", rom); }); };
-
-	g.node("output", [&] {
-		g.node("chargen", [&] {
-			g.node("remap", [&] {
-
-				auto gen_key = [&] (auto from, auto to) {
-					g.node("key", [&] {
-						g.attribute("name", from);
-						g.attribute("to",   to); }); };
-
-				g.tabular([&] {
-					gen_key("KEY_CAPSLOCK", "KEY_CAPSLOCK");
-					gen_key("KEY_F12",      "KEY_DASHBOARD");
-					gen_key("KEY_LEFTMETA", "KEY_SCREEN");
-					gen_key("KEY_SYSRQ",    "KEY_PRINT");
-				});
-				gen_include("numlock.remap");
-
-				g.node("merge", [&] {
-
-					auto gen_input = [&] (auto name) {
-						g.node("input", [&] {
-							g.attribute("name", name); }); };
-
-					g.node("accelerate", [&] {
-						g.attribute("max",                   50);
-						g.attribute("sensitivity_percent", 1000);
-						g.attribute("curve",                127);
-
-						g.node("button-scroll", [&] {
-							gen_input("ps2");
-
-							g.tabular([&] {
-								g.node("vertical", [&] {
-									g.attribute("button", "BTN_MIDDLE");
-									g.attribute("speed_percent", -10); });
-
-								g.node("horizontal", [&] {
-									g.attribute("button", "BTN_MIDDLE");
-									g.attribute("speed_percent", -10); });
-							});
-						});
-					});
-
-					gen_input("usb");
-					gen_input("touchpad");
-					gen_input("sdl");
-				});
-			});
-
-			auto gen_key = [&] (auto key) {
-				gen_named_node(g, "key", key, [&] {}); };
-
-			g.node("mod1", [&] {
-				gen_key("KEY_LEFTSHIFT");
-				gen_key("KEY_RIGHTSHIFT"); });
-
-			g.node("mod2", [&] {
-				gen_key("KEY_LEFTCTRL");
-				gen_key("KEY_RIGHTCTRL"); });
-
-			g.node("mod3", [&] {
-				gen_key("KEY_RIGHTALT");  /* AltGr */ });
-
-			g.node("mod4", [&] {
-				g.node("rom", [&] {
-					g.attribute("name", "capslock"); }); });
-
-			g.node("repeat", [&] {
-				g.attribute("delay_ms", 230);
-				g.attribute("rate_ms",   40); });
-
-			using Keyboard_layout = Settings::Keyboard_layout;
-			Keyboard_layout::for_each([&] (Keyboard_layout const &layout) {
-				if (layout.name == _settings.keyboard_layout)
-					gen_include(layout.chargen_file); });
-
-			gen_include("keyboard/special");
-		});
-	});
-
-	auto gen_policy = [&] (auto label, auto input) {
-		g.node("policy", [&] {
-			g.attribute("label", label);
-			g.attribute("input", input); }); };
-
-	g.tabular([&] {
-		gen_policy("ps2",      "ps2");
-		gen_policy("usb_hid",  "usb");
-		gen_policy("touchpad", "touchpad");
-		gen_policy("sdl",      "sdl");
-	});
 }
 
 

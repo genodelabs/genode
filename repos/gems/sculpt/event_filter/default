@@ -1,16 +1,37 @@
-config | managed: yes
-.
-. this configuration is used only before the sculpt manager runs
-.
+config
 + output
-  + merge
-    + input ps2
-    + input usb
-    + input touch
-    + input sdl
+  + chargen
+    + remap
+      + key KEY_CAPSLOCK | to: KEY_CAPSLOCK
+      + key KEY_F12      | to: KEY_DASHBOARD
+      + key KEY_LEFTMETA | to: KEY_SCREEN
+      + key KEY_SYSRQ    | to: KEY_PRINT
+      + include | rom: numlock.remap
+      + merge
+        + accelerate | max: 50 | sensitivity_percent: 1000 | curve: 127
+        | + button-scroll
+        |   + input ps2
+        |   + vertical   | button: BTN_MIDDLE | speed_percent: -10
+        |   + horizontal | button: BTN_MIDDLE | speed_percent: -10
+        + input usb
+        + input touchpad
+        + input sdl
+    + mod1
+      + key KEY_LEFTSHIFT
+      + key KEY_RIGHTSHIFT
+    + mod2
+      + key KEY_LEFTCTRL
+      + key KEY_RIGHTCTRL
+    + mod3
+      + key KEY_RIGHTALT | . AltGr
+    + mod4
+      + rom capslock
+    + repeat | delay_ms: 230 | rate_ms: 40
+    + include | rom: keyboard/en_us
+    + include | rom: keyboard/special
 
-+ policy | label: runtime -> ps2     | input: ps2
-+ policy | label: runtime -> usb_hid | input: usb
-+ policy | label: drivers -> touch   | input: touch
-+ policy | label: drivers -> sdl     | input: sdl
++ policy | label: ps2      | input: ps2
++ policy | label: usb_hid  | input: usb
++ policy | label: touchpad | input: touchpad
++ policy | label: sdl      | input: sdl
 -

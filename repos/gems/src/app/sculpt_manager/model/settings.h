@@ -52,14 +52,25 @@ struct Sculpt::Settings
 		}
 	};
 
-	Keyboard_layout::Name keyboard_layout { "US English" };
+	static void with_chargen(Keyboard_layout::Name const &name, auto const &fn)
+	{
+		Keyboard_layout::for_each([&] (Keyboard_layout const &layout) {
+			if (layout.name == name)
+				fn(layout.chargen_file); });
+	}
 
-	bool manual_event_filter_config = false;
+	static void with_layout_name(Path const &chargen_file, auto const &fn)
+	{
+		Keyboard_layout::for_each([&] (Keyboard_layout const &layout) {
+			if (layout.chargen_file == chargen_file)
+				fn(layout.name); });
+	}
+
+	Keyboard_layout::Name keyboard_layout { "US English" };
 
 	bool interactive_settings_available() const
 	{
-		return !manual_event_filter_config
-		    || !manual_font_config;
+		return keyboard_layout.length() > 1 || !manual_font_config;
 	}
 };
 

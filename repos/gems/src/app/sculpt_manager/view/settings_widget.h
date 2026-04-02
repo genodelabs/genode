@@ -78,7 +78,7 @@ struct Sculpt::Settings_widget : Widget<Vbox>
 				});
 		}
 
-		if (!_settings.manual_event_filter_config) {
+		if (_settings.keyboard_layout.length() > 1) {
 			s.widget(_keyboard_layout_choice,
 				Hosted_choice::Attr {
 					.left_ex = left_ex, .right_ex = right_ex,

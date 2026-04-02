@@ -176,7 +176,6 @@ config | prio_levels: 4
     + service Report | label: child/gui_config          | + child model_fs_report | label: child -> gui
     + service Report | label: child/usb_config          | + child model_fs_report | label: child -> usb
     + service Report | label: system_config             | + child model_fs_report | label: system
-    + service Report | label: child/event_filter_config | + child model_fs_report | label: child -> event_filter
     + service Report | label: install_config            | + child model_fs_report | label: install
     + service Report | label: child/depot_query         | + child model_fs_report | label: child -> depot_query
     + service Report | label: child/blueprint_query     | + child model_fs_report | label: child -> blueprint_query
