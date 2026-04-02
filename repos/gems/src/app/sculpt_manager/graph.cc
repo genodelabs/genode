@@ -93,10 +93,10 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 		s.widget(_fb_widget, _fb_connectors, _fb_config, _hovered_display);
 
 	String<100> const
-		ram (Capacity{info.assigned_ram - info.avail_ram}, " / ",
-		     Capacity{info.assigned_ram}),
-		caps(info.assigned_caps - info.avail_caps, " / ",
-		     info.assigned_caps, " caps");
+		ram (Capacity{info.ram.assigned - info.ram.avail}, " / ",
+		     Capacity{info.ram.assigned}),
+		caps(info.caps.assigned - info.caps.avail, " / ",
+		     info.caps.assigned, " caps");
 
 	s.sub_scope<Min_ex>(25);
 	s.sub_scope<Label>(ram);

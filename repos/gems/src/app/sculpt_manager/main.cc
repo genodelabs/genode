@@ -2431,6 +2431,8 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 	if (_runtime_state.update_from_state_report(state).progressed)
 		regenerate_dialog = true;
 
+	_deploy.manage_resource_requests(_vfs, _runtime_state, _cached_init_config);
+
 	/* check for completed storage operations */
 	_storage._storage_devices.for_each([&] (Storage_device &device) {
 

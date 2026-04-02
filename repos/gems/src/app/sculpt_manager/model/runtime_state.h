@@ -31,6 +31,33 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		using Version = Child_state::Version;
 
+		struct Budget
+		{
+			size_t assigned, avail, requested;
+
+			size_t wanted() const { return requested ? assigned + requested : 0ul; }
+
+			bool operator != (Budget const &other) const
+			{
+				return assigned   != other.assigned
+				    || avail      != other.avail
+				    || requested  != other.requested;
+			}
+
+			static Budget from_node(Node const &node, auto default_value)
+			{
+				return {
+					.assigned  = max(node.attribute_value("assigned",  default_value),
+					                 node.attribute_value("quota",     default_value)),
+					.avail     =     node.attribute_value("avail",     default_value),
+					.requested =     node.attribute_value("requested", default_value)
+				};
+			}
+		};
+
+		struct Ram  : Budget { using Budget::operator=; };
+		struct Caps : Budget { using Budget::operator=; };
+
 		struct Info
 		{
 			bool selected;
@@ -41,11 +68,8 @@ class Sculpt::Runtime_state : public Runtime_info
 			/* true if 'tcb' is updated for the immediate dependencies */
 			bool tcb_updated;
 
-			unsigned long assigned_ram;
-			unsigned long avail_ram;
-
-			unsigned long assigned_caps;
-			unsigned long avail_caps;
+			Ram  ram;
+			Caps caps;
 
 			Version version;
 
@@ -53,13 +77,13 @@ class Sculpt::Runtime_state : public Runtime_info
 			{
 				return selected      != other.selected
 				    || tcb_updated   != other.tcb_updated
-				    || assigned_ram  != other.assigned_ram
-				    || avail_ram     != other.avail_ram
-				    || assigned_caps != other.assigned_caps
-				    || avail_caps    != other.avail_caps
+				    || ram           != other.ram
+				    || caps          != other.caps
 				    || version.value != other.version.value;
 			}
 		};
+
+		struct Resource_request { Ram ram; Caps caps; };
 
 	private:
 
@@ -71,14 +95,12 @@ class Sculpt::Runtime_state : public Runtime_info
 		{
 			Start_name const name;
 
-			Info info { .selected      = false,
-			            .tcb           = false,
-			            .tcb_updated   = false,
-			            .assigned_ram  = 0,
-			            .avail_ram     = 0,
-			            .assigned_caps = 0,
-			            .avail_caps    = 0,
-			            .version       = { 0 }};
+			Info info { .selected    = false,
+			            .tcb         = false,
+			            .tcb_updated = false,
+			            .ram         = { },
+			            .caps        = { },
+			            .version     = { 0 }};
 
 			Child(Start_name const &name) : name(name) { }
 
@@ -96,16 +118,10 @@ class Sculpt::Runtime_state : public Runtime_info
 			{
 				Info const orig_info = info;
 				node.with_optional_sub_node("ram", [&] (Node const &ram) {
-					info.assigned_ram = max(ram.attribute_value("assigned", Number_of_bytes()),
-					                        ram.attribute_value("quota",    Number_of_bytes()));
-					info.avail_ram    =     ram.attribute_value("avail",    Number_of_bytes());
-				});
+					info.ram = Budget::from_node(ram, Number_of_bytes()); });
 
 				node.with_optional_sub_node("caps", [&] (Node const &caps) {
-					info.assigned_caps = max(caps.attribute_value("assigned", 0UL),
-					                         caps.attribute_value("quota",    0UL));
-					info.avail_caps    =     caps.attribute_value("avail",    0UL);
-				});
+					info.caps = Budget::from_node(caps, 0UL); });
 
 				info.version.value = node.attribute_value("version", 0U);
 
@@ -227,6 +243,14 @@ class Sculpt::Runtime_state : public Runtime_info
 				if (child.info.selected)
 					result = child.name; });
 			return result;
+		}
+
+		void for_each_resource_request(auto const &fn) const
+		{
+			_children.for_each([&] (Child const &child) {
+				if (child.info.ram.requested || child.info.caps.requested)
+					fn(child.name,
+					   Resource_request { child.info.ram, child.info.caps }); });
 		}
 
 		bool usb_in_tcb()     const { return _usb_in_tcb; }

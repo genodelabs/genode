@@ -98,6 +98,58 @@ struct Sculpt::Deploy
 			gen_blueprint_query_child_content(g); });
 	}
 
+	void manage_resource_requests(Vfs &vfs, Runtime_state  const &state,
+	                                        Runtime_config const &config) const
+	{
+		auto with_managed_attr = [&] (auto const &name, auto const &fn)
+		{
+			_dict.with_element(name,
+				[&] (Managed_children::Child const &child) { fn(child.attr); },
+				[&] { });
+		};
+
+		auto assign = [&] (auto const &option_name, auto const &child_name,
+		                   size_t const ram, size_t const caps)
+		{
+			bool const option = (option_name.length() > 1);
+
+			auto const path = option ? Path { "/model/option/", option_name }
+			                         : Path { "/model/deploy" };
+
+			Hid_edit::Query const query {
+				option ? "option" : "deploy", " | + child ", child_name };
+
+			vfs.edit(path, [&] (Hid_edit &edit) {
+				if (ram)
+					edit.adjust({ query, " | : ram" }, 0ul,
+						[&] (size_t) { return ram; });
+				if (caps)
+					edit.adjust({ query, " | : caps" }, 0ul,
+						[&] (size_t) { return caps; });
+			});
+		};
+
+		state.for_each_resource_request(
+			[&] (Start_name const &name, Runtime_state::Resource_request request) {
+				with_managed_attr(name, [&] (Managed_children::Attr attr) {
+
+					size_t ram = 0, caps = 0;
+
+					if (request.ram.wanted() && request.ram.wanted() <= attr.max_ram)
+						ram = request.ram.wanted();
+
+					if (request.caps.wanted() && request.caps.wanted() <= attr.max_caps)
+						caps = request.caps.wanted();
+
+					if (!ram && !caps)
+						return;
+
+					config.with_component(name, [&] (Runtime_config::Component const &c) {
+						assign(c.option, name, ram, caps); }, [&] { });
+				});
+			});
+	}
+
 	Deploy(Allocator &alloc,
 	       Registry<Child_state> &child_states, Runtime_info const &runtime_info)
 	:
