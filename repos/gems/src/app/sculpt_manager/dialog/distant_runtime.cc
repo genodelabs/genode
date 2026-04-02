@@ -26,17 +26,6 @@ static bool clack(Input::Event const &event) {
 	return Input::Seq_number_generator::clack(event); }
 
 
-Progress Distant_runtime::apply_runtime_state(Node const &state)
-{
-	Progress result = STALLED;
-	state.for_each_sub_node("child", [&] (Node const &child) {
-		if (_apply_child_state_report(child).progressed)
-			result = PROGRESSED; });
-
-	return result;
-}
-
-
 void Distant_runtime::route_input_event(Event::Seq_number seq_number, Input::Event const &event)
 {
 	_global_seq_number = seq_number;
@@ -132,93 +121,4 @@ void Distant_runtime::_try_handle_click_and_clack()
 			clack.destruct();
 		});
 	}
-}
-
-
-void Distant_runtime::gen_child_nodes(Generator &g) const
-{
-	g.node("child", [&] {
-
-		gen_child_attr(g, _child_name, Binary_name { "menu_view" },
-		               _caps, _ram, Priority::LEITZENTRALE);
-
-		g.attribute("version", _version);
-
-		g.node("heartbeat", [&] { });
-
-		g.node("config", [&] {
-
-			g.node("report", [&] {
-				g.attribute("hover", "yes"); });
-
-			g.node("libc", [&] {
-				g.attribute("stderr", "/dev/log"); });
-
-			g.node("vfs", [&] {
-				g.node("tar", [&] {
-					g.attribute("name", "menu_view_style.tar"); });
-				g.node("dir", [&] {
-					g.attribute("name", "dev");
-					g.node("log", [&] { });
-				});
-				g.node("dir", [&] {
-					g.attribute("name", "font");
-					g.node("fs", [&] {
-						g.attribute("label", "font -> /");
-					});
-				});
-			});
-
-			g.tabular([&] {
-				_views.for_each([&] (View const &view) {
-					view._gen_menu_view_dialog(g); });
-			});
-		});
-
-		g.tabular_node("connect", [&] {
-			connect_parent_rom(g, "vfs.lib.so");
-			connect_parent_rom(g, "libc.lib.so");
-			connect_parent_rom(g, "libm.lib.so");
-			connect_parent_rom(g, "libpng.lib.so");
-			connect_parent_rom(g, "zlib.lib.so");
-			connect_parent_rom(g, "menu_view_style.tar");
-
-			_views.for_each([&] (View const &view) {
-				view._gen_view_connections(g); });
-
-			gen_named_node(g, "report", "hover", [&] {
-				g.node("child", [&] {
-					g.attribute("name", "leitzentrale"); }); });
-
-			gen_named_node(g, "fs", "font", [&] {
-				g.node("child", [&] {
-					g.attribute("name", "font"); }); });
-		});
-	});
-}
-
-
-void Distant_runtime::View::_gen_menu_view_dialog(Generator &g) const
-{
-	g.node("dialog", [&] {
-		g.attribute("name", name);
-
-		g.attribute("background", String<20>(_background));
-
-		if (min_width)  g.attribute("width",  min_width);
-		if (min_height) g.attribute("height", min_height);
-		if (_opaque)    g.attribute("opaque", "yes");
-	});
-}
-
-
-void Distant_runtime::View::_gen_view_connections(Generator &g) const
-{
-	Session_label::String const label { name, "_dialog" };
-
-	gen_named_node(g, "rom", name, [&] {
-		g.node("child", [&] { g.attribute("name", "leitzentrale"); }); });
-
-	gen_named_node(g, "gui", name, [&] {
-		g.node("child", [&] { g.attribute("name", "leitzentrale"); }); });
 }

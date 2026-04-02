@@ -52,15 +52,6 @@ class Dialog::Distant_runtime : Noncopyable
 
 		Event::Seq_number _global_seq_number { 1 };
 
-		Start_name const _child_name   { "runtime_view" };
-		Ram_quota  const _initial_ram  { 52*1024*1024 };
-		Cap_quota  const _initial_caps { 330 };
-
-		Ram_quota _ram  = _initial_ram;
-		Cap_quota _caps = _initial_caps;
-
-		unsigned _version = 0;
-
 		Top_level_dialog::Name _hovered_dialog { };
 
 		Sculpt::Rom_handler<Distant_runtime> _hover_rom {
@@ -88,43 +79,6 @@ class Dialog::Distant_runtime : Noncopyable
 
 		void _try_handle_click_and_clack();
 
-		/**
-		 * Adapt runtime state information to the child
-		 *
-		 * This method responds to RAM and cap-resource requests by increasing
-		 * the resource quotas as needed.
-		 *
-		 * \param  child  child node of the sandbox state report
-		 * \return true if runtime must be reconfigured so that the changes
-		 *         can take effect
-		 */
-		Progress _apply_child_state_report(Node const &child)
-		{
-			Progress result = STALLED;
-
-			if (child.attribute_value("name", Start_name()) != _child_name)
-				return STALLED;
-
-			child.with_optional_sub_node("ram", [&] (Node const &node) {
-				if (node.has_attribute("requested")) {
-					_ram.value = min(2*_ram.value, 128*1024*1024u);
-					result = PROGRESSED; } });
-
-			child.with_optional_sub_node("caps", [&] (Node const &node) {
-				if (node.has_attribute("requested")) {
-					_caps.value = min(_caps.value + 100, 2000u);
-					result = PROGRESSED; } });
-
-			if (child.attribute_value("skipped_heartbeats", 0U) > 2) {
-				_version++;
-				_ram  = _initial_ram;
-				_caps = _initial_caps;
-				result = PROGRESSED;
-			}
-
-			return result;
-		}
-
 	public:
 
 		Distant_runtime(Env &env) : _env(env) { }
@@ -133,10 +87,6 @@ class Dialog::Distant_runtime : Noncopyable
 		 * Route input event to the 'Top_level_dialog' click/clack interfaces
 		 */
 		void route_input_event(Event::Seq_number, Input::Event const &);
-
-		Progress apply_runtime_state(Node const &);
-
-		void gen_child_nodes(Generator &) const;
 };
 
 
@@ -165,6 +115,13 @@ class Dialog::Distant_runtime::View : private Views::Element
 		void _generate_dialog()
 		{
 			_dialog_reporter.generate([&] (Generator &g) {
+
+				g.attribute("background", String<20>(_background));
+
+				if (min_width)  g.attribute("width",  min_width);
+				if (min_height) g.attribute("height", min_height);
+				if (_opaque)    g.attribute("opaque", "yes");
+
 				_with_dialog_hover([&] (Node const &hover) {
 
 					Event::Dragged const dragged { _runtime._dragged() };
@@ -224,7 +181,6 @@ class Dialog::Distant_runtime::View : private Views::Element
 		Color const _background;
 
 		void _gen_menu_view_dialog(Generator &) const;
-		void _gen_view_connections(Generator &) const;
 
 	public:
 

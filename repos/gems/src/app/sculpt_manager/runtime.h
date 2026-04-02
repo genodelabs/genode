@@ -15,7 +15,6 @@
 #define _RUNTIME_H_
 
 #include <xml.h>
-#include <model/ram_fs_state.h>
 #include <model/storage_devices.h>
 #include <model/storage_target.h>
 #include <model/child_state.h>
@@ -40,25 +39,15 @@ namespace Sculpt {
 	void gen_chroot_child_content(Generator &, Child_name const &,
 	                              Path const &, Writeable);
 
-	void gen_depot_query_child_content(Generator &);
-	void gen_blueprint_query_child_content(Generator &);
-	void gen_model_query_child_content(Generator &);
-
 	struct Inspect_view_version { unsigned value; };
 	void gen_inspect_view(Generator &, Storage_devices const &,
-	                      Ram_fs_state const &, Inspect_view_version);
+	                      File_system const &ram_fs_state, Inspect_view_version);
 
 	void gen_fs_child_content(Generator &, Storage_target const &,
 	                          File_system::Type);
 
-	void gen_fs_rom_child_content(Generator &, Server_name const &,
-	                              Child_state const &);
-
 	void gen_gpt_relabel_child_content(Generator &, Storage_device const &);
 	void gen_gpt_expand_child_content (Generator &, Storage_device const &);
-
-	void gen_nic_router_child_content(Generator &);
-	void gen_nic_router_uplink(Generator &, char const *);
 
 	struct Prepare_version { unsigned value; };
 	void gen_prepare_child_content(Generator &, Prepare_version);
@@ -67,8 +56,6 @@ namespace Sculpt {
 	struct File_operation_queue;
 	void gen_fs_tool_child_content(Generator &, Fs_tool_version,
                                    File_operation_queue const &);
-
-	void gen_ram_fs_child_content(Generator &, Ram_fs_state const &);
 
 	void gen_update_child_content(Generator &);
 

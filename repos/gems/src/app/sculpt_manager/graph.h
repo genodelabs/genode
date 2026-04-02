@@ -39,7 +39,7 @@ struct Sculpt::Graph : Widget<Depgraph>
 	Runtime_config      const &_runtime_config;
 	Storage_devices     const &_storage_devices;
 	Storage_target      const &_selected_target;
-	Ram_fs_state        const &_ram_fs_state;
+	File_system         const &_ram_fs_state;
 	Fb_connectors       const &_fb_connectors;
 	Fb_config           const &_fb_config;
 	Fb_connectors::Name const &_hovered_display;
@@ -83,7 +83,7 @@ struct Sculpt::Graph : Widget<Depgraph>
 	      Runtime_config         const &runtime_config,
 	      Storage_devices        const &storage_devices,
 	      Storage_target         const &selected_target,
-	      Ram_fs_state           const &ram_fs_state,
+	      File_system            const &ram_fs_state,
 	      Fb_connectors          const &fb_connectors,
 	      Fb_config              const &fb_config,
 	      Fb_connectors::Name    const &hovered_display,

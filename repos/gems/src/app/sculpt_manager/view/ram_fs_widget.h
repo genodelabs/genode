@@ -15,7 +15,6 @@
 #define _VIEW__RAM_FS_WIDGET_H_
 
 #include <view/fs_operations.h>
-#include <model/ram_fs_state.h>
 
 namespace Sculpt { struct Ram_fs_widget; }
 
@@ -34,7 +33,7 @@ struct Sculpt::Ram_fs_widget : Widget<Vbox>
 
 	void view(Scope<Vbox> &s,
 	          Storage_target const &used_target,
-	          Ram_fs_state   const &ram_fs_state) const
+	          File_system    const &ram_fs_state) const
 	{
 		_fs.view(s, _target, used_target, ram_fs_state);
 

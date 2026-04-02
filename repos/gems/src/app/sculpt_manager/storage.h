@@ -30,7 +30,7 @@ struct Sculpt::Storage : Noncopyable
 
 	Storage_devices _storage_devices;
 
-	Ram_fs_state _ram_fs_state;
+	File_system _ram_fs_state { File_system::UNKNOWN };
 
 	Storage_target _configured_target { },
 	               _selected_target   { };
@@ -143,16 +143,9 @@ struct Sculpt::Storage : Noncopyable
 			partition.toggle_default_label(); });
 	}
 
-	void reset_ram_fs()
-	{
-		_ram_fs_state.trigger_restart();
-	}
-
-	Storage(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
-	        Storage_device::Action &action)
+	Storage(Env &env, Allocator &alloc, Storage_device::Action &action)
 	:
-		_env(env), _alloc(alloc), _storage_devices(action),
-		_ram_fs_state(child_states, "ram_fs")
+		_env(env), _alloc(alloc), _storage_devices(action)
 	{ }
 };
 

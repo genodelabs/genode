@@ -1,0 +1,16 @@
+config
++ report | hover: yes
++ libc | stderr: /dev/log
++ vfs
+  + tar menu_view_style.tar
+  + dir dev  | + log
+  + dir font | + fs | label: font -> /
++ dialog diag
++ dialog file_browser
++ dialog network
++ dialog panel
++ dialog popup
++ dialog runtime
++ dialog settings
++ dialog system
+-

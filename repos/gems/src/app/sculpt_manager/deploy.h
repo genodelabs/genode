@@ -15,8 +15,6 @@
 #define _DEPLOY_H_
 
 /* local includes */
-#include <types.h>
-#include <runtime.h>
 #include <model/options.h>
 #include <vfs.h>
 
@@ -27,41 +25,13 @@ struct Sculpt::Deploy
 {
 	Allocator &_alloc;
 
-	Registry<Child_state> &_child_states;
-
-	Runtime_info const &_runtime_info;
-
-	Child_state cached_depot_rom_state {
-		_child_states, { .name      = "depot_rom",
-		                 .binary    = "cached_fs_rom",
-		                 .priority  = Priority::STORAGE,
-		                 .location  = { },
-		                 .initial   = { Ram_quota{24*1024*1024}, Cap_quota{200} },
-		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
-
-	Child_state uncached_depot_rom_state {
-		_child_states, { .name      = "dynamic_depot_rom",
-		                 .binary    = "fs_rom",
-		                 .priority  = Priority::STORAGE,
-		                 .location  = { },
-		                 .initial   = { Ram_quota{8*1024*1024}, Cap_quota{200} },
-		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
-
 	Managed_children::Dict _dict { };
 
 	Managed_children _managed_children { };
 
 	Enabled_options enabled_options { _alloc, _dict };
 
-	static bool _present(auto const &registry, auto const &name)
-	{
-		bool result = false;
-		registry.for_each([&] (auto const &elem) {
-			if (name == elem) result = true; });
-		return result;
-	}
-
-	Progress handle_deploy(Node const &deploy)
+	Progress apply_deploy(Node const &deploy)
 	{
 		Progress result = STALLED;
 
@@ -82,20 +52,6 @@ struct Sculpt::Deploy
 	void watch_options(Vfs &vfs, Enabled_options::Action &action)
 	{
 		enabled_options.watch_options(vfs, action);
-	}
-
-	void gen_child_nodes(Generator &g) const
-	{
-		/* depot-ROM instance for regular (immutable) depot content */
-		g.node("child", [&] {
-			gen_fs_rom_child_content(g, "depot", cached_depot_rom_state); });
-
-		/* depot-ROM instance for mutable content (/depot/local/) */
-		g.node("child", [&] {
-			gen_fs_rom_child_content(g, "depot", uncached_depot_rom_state); });
-
-		g.node("child", [&] {
-			gen_blueprint_query_child_content(g); });
 	}
 
 	void manage_resource_requests(Vfs &vfs, Runtime_state  const &state,
@@ -150,11 +106,34 @@ struct Sculpt::Deploy
 			});
 	}
 
-	Deploy(Allocator &alloc,
-	       Registry<Child_state> &child_states, Runtime_info const &runtime_info)
-	:
-		_alloc(alloc), _child_states(child_states), _runtime_info(runtime_info)
-	{ }
+	void reset(Vfs &vfs)
+	{
+		/* restart depot rom with quota reset to initial values */
+		vfs.edit("/model/option/sculpt", [&] (Hid_edit &edit) {
+
+			edit.adjust("option | + child depot_rom | : version",
+			            0u, [&] (unsigned v) { return v + 1; });
+			edit.adjust("option | + child depot_rom | : ram",
+			            Num_bytes(), [&] (Num_bytes) { return 24*1024*1024; });
+
+			edit.adjust("option | + child dynamic_depot_rom | : version",
+			            0u, [&] (unsigned v) { return v + 1; });
+			edit.adjust("option | + child dynamic_depot_rom | : ram",
+			            Num_bytes(), [&] (Num_bytes) { return 8*1024*1024; });
+		});
+	}
+
+	void reset_ram_fs(Vfs &vfs)
+	{
+		vfs.edit("/model/option/sculpt", [&] (Hid_edit &edit) {
+			edit.adjust("option | + child ram_fs | : version",
+			            0u, [&] (unsigned v) { return v + 1; });
+			edit.adjust("option | + child ram_fs | : ram",
+			            Num_bytes(), [&] (Num_bytes) { return 1*1024*1024; });
+		});
+	}
+
+	Deploy(Allocator &alloc) : _alloc(alloc) { }
 };
 
 #endif /* _DEPLOY_H_ */

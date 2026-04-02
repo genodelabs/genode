@@ -15,16 +15,10 @@
  */
 
 #include <runtime/chroot.cc>
-#include <runtime/depot_query.cc>
-#include <runtime/blueprint_query.cc>
-#include <runtime/model_query.cc>
 #include <runtime/e2fs.cc>
 #include <runtime/inspect_view.cc>
 #include <runtime/file_system.cc>
-#include <runtime/fs_rom.cc>
 #include <runtime/gpt_write.cc>
-#include <runtime/nic_router.cc>
 #include <runtime/prepare.cc>
-#include <runtime/ram_fs.cc>
 #include <runtime/update.cc>
 #include <runtime/fs_tool.cc>

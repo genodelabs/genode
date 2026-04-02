@@ -1,0 +1,9 @@
+config
++ report | hover: yes
++ libc | stderr: /dev/log
++ vfs
+  + tar menu_view_style.tar
+  + dir dev  | + log
+  + dir font | + fs | label: font -> /
++ dialog main
+-

@@ -198,4 +198,79 @@ option
     + rom nic_router | + parent      | . no anchor in graph
     + rom config     | + child model | label: child/nic_router
     + report         | + child report
+
++ child ram_fs | binary: vfs | ram: 1M | caps: 300 | priority: -2
+  + managed | max_ram: 2G
+  + provides | + fs
+  + connect
+    + rom vfs.lib.so | + parent | label: vfs.lib.so
+    + rom config     | + child model | label: child/ram_fs
+    + rom            | + parent
+
++ child runtime_view | binary: menu_view | ram: 52M | caps: 330 | priority: -2
+  + managed | max_ram: 128M | max_caps: 2000
+  + heartbeat | restart_after_skipped: 2
+  + connect
+    + gui                     | + child leitzentrale
+    + report hover            | + child leitzentrale
+    + rom config              | + child model | label: child/runtime_view
+    + rom ld.lib.so           | + parent
+    + rom vfs.lib.so          | + parent
+    + rom libc.lib.so         | + parent
+    + rom libm.lib.so         | + parent
+    + rom libpng.lib.so       | + parent
+    + rom zlib.lib.so         | + parent
+    + rom menu_view_style.tar | + parent
+    + rom menu_view           | + parent
+    + rom                     | + child leitzentrale | . dialogs
+    + fs font                 | + child font
+
++ child model_query | binary: fs_query  | ram: 2M | caps: 200 | priority: -3
+  + config | query: rom
+    + vfs | + fs
+    + query | path: /option
+    + query | path: /presets | content: yes
+  + connect
+    + rom vfs.lib.so | + parent | label: vfs.lib.so
+    + report         | + child report
+    + fs             | + child model | identity: ro
+
++ child depot | binary: chroot | ram: 2M | caps: 100 | priority: -3
+  + config | + default-policy | path: /depot
+  + provides | + fs
+  + connect | + fs | + child default_fs_rw
+
++ child depot_rom | binary: cached_fs_rom | ram: 24M | caps: 200 | priority: -3 | version: 1
+  + managed | max_ram: 2G
+  + config
+  + provides | + rom
+  + connect
+    + fs | + child depot
+    + rm | + parent
+
++ child dynamic_depot_rom | binary: fs_rom | ram: 8M | caps: 200 | priority: -3 | version: 1
+  + managed | max_ram: 2G
+  + config
+  + provides | + rom
+  + connect
+    + fs | + child depot
+    + rm | + parent
+
++ child blueprint_query | binary: depot_query | ram: 2M | caps: 200 | priority: -3
+  + config | query: rom
+    + vfs | + dir depot | + fs
+  + connect
+    + fs               | + child depot
+    + rom vfs.lib.so   | + parent | label: vfs.lib.so
+    + rom query        | + parent | label: query
+    + report blueprint | + parent | label: blueprint
+
++ child depot_query | binary: depot_query | ram: 2M | caps: 200 | priority: -3
+  + config | query: rom
+    + vfs | + dir depot | + fs
+  + connect
+    + fs             | + child depot
+    + rom vfs.lib.so | + parent | label: vfs.lib.so
+    + rom query      | + child model | label: child/depot_query
+    + report         | + child report
 -

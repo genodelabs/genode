@@ -49,7 +49,7 @@ static void gen_terminal_start(Generator &g)
 
 static void gen_vfs_start(Generator &g,
                           Storage_devices const &devices,
-                          Ram_fs_state const &ram_fs_state)
+                          Sculpt::File_system const &ram_fs_state)
 {
 	gen_common_start_content(g, "vfs",
 	                         Cap_quota{200}, Ram_quota{6*1024*1024},
@@ -209,10 +209,10 @@ static void gen_bash_start(Generator &g)
 }
 
 
-void Sculpt::gen_inspect_view(Generator             &g,
-                              Storage_devices const &devices,
-                              Ram_fs_state    const &ram_fs_state,
-                              Inspect_view_version   version)
+void Sculpt::gen_inspect_view(Generator                 &g,
+                              Storage_devices     const &devices,
+                              Sculpt::File_system const &ram_fs_state,
+                              Inspect_view_version       version)
 {
 	g.node("child", [&] {
 

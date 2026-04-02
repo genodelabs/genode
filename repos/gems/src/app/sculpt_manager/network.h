@@ -19,7 +19,6 @@
 #include <os/reporter.h>
 
 /* local includes */
-#include <model/child_exit_state.h>
 #include <model/board_info.h>
 #include <view/network_widget.h>
 #include <runtime.h>
@@ -48,10 +47,6 @@ struct Sculpt::Network : Noncopyable
 	Action     &_action;
 	Info const &_info;
 
-	Registry<Child_state> &_child_states;
-
-	Runtime_config_generator &_runtime_config_generator;
-
 	using Wlan_config_policy = Network_widget::Wlan_config_policy;
 
 	Nic_state _nic_state { };
@@ -72,8 +67,6 @@ struct Sculpt::Network : Noncopyable
 	Access_points _access_points { };
 
 	Wifi_connection _wifi_connection = Wifi_connection::disconnected_wifi_connection();
-
-	void gen_child_nodes(Generator &) const;
 
 	bool ready() const { return _nic_state.ready(); }
 
@@ -162,17 +155,11 @@ struct Sculpt::Network : Noncopyable
 			g.attribute("verbose", false);
 			g.attribute("log_level", "error");
 		});
-
-		_runtime_config_generator.generate_runtime_config();
 	}
 
-	Network(Env &env, Allocator &alloc, Action &action, Info const &info,
-	        Registry<Child_state> &child_states,
-	        Runtime_config_generator &runtime_config_generator)
+	Network(Env &env, Allocator &alloc, Action &action, Info const &info)
 	:
-		_env(env), _alloc(alloc), _action(action), _info(info),
-		_child_states(child_states),
-		_runtime_config_generator(runtime_config_generator)
+		_env(env), _alloc(alloc), _action(action), _info(info)
 	{ }
 };
 

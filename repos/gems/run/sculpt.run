@@ -408,6 +408,7 @@ set required_child_configs {
 	numlock_remap
 	global_keys
 	leitzentrale
+	runtime_view
 	usb
 	ram_fs
 	report

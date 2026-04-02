@@ -347,7 +347,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void storage_device_discovered() override { _handle_storage_devices(); }
 
-	Storage _storage { _env, _heap, _child_states, *this };
+	Storage _storage { _env, _heap, *this };
 
 	void _restart_from_storage_target()
 	{
@@ -356,8 +356,8 @@ struct Sculpt::Main : Input_event_handler,
 
 		_download_queue.reset();
 
-		_deploy.cached_depot_rom_state  .trigger_restart();
-		_deploy.uncached_depot_rom_state.trigger_restart();
+		_deploy.reset(_vfs);
+
 		_bump_depot_version();
 		_query_depot();
 
@@ -369,7 +369,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Network **
 	 *************/
 
-	Network _network { _env, _heap, *this, *this, _child_states, *this };
+	Network _network { _env, _heap, *this, *this };
 
 	/**
 	 * Network::Action interface
@@ -627,7 +627,7 @@ struct Sculpt::Main : Input_event_handler,
 		_generate_dialog();
 	}
 
-	Deploy _deploy { _heap, _child_states, _runtime_state };
+	Deploy _deploy { _heap };
 
 	Rom_handler<Main> _deploy_handler {
 		_env, "model -> deploy", *this, &Main::_handle_deploy };
@@ -636,7 +636,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_deploy(Node const &deploy)
 	{
-		_deploy.handle_deploy(deploy);
+		_deploy.apply_deploy(deploy);
 	}
 
 	Managed_config<Main> _managed_depot_version {
@@ -1402,8 +1402,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void reset_ram_fs() override
 	{
-		_storage.reset_ram_fs();
-		generate_runtime_config();
+		_deploy.reset_ram_fs(_vfs);
 	}
 
 	/*
@@ -2377,9 +2376,6 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		}
 	});
 
-	if (_dialog_runtime.apply_runtime_state(state).progressed)
-		reconfigure_runtime = true;
-
 	if (_software_title_bar.selected() && _software_tabs_widget.hosted.options_selected())
 		regenerate_dialog = true;
 
@@ -2395,12 +2391,8 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 {
 	_drivers.gen_child_nodes(g);
 	_storage.gen_child_nodes(g);
-	_dialog_runtime.gen_child_nodes(g);
 	_storage.gen_child_nodes(g);
 	_dir_query.gen_child_nodes(g);
-
-	g.node("child", [&] {
-		gen_model_query_child_content(g); });
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition
@@ -2423,13 +2415,6 @@ void Sculpt::Main::_generate_managed_option(Generator &g) const
 			chroot("depot_rw",  "/depot",  WRITEABLE);
 			chroot("public_rw", "/public", WRITEABLE);
 		}
-
-		chroot("depot", "/depot",  READ_ONLY);
-
-		_deploy.gen_child_nodes(g);
-
-		g.node("child", [&] {
-			gen_depot_query_child_content(g); });
 	}
 
 	/* execute file operations */

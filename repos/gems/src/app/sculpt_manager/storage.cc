@@ -98,9 +98,6 @@ Progress Storage::update(Node const &config, Drivers::Storage_devices const &dev
 
 void Storage::gen_child_nodes(Generator &g) const
 {
-	g.node("child", [&] {
-		gen_ram_fs_child_content(g, _ram_fs_state); });
-
 	auto contains_used_fs = [&] (Storage_device const &device)
 	{
 		if (!_selected_target.valid())

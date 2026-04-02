@@ -92,13 +92,10 @@ void Sculpt::Network::_handle_wlan_state(Node const &state)
 
 void Sculpt::Network::_handle_nic_router_state(Node const &state)
 {
-	Nic_state const old_nic_state = _nic_state;
+	Nic_state const orig = _nic_state;
 	_nic_state = Nic_state::from_node(state);
 
-	if (_nic_state.ipv4 != old_nic_state.ipv4)
-		_action.network_config_changed();
-
 	/* if the nic state becomes ready, consider spawning the update subsystem */
-	if (old_nic_state.ready() != _nic_state.ready())
-		_runtime_config_generator.generate_runtime_config();
+	if (_nic_state.ipv4 != orig.ipv4 || orig.ready() != _nic_state.ready())
+		_action.network_config_changed();
 }
