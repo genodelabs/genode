@@ -162,5 +162,6 @@ schema deploy
 + attr info | type: any | default:
 
 + node option
-  + attr name | type: any
+  + attr name     | type: any
+  + attr required | type: bool | default: no
 -

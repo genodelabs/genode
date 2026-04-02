@@ -1,8 +1,8 @@
 deploy | info: software-rendering example
 
-+ option board
-+ option sculpt
-+ option managed
++ option board   | required: yes
++ option sculpt  | required: yes
++ option managed | required: yes
 
 + child backdrop | pkg: sticks_blue_backdrop
   + config

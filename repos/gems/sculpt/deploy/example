@@ -1,7 +1,8 @@
 deploy
-+ option board
-+ option sculpt
-+ option managed
++ option board   | required: yes
++ option sculpt  | required: yes
++ option managed | required: yes
+
 + option recall_fs
 + option window_manager
 + option sticks_blue_backdrop
