@@ -164,7 +164,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		                        .binary    = "fb",
 		                        .priority  = Priority::MULTIMEDIA,
 		                        .location  = fb_affinity,
-		                        .initial   = { Ram_quota { 16*1024*1024 },
+		                        .initial   = { Ram_quota { 20*1024*1024 },
 		                                       Cap_quota { 250 } },
 		                        .max       = { } } );
 
