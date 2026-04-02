@@ -91,7 +91,7 @@ struct Sculpt::Service
 		case Type::GUI:         return "Gui";
 		case Type::GPU:         return "Gpu";
 		case Type::RM:          return "RM";
-		case Type::I2C:         return "I2C";
+		case Type::I2C:         return "I2c";
 		case Type::IO_MEM:      return "IO_MEM";
 		case Type::IO_PORT:     return "IO_PORT";
 		case Type::IRQ:         return "IRQ";
