@@ -1840,7 +1840,7 @@ with_command get {
 		foreach hid [hid_query_nodes $query_hid $input_hid ] {
 			foreach attr [hid_attributes $hid] {
 				if {[attr_tag $attr] == $queried_tag} {
-					puts stdout [attr_value $attr] } } } }
+					puts stdout [string_trim [attr_value $attr]] } } } }
 }
 
 
