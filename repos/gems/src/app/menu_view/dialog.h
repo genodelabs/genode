@@ -88,8 +88,6 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 	Gui::View_ref _view_ref { };
 	Gui::View_ids::Element const _view { _view_ref, _gui.view_ids };
 
-	Point _position { };
-
 	/**
 	 * Last pointer position at the time of the most recent hovering report,
 	 * in screen coordinate space.
@@ -101,18 +99,59 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 	bool _hovered = false;
 	bool _redraw_scheduled = false;
 
-	Area _configured_size { };
-	Area _visible_size    { };
-	Rect _view_geometry   { };
+	struct Attr
+	{
+		Point position;
+		Area  size;
+		bool  opaque;
+		Color background;
 
-	bool  _opaque = false;
-	Color _background_color { };
+		static constexpr Color DEFAULT_BG = { 127, 127, 127, 255 };
+
+		static Attr from_node(Node const &node)
+		{
+			return {
+				.position   = Point::from_node(node),
+				.size       = Area ::from_node(node),
+				.opaque     = node.attribute_value("opaque", false),
+				.background = node.attribute_value("background", DEFAULT_BG),
+			};
+		}
+
+		void apply_node(Node const &node)
+		{
+			auto apply = [&] (auto const &attr, auto &v)
+			{
+				if (node.has_attribute(attr)) v = node.attribute_value(attr, v);
+			};
+
+			apply("xpos",       position.x);
+			apply("ypos",       position.y);
+			apply("width",      size.w);
+			apply("height",     size.h);
+			apply("opaque",     opaque);
+			apply("background", background);
+		}
+
+		bool operator != (Attr const &other) const
+		{
+			return position   != other.position
+			    || size       != other.size
+			    || opaque     != other.opaque
+			    || background != other.background;
+		}
+	};
+
+	Attr _configured_attr { };  /* defined in the config's dialog node */
+	Attr _attr            { };  /* influenced by attributes of dialog rom */
+
+	Rect _view_geometry { };
 
 	Area _root_widget_size() const
 	{
 		Area const min_size = _root_widget.min_size();
-		return Area(max(_configured_size.w, min_size.w),
-		            max(_configured_size.h, min_size.h));
+		return Area(max(_attr.size.w, min_size.w),
+		            max(_attr.size.h, min_size.h));
 	}
 
 	void _update_view(Rect geometry)
@@ -183,9 +222,9 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 		if (!_buffer.constructed() || size_increased)
 			_buffer.construct(_gui, max_size, _env.ram(), _env.rm(),
-			                  _opaque ? Gui_buffer::Alpha::OPAQUE
-			                          : Gui_buffer::Alpha::ALPHA,
-			                  _background_color);
+			                  _attr.opaque ? Gui_buffer::Alpha::OPAQUE
+			                               : Gui_buffer::Alpha::ALPHA,
+			                  _attr.background);
 		else
 			_buffer->reset_surface();
 
@@ -198,7 +237,7 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 		_buffer->flush_surface();
 		_gui.framebuffer.refresh({ { 0, 0 }, _buffer->size() });
-		_update_view(Rect(_position, size));
+		_update_view(Rect(_attr.position, size));
 
 		_redraw_scheduled = false;
 	}
@@ -234,21 +273,10 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	void update(Node const &node)
 	{
-		Point const orig_position         = _position;
-		Area  const orig_configured_size  = _configured_size;
-		bool  const orig_opaque           = _opaque;
-		Color const orig_background_color = _background_color;
+		Attr const orig = _configured_attr;
+		_configured_attr = Attr::from_node(node);
 
-		_position         = Point::from_node(node);
-		_configured_size  = Area ::from_node(node);
-		_opaque           = node.attribute_value("opaque", false);
-		_background_color = node.attribute_value("background", Color(127, 127, 127, 255));
-
-		bool const any_change = (orig_position         != _position
-		                      || orig_configured_size  != _configured_size
-		                      || orig_opaque           != _opaque
-		                      || orig_background_color != _background_color);
-		if (any_change)
+		if (orig != _configured_attr)
 			_dialog_handler.local_submit();
 	}
 };
@@ -262,6 +290,13 @@ void Menu_view::Dialog::_handle_dialog()
 
 	if (dialog.has_type("empty"))
 		return;
+
+	bool const orig_opaque = _attr.opaque;
+	_attr = _configured_attr;
+	_attr.apply_node(dialog);
+
+	if (orig_opaque != _attr.opaque) /* enforce new buffer on opacity change */
+		_buffer.destruct();
 
 	_root_widget.update(dialog);
 	_root_widget.size(_root_widget_size());
@@ -296,7 +331,7 @@ void Menu_view::Dialog::_handle_input()
 		auto hover_at = [&] (int x, int y)
 		{
 			_hovered = true;
-			_hovered_position = Point(x, y) - _position;
+			_hovered_position = Point(x, y) - _attr.position;
 			_global_hover_version.value++;
 			observed_hover_version.value = _global_hover_version.value;
 		};
