@@ -28,7 +28,6 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 	struct State : Interface, Noncopyable
 	{
 		virtual Tab  selected_tab()        const = 0;
-		virtual bool log_visible()         const = 0;
 		virtual bool system_visible()      const = 0;
 		virtual bool settings_visible()    const = 0;
 		virtual bool network_visible()     const = 0;
@@ -45,7 +44,6 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 	struct Action : Interface
 	{
 		virtual void select_tab(Tab) = 0;
-		virtual void toggle_log_visibility() = 0;
 		virtual void toggle_system_visibility() = 0;
 		virtual void toggle_settings_visibility() = 0;
 		virtual void toggle_network_visibility() = 0;
@@ -56,8 +54,7 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 	Hosted<Frame, Float, Hbox, Toggle_button>
 		_system_button   { Id { "System"   } },
 		_settings_button { Id { "Settings" } },
-		_network_button  { Id { "Network"  } },
-		_log_button      { Id { "Log"      } };
+		_network_button  { Id { "Network"  } };
 
 	using Tab_button = Select_button<Tab>;
 
@@ -73,7 +70,6 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 		_system_button  .propagate(at, [&] { _action.toggle_system_visibility(); });
 		_settings_button.propagate(at, [&] { _action.toggle_settings_visibility(); });
 		_network_button .propagate(at, [&] { _action.toggle_network_visibility(); });
-		_log_button     .propagate(at, [&] { _action.toggle_log_visibility(); });
 		_files_tab      .propagate(at, [&] (Tab t) { _action.select_tab(t); });
 		_components_tab .propagate(at, [&] (Tab t) { _action.select_tab(t); });
 		_inspect_tab    .propagate(at, [&] (Tab t) { _action.select_tab(t); });

@@ -1,4 +1,4 @@
-config | prio_levels: 4
+config
 + parent-provides
   + service ROM
   + service PD
@@ -18,7 +18,7 @@ config | prio_levels: 4
 + service ROM         | + default-policy | + child report_rom
 + service Report      | + default-policy | + child report_rom
 
-+ start fader_config | ram: 1M | priority: -1
++ start fader_config | ram: 1M
   + binary rom_filter
   + provides | + service ROM
   + config
@@ -38,7 +38,7 @@ config | prio_levels: 4
     + service ROM | label: leitzentrale | + parent | label: leitzentrale_enabled
     + any-service                       | + parent
 
-+ start fader | ram: 100M | priority: -1
++ start fader | ram: 100M
   + binary gui_fader
   + provides | + service Gui
   + route
@@ -46,7 +46,7 @@ config | prio_levels: 4
     + service Gui                 | + child manager
     + any-service                 | + parent
 
-+ start gui_fb | ram: 33M | priority: -1
++ start gui_fb | ram: 33M
   + provides
     + service Framebuffer
     + service Input
@@ -55,7 +55,7 @@ config | prio_levels: 4
     + service Gui                 | + child fader
     + any-service                 | + parent
 
-+ start nitpicker | caps: 200 | ram: 14M | priority: -1
++ start nitpicker | caps: 200 | ram: 14M
   + provides
     + service Gui
     + service Capture
@@ -77,7 +77,7 @@ config | prio_levels: 4
       + parent
       + any-child
 
-+ start report_rom | caps: 200 | ram: 4M | priority: -1
++ start report_rom | caps: 200 | ram: 4M
   + provides
     + service Report
     + service ROM
@@ -102,7 +102,7 @@ config | prio_levels: 4
     + policy | label: runtime_view -> runtime      | report: manager -> runtime_dialog
     + policy | label: manager -> menu_hover        | report: runtime_view -> hover
 
-+ start wm | caps: 150 | ram: 2M | priority: -1
++ start wm | caps: 150 | ram: 2M
   + provides
     + service Gui
     + service Report
@@ -119,7 +119,7 @@ config | prio_levels: 4
       + parent
       + any-child
 
-+ start decorator | caps: 580 | ram: 20M | priority: -1
++ start decorator | caps: 580 | ram: 20M
   + binary themed_decorator
   + config
   | + libc
@@ -133,7 +133,7 @@ config | prio_levels: 4
   |   + dir dev
   |     + log
   |
-  | + policy | label: log                          | decoration: yes | motion: 40
+  | + policy | label: log_view -> log              | decoration: yes | motion: 40
   | + policy | label: runtime_view -> settings     | decoration: no  | motion: 40
   | + policy | label: runtime_view -> system       | decoration: no  | motion: 40
   | + policy | label: runtime_view -> file_browser | decoration: no  | motion: 60
@@ -154,7 +154,7 @@ config | prio_levels: 4
     + service Gui                               | + child wm
     + any-service                               | + parent
 
-+ start model_fs_report | ram: 2M | priority: -1
++ start model_fs_report | ram: 2M
   + binary fs_report
   + provides | + service Report
   + config | + vfs | + fs
@@ -162,7 +162,7 @@ config | prio_levels: 4
     + service File_system | + parent | identity: model
     + any-service         | + parent
 
-+ start manager | caps: 400 | ram: 4M | priority: -1
++ start manager | caps: 400 | ram: 8M
   + binary sculpt_manager
   + provides | + service Gui
   + route
@@ -198,37 +198,7 @@ config | prio_levels: 4
     + service Gui                                  | + parent
     + any-service                                  | + parent
 
-+ start log_terminal | caps: 120 | ram: 8M | priority: -1
-  + binary terminal
-  + provides | + service Terminal
-  + config
-  | + initial | width: 400
-  | + palette
-  |   + color | index: 0 | value: #2f3953
-  |   + color | index: 8 | value: #2f3953
-  | + vfs
-  |   + rom VeraMono.ttf
-  |   + dir font
-  |     + dir monospace
-  |       + ttf regular | path: /VeraMono.ttf | size_px: 10
-  + route
-    + service Gui | + child wm | label: log
-    + any-service | + parent
-
-+ start log | caps: 100 | ram: 2M | priority: -1
-  + binary stdin2out
-  + config
-  | + libc | stdin: /report/log | stdout: /dev/terminal
-  | + vfs
-  |   + dir dev    | + terminal
-  |   + dir report | + fs | label: report -> /
-  + route
-    + service File_system | + parent | identity: report
-    + any-service
-      + child log_terminal
-      + parent
-
-+ start backdrop | caps: 150 | ram: 4M | priority: -1
++ start backdrop | caps: 150 | ram: 4M
   + config | width: 300 | height: 150
   | + libc
   | + vfs

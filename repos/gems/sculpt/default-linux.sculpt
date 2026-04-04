@@ -4,7 +4,7 @@ ram_fs:  depot
 manager: use_ram_fs
 
 # deploy options
-option: nano3d sticks_blue_backdrop system_shell
+option: log_view nano3d sticks_blue_backdrop system_shell
 
 # supplemental depot content added to the system image
 import: pkg/drivers_interactive-linux

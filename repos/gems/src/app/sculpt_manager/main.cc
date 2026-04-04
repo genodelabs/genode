@@ -726,8 +726,17 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_deploy(Node const &deploy)
 	{
-		if (_deploy.apply_deploy(deploy).progressed)
-			_deploy.watch_options(_vfs, *this);
+		if (!_deploy.apply_deploy(deploy).progressed)
+			return;
+
+		_deploy.watch_options(_vfs, *this);
+
+		{
+			bool const orig = _log_visible;
+			_log_visible = _deploy.enabled_options.exists("log_view");
+			if (orig != _log_visible)
+				_update_window_layout();
+		}
 	}
 
 	/**
@@ -856,7 +865,6 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Panel_dialog::State interface
 	 */
-	bool log_visible()         const override { return _log_visible; }
 	bool network_visible()     const override { return _network_visible; }
 	bool settings_visible()    const override { return _settings_visible; }
 	bool system_visible()      const override { return _system_visible; }
@@ -1384,15 +1392,6 @@ struct Sculpt::Main : Input_event_handler,
 		if (_selected_tab == Panel_dialog::Tab::FILES)
 			_file_browser_dialog.refresh();
 
-		_refresh_panel_and_window_layout();
-	}
-
-	/*
-	 * Panel::Action interface
-	 */
-	void toggle_log_visibility() override
-	{
-		_log_visible = !_log_visible;
 		_refresh_panel_and_window_layout();
 	}
 
@@ -2012,6 +2011,7 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 		logo_label             ("logo"),
 		inspect_label          ("inspect"),
 		editor_label           ("editor"),
+		log_view_label         ("log_view -> log"),
 		runtime_view_label     ("runtime_view -> runtime"),
 		panel_view_label       ("runtime_view -> panel"),
 		diag_view_label        ("runtime_view -> diag"),
@@ -2102,7 +2102,7 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 		_with_window(window_list, panel_view_label, [&] (Node const &win) {
 			gen_window(win, panel); });
 
-		_with_window(window_list, Label("log"), [&] (Node const &win) {
+		_with_window(window_list, log_view_label, [&] (Node const &win) {
 			Rect const rect = Rect::compound(log_p1, log_p2);
 			gen_window(win, rect);
 			gen_resize(win, rect.area);

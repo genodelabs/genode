@@ -83,7 +83,7 @@ config
     + service File_system | + parent | identity: model
     + any-service         | + parent
 
-+ start manager | caps: 400 | ram: 4M
++ start manager | caps: 400 | ram: 8M
   + binary phone_manager
   + provides | + service Gui
   + route

@@ -1,0 +1,41 @@
+config
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service Gui
+  + service Timer
+  + service File_system
+
++ start log_terminal | caps: 120 | ram: 8M
+  + binary terminal
+  + provides | + service Terminal
+  + config
+  | + initial | width: 400 | height: 400
+  | + palette
+  |   + color | index: 0 | value: #2f3953
+  |   + color | index: 8 | value: #2f3953
+  | + vfs
+  |   + rom VeraMono.ttf
+  |   + dir font
+  |     + dir monospace
+  |       + ttf regular | path: /VeraMono.ttf | size_px: 10
+  + route
+    + service Gui | + parent | label: log
+    + any-service | + parent
+
++ start log | caps: 100 | ram: 2M
+  + binary stdin2out
+  + config
+  | + libc | stdin: /report/log | stdout: /dev/terminal
+  | + vfs
+  |   + dir dev    | + terminal
+  |   + dir report | + fs | label: report -> /
+  + route
+    + service File_system | + parent | identity: report
+    + any-service
+      + child log_terminal
+      + parent
+-

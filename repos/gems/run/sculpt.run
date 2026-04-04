@@ -404,6 +404,7 @@ set required_child_configs {
 	font
 	gui
 	clipboard
+	log_view
 	nic_router
 	numlock_remap
 	global_keys

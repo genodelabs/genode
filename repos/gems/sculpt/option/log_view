@@ -1,0 +1,19 @@
+option
+
++ child log_view | binary: init | caps: 350 | ram: 16M | priority: -1
+  + connect
+    + gui                | + child leitzentrale
+    + rom config         | + child model  | label: child/log_view
+    + fs report          | + child report
+    + rom ld.lib.so      | + parent
+    + rom vfs.lib.so     | + parent
+    + rom libc.lib.so    | + parent
+    + rom libm.lib.so    | + parent
+    + rom posix.lib.so   | + parent
+    + rom vfs            | + parent
+    + rom vfs_ttf.lib.so | + parent
+    + rom terminal       | + parent
+    + rom terminal_log   | + parent
+    + rom stdin2out      | + parent
+    + rom VeraMono.ttf   | + parent
+-

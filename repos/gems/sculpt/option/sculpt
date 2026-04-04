@@ -137,7 +137,7 @@ option
     + rom config    | + child model  | label: child/clipboard
     + rom focus     | + child report | label: gui/focus
 
-+ child leitzentrale | binary: init | caps: 2400 | ram: 203M | priority: -1
++ child leitzentrale | binary: init | caps: 2200 | ram: 194M | priority: -1
   + affinity | xpos: 1 | width: 1 | . decouple leitzentrale from boot CPU
   + provides
     + gui
@@ -168,7 +168,6 @@ option
     + rom libpng.lib.so                        | + parent
     + rom zlib.lib.so                          | + parent
     + rom vfs                                  | + parent
-    + rom vfs_ttf.lib.so                       | + parent
     + rom backdrop                             | + parent
     + rom terminal                             | + parent
     + rom nitpicker                            | + parent
@@ -178,12 +177,9 @@ option
     + rom rom_filter                           | + parent
     + rom wm                                   | + parent
     + rom themed_decorator                     | + parent
-    + rom terminal_log                         | + parent
     + rom fs_report                            | + parent
     + rom sculpt_manager                       | + parent
     + rom phone_manager                        | + parent
-    + rom stdin2out                            | + parent
-    + rom VeraMono.ttf                         | + parent
     + rom genode_logo.png                      | + parent
     + rom drop_shadow.png                      | + parent
     + rom build_info                           | + parent
