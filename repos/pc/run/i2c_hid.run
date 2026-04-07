@@ -26,21 +26,22 @@ config | prio_levels: 2
   + service CPU
   + service ROM
   + service IO_MEM
+  + service IO_PORT
   + service IRQ
   + service RM
 
-+ default | caps: 100
++ default | caps: 100 | ram: 1M
 
 + default-route
   + any-service
     + parent
     + any-child
 
-+ start timer | priority: 0 | ram: 1M
++ start timer | priority: 0
   + provides
     + service Timer
 
-+ start drivers_reports | caps: 100 | ram: 1M
++ start drivers_reports
   + binary report_rom
   + provides
   | + service Report
@@ -61,7 +62,7 @@ config | prio_levels: 2
       + parent
       + any-child
 
-+ start pci_decode | caps: 350 | ram: 1M
++ start pci_decode | caps: 350
   + route
     + service ROM | label: system
     | + child drivers_reports
@@ -71,16 +72,17 @@ config | prio_levels: 2
       + parent
       + any-child
 
-+ start platform | caps: 400 | managing_system: yes | ram: 4M
++ start platform | caps: 400 | ram: 4M | managing_system: yes
   + provides
   | + service Platform
   + config
   | + report | devices: yes
   | + policy | label_prefix: pc_i2c_hid | info: yes
-  |   + pci | vendor_id: 0x8086 | device_id: 0xa0eb . 500-series chipset
-  |   + pci | vendor_id: 0x8086 | device_id: 0x7e51 . Meteorlake chipset
-  |   + device INT34C5  | type: acpi
-  |   + device INTC1083 | type: acpi
+  |   + pci | vendor_id: 0x8086 | device_id: 0xa0eb | . 500-series chipset
+  |   + pci | vendor_id: 0x8086 | device_id: 0x7e51 | . Meteor Lake chipset
+  |   + pci | vendor_id: 0x8086 | device_id: 0x7778 | . Arrow Lake chipset
+  |   + device INT34C5  | . Tiger/Alder Lake
+  |   + device INTC1083 | . Meteor/Arrow Lake
   + route
     + service ROM | label: devices
     | + child drivers_reports
@@ -90,25 +92,19 @@ config | prio_levels: 2
       + parent
       + any-child
 
-+ start pc_i2c_hid | priority: -1 | caps: 120 | ram: 8M
-  + config | ld_verbose: yes
-    + i2c_slave  | irq: 266 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
-                 | info: Fujitsu U7411 (SYNAPTICS)
-    x i2c_slave  | irq: 266 | bus_addr: 21 | hid_addr: 1  | gpio_chip: INT34C5
-                 | info: Fujitsu U7511 (ELAN)
-    x i2c_slave  | irq: 174 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
-                 | info: Fujitsu U7412/U7413 (SYNAPTICS)
-    x i2c_slave  | irq: 3   | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5
-                 | info: Framework Gen12/Gen13
-    x i2c_slave  | irq: 352 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INTC1083
-                 | info: Framework Core Ultra Series 1
-    x i2c_slave  | irq: 104 | bus_addr: 93 | hid_addr: 1
-                 | info: StarLabs StarLite V
-  
-    + i2c_master | bus_speed_hz: 400 | info: Tigerlake
-      + fmcn | hcnt: 193 | lcnt: 313 | hold_time: 80
-    x i2c_master | bus_speed_hz: 400 | info: StarLabs StarLite V
-      + fmcn | hcnt: 106 | lcnt: 213 | hold_time: 80
++ start pc_i2c_hid | priority: -1 | caps: 130 | ram: 8M
+  + config
+    + i2c_slave  | irq: 266 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5  | . Fujitsu U7411 (SYNAPTICS)
+    x i2c_slave  | irq: 266 | bus_addr: 21 | hid_addr: 1  | gpio_chip: INT34C5  | . Fujitsu U7511 (ELAN)
+    x i2c_slave  | irq: 174 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5  | . Fujitsu U7412/U7413 (SYNAPTICS)
+    x i2c_slave  | irq: 3   | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5  | . Framework Gen12/Gen13
+    x i2c_slave  | irq: 352 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INTC1083 | . Framework Core Ultra Series 1
+    x i2c_slave  | irq: 128 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INTC1083 | . HP ZBook Core Ultra Series 2
+    x i2c_slave  | irq: 104 | bus_addr: 93 | hid_addr: 1                        | . StarLabs StarLite V
+
+    + i2c_master | bus_speed_hz: 400 | + fmcn | hcnt: 193 | lcnt: 313 | hold_time: 80 | . Tiger/Alder/Raptor Lake
+    x i2c_master | bus_speed_hz: 400 | + fmcn | hcnt: 115 | lcnt: 120 | hold_time: 35 | . Meteor/Arrow Lake
+    x i2c_master | bus_speed_hz: 400 | + fmcn | hcnt: 106 | lcnt: 213 | hold_time: 80 | . StarLabs StarLite V
 
 + start event_dump | ram: 1M
   + provides

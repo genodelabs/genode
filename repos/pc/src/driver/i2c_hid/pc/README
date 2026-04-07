@@ -1,5 +1,5 @@
-This driver support I2C HID devices connected to Intel Tigerlake/Alderlake
-LPSS I2C controllers.
+This driver supports I2C HID devices connected to Intel LPSS I2C controllers
+from Tiger Lake on.
 
 Configuration
 ~~~~~~~~~~~~~

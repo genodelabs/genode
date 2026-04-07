@@ -39,7 +39,7 @@ void i2c_acpi_register_devices(struct i2c_adapter *adap)
 
 	memset(&info, 0, sizeof(info));
 	info.addr = i2c_hid_config.bus_addr;
-	adev = lx_emul_acpi_device((acpi_handle)3);
+	adev = lx_emul_acpi_device((acpi_handle)20);
 	info.fwnode = acpi_fwnode_handle(adev);
 	strcpy(info.type, "I2C_CLIENT");
 	i2c_new_client_device(adap, &info);

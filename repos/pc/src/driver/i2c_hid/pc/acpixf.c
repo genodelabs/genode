@@ -63,8 +63,7 @@ acpi_status acpi_evaluate_object(acpi_handle handle, acpi_string pathname,
 {
 	union acpi_object *obj;
 
-	if (ACPI_COMPARE_NAMESEG(pathname, "_DSM")
-	 && !strcmp(lx_emul_acpi_name(handle), "EPTP")) {
+	if (ACPI_COMPARE_NAMESEG(pathname, "_DSM") && handle == (acpi_handle)20) {
 		obj = prepare_buffer(return_buffer, 1);
 
 		obj[0].type = ACPI_TYPE_INTEGER;
@@ -100,8 +99,7 @@ acpi_status acpi_remove_address_space_handler(acpi_handle device,
 acpi_status acpi_get_handle(acpi_handle parent, const char* pathname,
                             acpi_handle *ret_handle)
 {
-	*ret_handle = (acpi_handle)2;
-
+	lx_emul_trace_and_stop(__func__);
 	return (AE_OK);
 }
 
