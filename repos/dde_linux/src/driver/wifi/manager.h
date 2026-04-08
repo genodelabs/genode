@@ -139,14 +139,21 @@ struct Accesspoint : Interface
 	using Bssid = String<17+1>;
 	using Freq  = String< 4+1>;
 	using Prot  = String< 7+1>;
-	using Ssid  = String<32+1>;
-	using Pass  = String<63+1>;
+	using Ssid  = String<4*32+1>;
+	using Pass  = String<4*63+1>;
+
+	/*
+	 * Only check for the common minimal required length
+	 * (printf-escaped strings are not properly covered
+	 * in case of PSK but should be uncommon anyway) and
+	 * rely an the supplicant to refuse short input.
+	 */
 
 	static bool valid(Ssid const &ssid) {
-		return ssid.length() > 1 && ssid.length() <= 32 + 1; }
+		return ssid.length() > 1; }
 
 	static bool valid(Pass const &pass) {
-		return pass.length() > 8 && pass.length() <= 63 + 1; }
+		return pass.length() > 8; }
 
 	static bool valid(Bssid const &bssid) {
 		return bssid.length() == 17 + 1; }
@@ -440,7 +447,7 @@ struct Add_network_cmd : Action
 			break;
 		case State::ADD_NETWORK:
 			ctrl_cmd(_msg, Cmd("SET_NETWORK ", _accesspoint.id,
-			                       " ssid \"", _accesspoint.ssid, "\""));
+			                       " ssid P\"", _accesspoint.ssid, "\""));
 			_state = State::FILL_NETWORK_SSID;
 			break;
 		case State::FILL_NETWORK_SSID:
@@ -461,7 +468,7 @@ struct Add_network_cmd : Action
 			} else {
 				if (_accesspoint.wpa())
 					ctrl_cmd(_msg, Cmd("SET_NETWORK ", _accesspoint.id,
-					                       " psk \"", _accesspoint.pass, "\""));
+					                       " psk P\"", _accesspoint.pass, "\""));
 				else
 					ctrl_cmd(_msg, Cmd("SET_NETWORK ", _accesspoint.id,
 					                       " key_mgmt NONE"));
@@ -475,7 +482,7 @@ struct Add_network_cmd : Action
 			break;
 		case State::SET_NETWORK_PMF:
 			ctrl_cmd(_msg, Cmd("SET_NETWORK ", _accesspoint.id,
-			                       " psk \"", _accesspoint.pass, "\""));
+			                       " psk P\"", _accesspoint.pass, "\""));
 			_state = State::FILL_NETWORK_PSK;
 			break;
 		case State::FILL_NETWORK_PSK:

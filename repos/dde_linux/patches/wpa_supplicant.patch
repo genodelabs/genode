@@ -114,29 +114,70 @@ diff --git a/src/utils/common.c b/src/utils/common.c
 index 2c12751..e9047d5 100644
 --- a/src/utils/common.c
 +++ b/src/utils/common.c
-@@ -509,12 +509,12 @@ void printf_encode(char *txt, size_t maxlen, const u8 *data, size_t len)
- 			*txt++ = 't';
+@@ -483,39 +483,15 @@
+ 		if (txt + 4 >= end)
  			break;
- 		default:
+ 
+-		switch (data[i]) {
+-		case '\"':
+-			*txt++ = '\\';
+-			*txt++ = '\"';
+-			break;
+-		case '\\':
+-			*txt++ = '\\';
+-			*txt++ = '\\';
+-			break;
+-		case '\033':
+-			*txt++ = '\\';
+-			*txt++ = 'e';
+-			break;
+-		case '\n':
+-			*txt++ = '\\';
+-			*txt++ = 'n';
+-			break;
+-		case '\r':
+-			*txt++ = '\\';
+-			*txt++ = 'r';
+-			break;
+-		case '\t':
+-			*txt++ = '\\';
+-			*txt++ = 't';
+-			break;
+-		default:
 -			if (data[i] >= 32 && data[i] <= 126) {
-+			// if (data[i] >= 32 && data[i] <= 126) {
- 				*txt++ = data[i];
+-				*txt++ = data[i];
 -			} else {
 -				txt += os_snprintf(txt, end - txt, "\\x%02x",
 -						   data[i]);
 -			}
-+			// } else {
-+			// 	txt += os_snprintf(txt, end - txt, "\\x%02x",
-+			// 			   data[i]);
-+			// }
- 			break;
+-			break;
++		bool const allow_data = data[i] != '"'
++		                     && data[i] != '&'
++		                     && data[i] != '|'
++		                     && data[i] != '\\';
++
++		if (data[i] >= 32 && data[i] <= 126 && (allow_data)) {
++			*txt++ = data[i];
++		} else {
++			txt += os_snprintf(txt, end - txt, "\\x%02x", data[i]);
  		}
  	}
+ 
 diff --git a/wpa_supplicant/ctrl_iface.c b/wpa_supplicant/ctrl_iface.c
 index bcd67fc..025ec8d 100644
 --- a/wpa_supplicant/ctrl_iface.c
 +++ b/wpa_supplicant/ctrl_iface.c
-@@ -11447,7 +11447,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
+@@ -3687,7 +3687,8 @@
+ 	}
+ 
+ 	if ((os_strcmp(name, "psk") == 0 &&
+-	     value[0] == '"' && ssid->ssid_len) ||
++	    (value[0] == '"' || (value[0] == 'P' && value[1] == '"'))
++	   && ssid->ssid_len) ||
+ 	    (os_strcmp(name, "ssid") == 0 && ssid->passphrase))
+ 		wpa_config_update_psk(ssid);
+ 	else if (os_strcmp(name, "priority") == 0)
+@@ -12514,7 +12515,7 @@
  					 char *buf, size_t *resp_len)
  {
  	char *reply;
@@ -145,3 +186,93 @@ index bcd67fc..025ec8d 100644
  	int reply_len;
  
  	if (os_strncmp(buf, WPA_CTRL_RSP, os_strlen(WPA_CTRL_RSP)) == 0 ||
+--- a/wpa_supplicant/config.c
++++ b/wpa_supplicant/config.c
+@@ -573,13 +573,40 @@
+ 	}
+ #endif /* CONFIG_EXT_PASSWORD */
+ 
+-	if (*value == '"') {
++	/*
++	 * In case we encounter a Pstring, parse that and
++	 * hand over a new string to the original parsing
++	 * code. The original code is changed to better
++	 * handle freeing of the new string but functionally
++	 * left intact.
++	 */
++	char *pstring_ptr = NULL;
++	if (value[0] == 'P' && value[1] == '"') {
++		size_t pstring_len = 0;
++		pstring_ptr = wpa_config_parse_string(value, &pstring_len);
++		if (pstring_ptr == NULL) {
++			wpa_printf(MSG_ERROR, "Could not properly parse PSK Pstring");
++			return 1;
++		}
++	}
++
++	int result = 0;
++
++	if (*value == '"' || pstring_ptr) {
+ #ifndef CONFIG_NO_PBKDF2
+ 		const char *pos;
+ 		size_t len;
+ 
++		/* consume " first but does not matter for Pstring */
+ 		value++;
+-		pos = os_strrchr(value, '"');
++
++		/* intentionally not indented to keep diff down */
++		do {
++
++		if (pstring_ptr)
++			value = pstring_ptr;
++
++		pos = pstring_ptr ? NULL : os_strrchr(value, '"');
+ 		if (pos)
+ 			len = pos - value;
+ 		else
+@@ -588,7 +615,8 @@
+ 			wpa_printf(MSG_ERROR, "Line %d: Invalid passphrase "
+ 				   "length %lu (expected: 8..63) '%s'.",
+ 				   line, (unsigned long) len, value);
+-			return -1;
++			result = -1;
++			break;
+ 		}
+ 		wpa_hexdump_ascii_key(MSG_MSGDUMP, "PSK (ASCII passphrase)",
+ 				      (u8 *) value, len);
+@@ -596,19 +624,29 @@
+ 			wpa_printf(MSG_ERROR,
+ 				   "Line %d: Invalid passphrase character",
+ 				   line);
+-			return -1;
++			result = -1;
++			break;
+ 		}
+ 		if (ssid->passphrase && os_strlen(ssid->passphrase) == len &&
+ 		    os_memcmp(ssid->passphrase, value, len) == 0) {
+ 			/* No change to the previously configured value */
+-			return 1;
++			result = 1;
++			break;
+ 		}
+ 		ssid->psk_set = 0;
+ 		str_clear_free(ssid->passphrase);
+ 		ssid->passphrase = dup_binstr(value, len);
+-		if (ssid->passphrase == NULL)
+-			return -1;
+-		return 0;
++		if (ssid->passphrase == NULL) {
++			result = -1;
++			break;
++		}
++
++		} while (0);
++
++		if (pstring_ptr)
++			os_free(pstring_ptr);
++
++		return result;
+ #else /* CONFIG_NO_PBKDF2 */
+ 		wpa_printf(MSG_ERROR, "Line %d: ASCII passphrase not "
+ 			   "supported.", line);

@@ -116,8 +116,9 @@ attributes.
   for a network and adding multiple nodes with the same SSID are
   treated as the same node whose attributes are changing.
 
-  Note: the SSID is copied verbatim and at the moment, there is no way
-        to express or escape non alphanumeric characters.
+  Note: the SSID is presented in an encoded notion where non-printeable
+        ASCII characters (and in addition '&', '"', '|' and '\') are
+        provided as '\x[0-9][a-f][0-9][a-f]' sequence.
 
 * :bssid: can be used to select a specific access point within a
   network.
@@ -130,8 +131,11 @@ attributes.
   Note: currently only personal WPA protection using a pre-shared-key
         (PSK) is supported.
 
-* :passphrase: sets the PSK that is required should the
-  network be protected.
+* :passphrase: sets an ASCII passphrase that is used to derive the
+  PSK and is required should the network be protected.
+  Like the SSID it supports the encoded notion and is required in
+  case the passphrase contains one of mentioned characters that
+  need encoding.
 
 Of all attributes solely the 'ssid' attribute is mandatory and all
 others are optional. They should be used when needed only.
