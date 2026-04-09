@@ -180,9 +180,14 @@ void lx_emul_acpi_for_each_device(lx_emul_acpi_device_callback cb, void *context
 
 void lx_emul_acpi_init()
 {
-	unsigned long handle = 1;
-
 	Acpi::registry = new (env().heap) Registry<Acpi::Device>();
+
+	/*
+	 * XXX ACPI devices with known handle values: touchpad TPD0
+	 */
+	new (env().heap) Acpi::Device(*Acpi::registry, env().heap, "TPD0", (void *)20);
+
+	unsigned long handle = 100;
 
 	env().devices.for_each([&] (Device &d) {
 
@@ -201,10 +206,4 @@ void lx_emul_acpi_init()
 		d.for_each_irq([&] (Lx_kit::Device::Irq &i) {
 			device.resources.add(LX_EMUL_ACPI_IRQ, i.number, 1); });
 	});
-
-	/* FIXME add locally configured ACPI devices (e.g., touchpad "EPTP" */
-	new (env().heap) Acpi::Device(*Acpi::registry, env().heap,
-	                              "I2C3", (void *)handle++);
-	new (env().heap) Acpi::Device(*Acpi::registry, env().heap,
-	                              "EPTP", (void *)handle++);
 }

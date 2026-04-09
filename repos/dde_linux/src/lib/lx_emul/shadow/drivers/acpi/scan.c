@@ -150,7 +150,7 @@ static struct acpi_device * acpi_add_single_object(acpi_handle handle, char cons
 	fwnode_init(&device->fwnode, &acpi_device_fwnode_ops);
 	strcpy(device->pnp.bus_id, name);
 	acpi_add_id(&device->pnp, name);
-	if (!strcmp(name, "EPTP"))
+	if (!strcmp(name, "TPD0"))
 		acpi_add_id(&device->pnp, "PNP0C50");
 	if (handle != ACPI_ROOT_OBJECT)
 		device->pnp.type.platform_id = 1;
