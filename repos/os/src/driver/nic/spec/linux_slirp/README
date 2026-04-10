@@ -1,0 +1,5 @@
+This directory contains the implementation of the Linux SLIRP-based NIC driver.
+
+The driver is a Linux hybrid component that uses the libslirp library to
+send raw packets via the Linux IP Stack. The libslirp comes from qemu
+and implements qemu's user networking.

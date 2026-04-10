@@ -1,0 +1,52 @@
+schema config
+
++ type bool | : yes|no
++ type ipv4 | : [0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}
++ type mac  | : [0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}
++ type port | : \d{1,5}
+
++ attr report | type: bool     | default: no
+  .
+  . Enable devices report containing the NIC's MAC address.
+  .
+
++ attr verbose | type: bool    | default: no
+  .
+  . Enable for verbose logging. For enabling debug output of libslirp, however,
+  . this must be combined with setting G_MESSAGES_DEBUG=Slirp
+  . in base-linux' native_pd_component.cc
+  .
+
++ attr network | type: ipv4    | default: 10.0.2.0
+  .
+  . Set the IPv4 prefix. Note that the component always uses 255.255.255.0
+  . as netmask. The component uses the prefix to set the following IPv4
+  . addresses for the libslirp stack:
+  . - DHCP start address: <prefix>.15
+  . - Host address:       <prefix>.2
+  . - Nameserver address: <prefix>.3
+  .
+
++ attr mac | type: mac | default: 02:00:00:00:00:01
+
++ node udp_forward
+  .
+  . Port-forwarding rule for UDP. The given 'port' of the Linux host will
+  . be forwarded to the client with address 'to' using the same port number
+  . or the port number specified by 'to_port'.
+  .
+  + attr port    | type: port | default: 
+  + attr to_port | type: port | default: 0
+  + attr to      | type: ipv4 | default: 10.0.2.15
+
++ node tcp_forward | category: forward
+  .
+  . Port-forwarding rule for TCP. The given 'port' of the Linux host will
+  . be forwarded to the client with address 'to' using the same port number
+  . or the port number specified by 'to_port'.
+  .
+  + attr port    | type: port | default:
+  + attr to_port | type: port | default: 0
+  + attr to      | type: ipv4 | default: 10.0.2.15
+
+-
