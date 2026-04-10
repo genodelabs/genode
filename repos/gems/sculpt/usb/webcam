@@ -15,6 +15,7 @@ config | bios_handoff: no
   + device | vendor_id: 0x04f2 | product_id: 0xb704 | . Fujitsu U741x
   + device | vendor_id: 0x04f2 | product_id: 0xb703 | . Fujitsu U741x
   + device | vendor_id: 0x0bda | product_id: 0x5634 | . Framework 13
+  + device | vendor_id: 0x30c9 | product_id: 0x00e6 | . HP ZBook 8 G1i
 
 + policy | label: external -> webcam -> usb_webcam ->
   + device | vendor_id: 0x046d | product_id: 0x08e5 | . Logitech C920

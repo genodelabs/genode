@@ -1,10 +1,9 @@
 option
 + child test-vfs_capture-external | pkg: test-vfs_capture
-
   + config | period_ms: 20 | width: 640 | height: 480
     + vfs | + dir dev | + capture
     + view | xpos: 960 | ypos: 540
-
   + connect
     + capture | + child external
+    + gui     | + child gui
 -

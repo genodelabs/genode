@@ -4,4 +4,5 @@ option
     + view | xpos: 960 | ypos: 60
   + connect
     + capture | + child external
+    + gui     | + child gui
 -
