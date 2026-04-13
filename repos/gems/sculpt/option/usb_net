@@ -1,0 +1,9 @@
+option
++ child usb_net | binary: usb_net | ram: 20M | caps: 200 | priority: -3
+  + config
+    + device | vendor_id: 0x2c7c | mac: 02:00:00:00:01:05
+  + connect
+    + usb    | + child usb
+    + report | + child report
+    + uplink | + child nic_router | label: usb_net
+-
