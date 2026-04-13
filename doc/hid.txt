@@ -47,7 +47,7 @@ Further nesting requires at least two leading spaces for each nesting level.
 
 In the example, 'default-route' is a sub node of 'config',
 'any-service' is a sub node of 'default-route',
-and 'parent' as well as 'any-child' are sub nodes of 'any-service.
+and 'parent' as well as 'any-child' are sub nodes of 'any-service'.
 
 Node names
 ==========
@@ -107,13 +107,13 @@ the indentation of the second line is higher than the first line.
 For example,
 ! config
 !        verbose: yes
-!        arch:    x64_64
+!        arch:    x86_64
 could be written as
 ! config
 !          verbose: yes
-!                         arch: x64_64
+!                         arch: x86_64
 or in the compacted form
-! config | verbose: yes | arch: x64_64
+! config | verbose: yes | arch: x86_64
 
 The '|' character splits one line into multiple segments where each segment
 denotes a separate line with its indentation retained from the segment.
@@ -529,7 +529,9 @@ Available commands
 
 :'hid [-i] enable <node-path>':
 
-  Revert the enabled state of nodes addressed by the <node-path>.
+  The 'enable' command is the opposite of the 'disable' command.
+  It turns the disabled ('x') nodes addressed by <node-path> into
+  regular ('+') nodes.
 
 :'hid check [--hsd-dir <hsd-dir>] [--schema <hsd-file>] <input-file>':
 
