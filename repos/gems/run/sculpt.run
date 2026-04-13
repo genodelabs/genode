@@ -191,61 +191,6 @@ import_from_depot [depot_user]/src/[base_src] \
 
 # each line in the following definitions must be indented with 4 spaces
 
-set driver_routes(pc) {
-    + service ROM | label: usb               | + parent | label: pc_usb_host
-}
-
-set driver_routes(mnt_reform2) {
-    + service ROM | label: fb                | + parent | label: imx8mq_fb
-    + service ROM | label: fb.dtb            | + parent | label: imx8mq_fb-mnt_reform2.dtb
-    + service ROM | label: mmc               | + parent | label: imx8mq_sd_card
-    + service ROM | label: mmc.dtb           | + parent | label: imx8mq_sd_card-mnt_reform2.dtb
-    + service ROM | label: usb               | + parent | label: imx8m_usb_host
-    + service ROM | label: usb.dtb           | + parent | label: imx8m_usb_host-mnt_reform2.dtb
-}
-
-set driver_routes(mnt_pocket) {
-    + service ROM | label: fb                | + parent | label: imx8mq_fb
-    + service ROM | label: fb.dtb            | + parent | label: imx8mq_fb-mnt_pocket.dtb
-    + service ROM | label: mmc               | + parent | label: imx8mq_sd_card
-    + service ROM | label: mmc.dtb           | + parent | label: imx8mq_sd_card-mnt_pocket.dtb
-    + service ROM | label: usb               | + parent | label: imx8m_usb_host
-    + service ROM | label: usb.dtb           | + parent | label: imx8m_usb_host-mnt_pocket.dtb
-}
-
-set driver_routes(pinephone) {
-    + service ROM | label: mmc               | + parent | label: a64_sd_card
-    + service ROM | label: mmc.dtb           | + parent | label: sd_card-pinephone.dtb
-    + service ROM | label: fb                | + parent | label: de_fb
-    + service ROM | label: fb.dtb            | + parent | label: de-pinephone.dtb
-    + service ROM | label: touch             | + parent | label: goodix_touch
-    + service ROM | label: touch.dtb         | + parent | label: goodix-pinephone.dtb
-}
-
-set driver_routes(imx8mp_armstone) {
-    + service ROM | label: fb      | + parent | label: imx8mp_armstone_fb
-    + service ROM | label: fb.dtb  | + parent | label: imx8mp_armstone_fb-imx8mp_armstone.dtb
-    + service ROM | label: mmc     | + parent | label: imx8mq_sd_card
-    + service ROM | label: mmc.dtb | + parent | label: imx8mq_sd_card-imx8mp_armstone.dtb
-    + service ROM | label: usb     | + parent | label: imx8m_usb_host
-    + service ROM | label: usb.dtb | + parent | label: imx8m_usb_host-imx8mp_armstone.dtb
-}
-
-
-##
-# ROM routes that relabel generic driver names to platform-specific binaries
-#
-proc driver_routes { } {
-
-	global driver_routes
-
-	if {[info exists driver_routes([board])]} {
-		return $driver_routes([board]); }
-
-	return "";
-}
-
-
 install_config {
 config | prio_levels: 2
 
@@ -332,7 +277,6 @@ config | prio_levels: 2
     + service TRACE       | label: global          | + parent | label:
     + service File_system | label_prefix: model -> | + child model_fs | identity: rw
     + service Timer                                | + child timer
-    } [driver_routes] {
     + service Terminal                             | + child terminal_monitor
     + any-service                                  | + parent
 -

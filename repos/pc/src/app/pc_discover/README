@@ -1,0 +1,10 @@
+The pc_discover component selects device drivers according to the PCI bus
+and platform information. It consumes the 'devices' report of the platform
+driver and a pristine 'board-pc' option featuring all potential drivers
+(marked as 'enabled: discover'). In return, it reports a modified 'board-pc'
+deploy option with only the drivers enabled that match the hardware.
+
+Note that the report session created by this component is immediately closed
+after reporting. Hence, it can only be combined with report services like
+fs_report that store reports independently of the lifetime of the report
+sessions.

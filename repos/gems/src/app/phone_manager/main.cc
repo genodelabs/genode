@@ -88,7 +88,6 @@ struct Sculpt::Main : Input_event_handler,
                       Software_update_widget::Action,
                       Software_add_widget::Action,
                       Screensaver::Action,
-                      Drivers::Info,
                       Drivers::Action
 {
 	Env &_env;
@@ -217,7 +216,7 @@ struct Sculpt::Main : Input_event_handler,
 		.fb_on_dedicated_cpu = false
 	};
 
-	Drivers _drivers { _env, _heap, _child_states, *this, *this };
+	Drivers _drivers { _env, _heap, *this };
 
 	Board_info::Options _driver_options { };
 
@@ -229,14 +228,6 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_storage_devices();
 		network_config_changed();
 		generate_runtime_config();
-	}
-
-	/**
-	 * Drivers::Info
-	 */
-	void gen_usb_storage_policies(Generator &g) const override
-	{
-		_storage.gen_usb_storage_policies(g);
 	}
 
 	void _enter_second_driver_stage()
@@ -320,17 +311,23 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_storage_devices()
 	{
+		auto with_storage_devices = [&] (auto const &fn)
+		{
+			_with_mmc_devices([&] (Drivers::Storage_devices::Driver const &mmc) {
+				fn( { .usb  = { .present = false, .report = Node() },
+				      .ahci = { .present = false, .report = Node() },
+				      .nvme = { .present = false, .report = Node() },
+				      .mmc  = mmc }); });
+		};
+
 		Storage_target const orig_target = _storage._selected_target;
 
 		bool total_progress = false;
 		for (bool progress = true; progress; total_progress |= progress) {
 			progress = false;
-			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
+			with_storage_devices([&] (Drivers::Storage_devices const &devices) {
 				_config.with_node([&] (Node const &config) {
 					progress = _storage.update(config, devices).progressed; }); });
-
-			/* update USB policies for storage devices */
-			_drivers.update_usb();
 		}
 
 		if (orig_target != _storage._selected_target)
@@ -346,6 +343,17 @@ struct Sculpt::Main : Input_event_handler,
 	 * Storage_device::Action
 	 */
 	void storage_device_discovered() override { _handle_storage_devices(); }
+
+	Vfs::Handler<Main> _mmc_devices {
+		_vfs, "/report/mmc/block_devices", *this, &Main::_handle_mmc_devices };
+
+	void _handle_mmc_devices(Node const &) { handle_device_plug_unplug(); }
+
+	void _with_mmc_devices(auto const &fn) const
+	{
+		_mmc_devices.with_node([&] (Node const &node) {
+			fn({ .present = _runtime_state.present_in_runtime("mmc"), .report = node }); });
+	}
 
 	Storage _storage { _env, _heap, *this };
 
@@ -2032,11 +2040,6 @@ struct Sculpt::Main : Input_event_handler,
 	Fb_config _fb_config_model { };
 
 	/**
-	 * Fb_driver::Action interface
-	 */
-	void fb_connectors_changed() override { }
-
-	/**
 	 * Fb_widget::Action interface
 	 */
 	void select_fb_mode          (Fb_connectors::Name const &,
@@ -2066,11 +2069,8 @@ struct Sculpt::Main : Input_event_handler,
 
 		_update_managed_system_config();
 
-		/*
-		 * Read static platform information
-		 */
-		_drivers.with_platform_info([&] (Node const &platform) {
-			platform.with_optional_sub_node("affinity-space", [&] (Node const &node) {
+		_init_config_rom.with_node([&] (Node const &config) {
+			config.with_optional_sub_node("affinity-space", [&] (Node const &node) {
 				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
 				                                  node.attribute_value("height", 1U)); }); });
 
@@ -2389,7 +2389,6 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 void Sculpt::Main::_generate_managed_option(Generator &g) const
 {
-	_drivers.gen_child_nodes(g);
 	_storage.gen_child_nodes(g);
 	_storage.gen_child_nodes(g);
 	_dir_query.gen_child_nodes(g);

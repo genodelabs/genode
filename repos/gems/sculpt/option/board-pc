@@ -23,4 +23,105 @@ option
     + rom pci_decode    | + parent
     + rom pc_platform   | + parent
     + rom platform_info | + parent
+
++ child discover_report | binary: fs_report | ram: 2M | caps: 100
+  + provides | + report
+  + config | + vfs | + fs
+  + connect
+    + fs             | + child model | identity: rw
+    + rom vfs.lib.so | + parent
+
++ child discover | binary: pc_discover | ram: 1M | caps: 100
+  + config
+  + connect
+    + report            | + child discover_report | label: option -> board
+    + rom devices       | + child report          | label: platform/devices
+    + rom board         | + child model           | label: option/board
+    + rom platform_info | + parent
+
++ child usb | binary: pc_usb_host | ram: 16M | caps: 200 | priority: -2 | enabled: discover
+  + provides
+    + usb
+  + connect
+    + platform   | + child platform | label: usb
+    + report     | + child report
+    + rom config | + child model    | label: child/usb
+
++ child intel_gpu | binary: intel_gpu | ram: 32M | caps: 1400 | priority: -2 | enabled: discover
+  + managed | max_ram: 256M | max_caps: 5000
+  + provides
+    + gpu
+    + platform
+  + connect
+    + platform   | + child platform | label: intel_gpu
+    + rom config | + child model    | label: child/gpu
+    + rom system | + child model    | label: system
+    + rm         | + parent
+
++ child intel_fb | binary: pc_intel_fb | ram: 16M | caps: 800 | priority: -2 | enabled: discover
+  + managed | max_ram: 256M | max_caps: 5000
+  + heartbeat | restart_after_skipped: 2
+  + connect
+    + platform           | + child intel_gpu
+    + capture            | + child gui
+    + report             | + child report
+    + rom config         | + child model  | label: fb
+    + rom intel_opregion | + child report | label: platform/intel_opregion
+    + rm                 | + parent
+
++ child boot_fb | binary: boot_fb | ram: 8M | caps: 100 | priority: -2 | enabled: discover
+  + connect
+    + rom config        | + child model | label: fb
+    + rom platform_info | + parent      | label: platform_info
+    + io_mem            | + parent
+    + capture           | + child gui
+    + report            | + child report
+
++ child vesa_fb | binary: vesa_fb | ram: 8M | caps: 110 | priority: -2 | enabled: discover
+  + managed | max_ram: 256M | max_caps: 5000
+  + connect
+    + platform   | + child platform | label: vesa_fb
+    + capture    | + child gui
+    + report     | + child report
+    + rom config | + child model | label: fb
+    + io_mem     | + parent
+    + io_port    | + parent
+
++ child ps2 | binary: ps2 | ram: 1M | caps: 100 | priority: -2 | enabled: discover
+  + config | capslock_led: rom | numlock_led: rom | system: yes
+  + connect
+    + platform     | + child platform     | label: ps2
+    + rom capslock | + child report       | label: global_keys/capslock
+    + rom numlock  | + child report       | label: global_keys/numlock
+    + rom system   | + child model        | label: system
+    + event        | + child event_filter | label: ps2
+
++ child ahci | binary: ahci | ram: 10M | caps: 100 | priority: -3 | enabled: discover
+  + managed | max_ram: 32M | max_caps: 500
+  + provides
+    + block
+  + config | system: yes
+    + report | ports: yes
+    + policy | label: 0 | device: 0 | writeable: yes
+    + policy | label: 1 | device: 1 | writeable: yes
+    + policy | label: 2 | device: 2 | writeable: yes
+    + policy | label: 3 | device: 3 | writeable: yes
+    + policy | label: 4 | device: 4 | writeable: yes
+    + policy | label: 5 | device: 5 | writeable: yes
+  + connect
+    + platform   | + child platform | label: ahci
+    + rom system | + child model    | label: system
+    + report     | + child report
+
++ child nvme | binary: nvme | ram: 8M | caps: 100 | priority: -3 | enabled: discover
+  + managed | max_ram: 32M | max_caps: 500
+  + provides
+    + block
+  + config | system: yes
+    + report | namespaces: yes
+    + policy | label: 1 | namespace: 1 | writeable: yes
+  + connect
+    + platform   | + child platform | label: nvme
+    + rom system | + child model    | label: system
+    + report     | + child report
 -

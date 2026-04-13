@@ -5,6 +5,7 @@ _/src/boot_fb
 _/src/intel_gpu
 _/src/nvme
 _/src/pci_decode
+_/src/pc_discover
 _/src/pc_intel_fb
 _/src/pc_nic
 _/src/pc_platform

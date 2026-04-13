@@ -19,7 +19,6 @@
 #include <util/callable.h>
 #include <model/child_state.h>
 #include <model/board_info.h>
-#include <driver/fb.h>
 
 namespace Sculpt { struct Drivers; }
 
@@ -28,17 +27,10 @@ class Sculpt::Drivers : Noncopyable
 {
 	public:
 
-		struct Action : virtual Fb_driver::Action
+		struct Action : Interface
 		{
 			virtual void handle_device_plug_unplug() = 0;
 		};
-
-		struct Info : Interface
-		{
-			virtual void gen_usb_storage_policies(Generator &) const = 0;
-		};
-
-		using Children = Registry<Child_state>;
 
 		/**
 		 * Argument type for 'with_storage_devices'
@@ -67,29 +59,19 @@ class Sculpt::Drivers : Noncopyable
 
 		static Instance &_construct_instance(auto &&...);
 
-		using With_storage_devices = Callable<void, Storage_devices const &>;
-		using With_board_info      = Callable<void, Board_info const &>;
-		using With_node            = Callable<void, Node const &>;
+		using With_board_info = Callable<void, Board_info const &>;
+		using With_node       = Callable<void, Node const &>;
 
-		void _with(With_storage_devices::Ft    const &) const;
-		void _with(With_board_info::Ft         const &) const;
-		void _with_platform_info(With_node::Ft const &) const;
-		void _with_fb_connectors(With_node::Ft const &) const;
+		void _with(With_board_info::Ft const &) const;
 
 	public:
 
-		Drivers(Env &, Allocator &, Children &, Info const &, Action &);
+		Drivers(Env &, Allocator &, Action &);
 
-		void update_usb();
 		void update_soc(Board_info::Soc);
 		void update_options(Board_info::Options);
 
-		void gen_child_nodes(Generator &) const;
-
-		void with_storage_devices(auto const &fn) const { _with(With_storage_devices::Fn   { fn }); }
-		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn        { fn }); }
-		void with_platform_info  (auto const &fn) const { _with_platform_info(With_node::Fn { fn }); }
-		void with_fb_connectors  (auto const &fn) const { _with_fb_connectors(With_node::Fn { fn }); }
+		void with_board_info(auto const &fn) const { _with(With_board_info::Fn { fn }); }
 
 		/* true if hardware is suspend/resume capable */
 		bool suspend_supported() const;

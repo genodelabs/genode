@@ -14,7 +14,7 @@
 #ifndef _MODEL__BOARD_INFO_H_
 #define _MODEL__BOARD_INFO_H_
 
-#include <model/boot_fb.h>
+#include <types.h>
 
 namespace Sculpt { struct Board_info; }
 
@@ -57,17 +57,14 @@ struct Sculpt::Board_info
 	 */
 	struct Detected
 	{
-		bool wifi, nic, intel_gfx, boot_fb, vga, nvme, ahci, usb, ps2;
+		bool wifi, nic;
 
 		void print(Output &out) const
 		{
-			Genode::print(out, "wifi=",      wifi,      " nic=",       nic,
-			                  " intel_gfx=", intel_gfx, " boot_fb=",   boot_fb,
-			                  " vga=",       vga,       " nvme=",      nvme,
-			                  " ahci=",      ahci,      " usb=",       usb);
+			Genode::print(out, "wifi=", wifi, " nic=", nic);
 		}
 
-		static inline Detected from_node(Node const &devices, Node const &platform);
+		static inline Detected from_node(Node const &devices);
 
 	} detected;
 
@@ -135,39 +132,18 @@ struct Sculpt::Board_info
 
 	} options;
 
-	bool usb_avail()  const { return detected.usb  || soc.usb; }
 	bool wifi_avail() const { return detected.wifi || soc.wifi; }
 };
 
 
 Sculpt::Board_info::Detected
-Sculpt::Board_info::Detected::from_node(Node const &devices, Node const &platform)
+Sculpt::Board_info::Detected::from_node(Node const &devices)
 {
 	Detected detected { };
-
-	Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
-		detected.boot_fb = mode.valid(); });
-
 	devices.for_each_sub_node("device", [&] (Node const &device) {
-
-		if (device.attribute_value("name", String<16>()) == "ps2")
-			detected.ps2 = true;
-
 		device.with_optional_sub_node("pci-config", [&] (Node const &pci) {
-
 			if (_matches_class(pci, Pci_class::WIFI)) detected.wifi = true;
-			if (_matches_class(pci, Pci_class::NIC))  detected.nic  = true;
-			if (_matches_class(pci, Pci_class::NVME)) detected.nvme = true;
-			if (_matches_usb(pci))                    detected.usb  = true;
-			if (_matches_ahci(pci))                   detected.ahci = true;
-
-			if (_matches_class(pci, Pci_class::VGA)) {
-				detected.vga = true;
-				if (_matches_vendor(pci, Pci_vendor::INTEL))
-					detected.intel_gfx = true;
-			}
-		});
-	});
+			if (_matches_class(pci, Pci_class::NIC))  detected.nic  = true; }); });
 
 	return detected;
 }

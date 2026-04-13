@@ -1,25 +1,25 @@
 /*
  * \brief  Boot-time framebuffer information
  * \author Norman Feske
- * \date   2024-03-15
+ * \date   2026-04-13
  */
 
 /*
- * Copyright (C) 2024 Genode Labs GmbH
+ * Copyright (C) 2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _MODEL__BOOT_FB_H_
-#define _MODEL__BOOT_FB_H_
+#ifndef _BOOT_FB_H_
+#define _BOOT_FB_H_
 
 #include <types.h>
 
-namespace Sculpt { struct Boot_fb; }
+namespace Pc_discover { struct Boot_fb; }
 
 
-struct Sculpt::Boot_fb
+struct Pc_discover::Boot_fb
 {
 	struct Mode
 	{
@@ -51,4 +51,4 @@ struct Sculpt::Boot_fb
 	}
 };
 
-#endif /* _MODEL__BOOT_FB_H_ */
+#endif /* _BOOT_FB_H_ */

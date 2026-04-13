@@ -76,7 +76,6 @@ struct Sculpt::Main : Input_event_handler,
                       Dir_query::Action,
                       Panel_dialog::State,
                       Screensaver::Action,
-                      Drivers::Info,
                       Drivers::Action,
                       Enabled_options::Action
 {
@@ -293,7 +292,7 @@ struct Sculpt::Main : Input_event_handler,
 		.fb_on_dedicated_cpu = _mnt_pocket
 	};
 
-	Drivers _drivers { _env, _heap, _child_states, *this, *this };
+	Drivers _drivers { _env, _heap, *this };
 
 	Drivers::Resumed _resumed = _drivers.resumed();
 
@@ -305,6 +304,10 @@ struct Sculpt::Main : Input_event_handler,
 		.suppress {},
 		.suspending = false,
 	};
+
+	Constructible<Child_state> _usb_hid { };
+
+	bool _usb_storage_acquired = false;
 
 	/**
 	 * Drivers::Action
@@ -357,14 +360,6 @@ struct Sculpt::Main : Input_event_handler,
 			_broadcast_system_state();
 	}
 
-	/**
-	 * Drivers::Info
-	 */
-	void gen_usb_storage_policies(Generator &g) const override
-	{
-		_storage.gen_usb_storage_policies(g);
-	}
-
 
 	/***************************
 	 ** Configuration loading **
@@ -385,17 +380,29 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_storage_devices()
 	{
+		auto with_storage_devices = [&] (auto const &fn)
+		{
+			_with_usb_devices([&] (Drivers::Storage_devices::Driver const &usb) {
+				_with_ahci_ports([&] (Drivers::Storage_devices::Driver const &ahci) {
+					_with_nvme_namespaces([&] (Drivers::Storage_devices::Driver const &nvme) {
+						_with_mmc_devices([&] (Drivers::Storage_devices::Driver const &mmc) {
+							fn( { .usb  = usb,
+							      .ahci = ahci,
+							      .nvme = nvme,
+							      .mmc  = mmc }); }); }); }); });
+		};
+
 		Storage_target const orig_target = _storage._selected_target;
 
 		bool total_progress = false;
 		for (bool progress = true; progress; total_progress |= progress) {
 			progress = false;
-			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
+			with_storage_devices([&] (Drivers::Storage_devices const &devices) {
 				_config.with_node([&] (Node const &config) {
 					progress = _storage.update(config, devices).progressed; }); });
 
 			/* update USB policies for storage devices */
-			_drivers.update_usb();
+			_usb_config.trigger_update();
 		}
 
 		if (orig_target != _storage._selected_target)
@@ -412,6 +419,78 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void storage_device_discovered() override { _handle_storage_devices(); }
 
+	Vfs::Handler<Main> _ahci_ports {
+		_vfs, "/report/ahci/ports", *this, &Main::_handle_ahci_ports };
+
+	Vfs::Handler<Main> _nvme_namespaces {
+		_vfs, "/report/nvme/controller", *this, &Main::_handle_nvme_namespaces };
+
+	Vfs::Handler<Main> _mmc_devices {
+		_vfs, "/report/mmc/block_devices", *this, &Main::_handle_mmc_devices };
+
+	Vfs::Handler<Main> _usb_devices {
+		_vfs, "/report/usb/devices", *this, &Main::_handle_usb_devices };
+
+	void _handle_ahci_ports     (Node const &) { handle_device_plug_unplug(); }
+	void _handle_nvme_namespaces(Node const &) { handle_device_plug_unplug(); }
+	void _handle_mmc_devices    (Node const &) { handle_device_plug_unplug(); }
+
+	void _handle_usb_devices(Node const &devices)
+	{
+		bool const orig_usb_hid_present = _usb_hid.constructed();
+
+		bool usb_hid_present  = false;
+		_usb_storage_acquired = false;
+
+		static constexpr unsigned CLASS_HID = 3, CLASS_STORAGE = 8;
+
+		devices.for_each_sub_node("device", [&] (Node const &device) {
+			bool const acquired = device.attribute_value("acquired", false);
+			device.for_each_sub_node("config", [&] (Node const &config) {
+				config.for_each_sub_node("interface", [&] (Node const &interface) {
+					unsigned const class_id = interface.attribute_value("class", 0u);
+					usb_hid_present       |= (class_id == CLASS_HID);
+					_usb_storage_acquired |= (class_id == CLASS_STORAGE) && acquired;
+				});
+			});
+		});
+
+		if (orig_usb_hid_present != usb_hid_present) {
+			_usb_hid.conditional(usb_hid_present,
+			                     _child_states, Priority::MULTIMEDIA,
+			                     Child_name { "usb_hid" }, Binary_name { "usb_hid" },
+			                     Ram_quota { 11*1024*1024 }, Cap_quota { 180 });
+
+			generate_runtime_config();
+		}
+
+		handle_device_plug_unplug();
+	}
+
+	void _with_ahci_ports(auto const &fn) const
+	{
+		_ahci_ports.with_node([&] (Node const &node) {
+			fn({ .present = _runtime_state.present_in_runtime("ahci"), .report = node }); });
+	}
+
+	void _with_nvme_namespaces(auto const &fn) const
+	{
+		_nvme_namespaces.with_node([&] (Node const &node) {
+			fn({ .present = _runtime_state.present_in_runtime("nvme"), .report = node }); });
+	}
+
+	void _with_mmc_devices(auto const &fn) const
+	{
+		_mmc_devices.with_node([&] (Node const &node) {
+			fn({ .present = _runtime_state.present_in_runtime("mmc"), .report = node }); });
+	}
+
+	void _with_usb_devices(auto const &fn) const
+	{
+		_usb_devices.with_node([&] (Node const &node) {
+			fn({ .present = _runtime_state.present_in_runtime("usb"), .report = node }); });
+	}
+
 	Storage _storage { _env, _heap, *this };
 
 	void _restart_from_storage_target()
@@ -425,6 +504,39 @@ struct Sculpt::Main : Input_event_handler,
 
 		_bump_depot_version();
 		_query_depot();
+	}
+
+	Managed_config<Main> _usb_config {
+		_env, _heap, "config", "child/usb", *this, &Main::_handle_usb_config };
+
+	void _handle_usb_config(Node const &config)
+	{
+		static constexpr unsigned CLASS_HID = 3;
+
+		_usb_config.generate([&] (Generator &g) {
+			config.for_each_attribute([&] (Node::Attribute const &a) {
+				if (a.name != "managed")
+					g.attribute(a.name.string(), a.value.start, a.value.num_bytes); });
+
+			g.node("report", [&] {
+				g.attribute("devices", "yes"); });
+
+			g.node("policy", [&] {
+				g.attribute("label_prefix", "usb_hid");
+				g.attribute("generated", "yes");
+				g.node("device", [&] {
+					g.attribute("class", CLASS_HID); }); });
+
+			/* copy user-provided rules */
+			config.for_each_sub_node("policy", [&] (Node const &policy) {
+				if (!policy.attribute_value("generated", false))
+					(void)g.append_node(policy, Generator::Max_depth { 5 }); });
+
+			/* wildcard for USB clients with no policy yet */
+			g.node("default-policy", [&] { });
+
+			_storage.gen_usb_storage_policies(g);
+		});
 	}
 
 
@@ -1832,19 +1944,20 @@ struct Sculpt::Main : Input_event_handler,
 		_generate_fb_config();
 	}
 
-	/**
-	 * Fb_driver::Action interface
-	 */
-	void fb_connectors_changed() override
+	Vfs::Handler<Main> _intel_fb_connectors_handler {
+		_vfs, "/report/intel_fb/connectors", *this, &Main::_handle_fb_connectors };
+
+	Vfs::Handler<Main> _vesa_fb_connectors_handler {
+		_vfs, "/report/vesa_fb/connectors", *this, &Main::_handle_fb_connectors };
+
+	void _handle_fb_connectors(Node const &connectors)
 	{
-		_drivers.with_fb_connectors([&] (Node const &node) {
-			if (_fb_connectors.update(_heap, node).progressed) {
-				_fb_config_model.apply_connectors(_fb_connectors);
-				_generate_fb_config();
-				_handle_gui_mode();
-				_graph_view.refresh();
-			}
-		});
+		if (_fb_connectors.update(_heap, connectors).progressed) {
+			_fb_config_model.apply_connectors(_fb_connectors);
+			_generate_fb_config();
+			_handle_gui_mode();
+			_graph_view.refresh();
+		}
 	}
 
 	/**
@@ -1947,11 +2060,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Main(Env &env) : _env(env)
 	{
-		/*
-		 * Read static platform information
-		 */
-		_drivers.with_platform_info([&] (Node const &platform) {
-			platform.with_optional_sub_node("affinity-space", [&] (Node const &node) {
+		_init_config_rom.with_node([&] (Node const &config) {
+			config.with_optional_sub_node("affinity-space", [&] (Node const &node) {
 				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
 				                                  node.attribute_value("height", 1U)); }); });
 
@@ -2606,7 +2716,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		bool const acpi_support = _cached_init_config.present_in_runtime("acpi_support");
 		Power_features const orig_power_features = _power_features;
 		_power_features.poweroff = acpi_support;
-		_power_features.suspend  = acpi_support && _drivers.suspend_supported();;
+		_power_features.suspend  = acpi_support;
 		if (orig_power_features != _power_features)
 			_system_dialog.refresh();
 	}
@@ -2624,7 +2734,24 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 void Sculpt::Main::_generate_managed_option(Generator &g) const
 {
-	_drivers.gen_child_nodes(g);
+	if (_usb_hid.constructed()) {
+		g.node("child", [&] {
+			_usb_hid->gen_child_node_content(g);
+			g.node("config", [&] {
+				g.attribute("capslock_led", "rom");
+				g.attribute("numlock_led",  "rom");
+			});
+			g.tabular_node("connect", [&] {
+				g.node("usb", [&] {
+					gen_named_node(g, "child", "usb"); });
+				connect_report(g);
+				connect_report_rom(g, "capslock", "global_keys/capslock");
+				connect_report_rom(g, "numlock",  "global_keys/numlock");
+				connect_event(g, "usb_hid");
+			});
+		});
+	}
+
 	_storage.gen_child_nodes(g);
 	_file_browser_state.gen_child_nodes(g);
 	_dir_query.gen_child_nodes(g);
