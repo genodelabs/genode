@@ -160,7 +160,7 @@ class Ahci::Driver : Noncopyable
 				/* re-start request handling of client sessions */
 				for_each_port([&](auto &port, auto const index, auto) {
 					try {
-						port.reinit();
+						port.reinit(true);
 						port.stop_processing = false;
 						_dispatch.session(index);
 					} catch (...) {

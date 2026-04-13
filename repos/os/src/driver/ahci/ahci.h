@@ -898,13 +898,31 @@ struct Ahci::Port : private Port_base
 		reinit();
 	}
 
-	void reinit()
+	void reinit(bool is_resume = false)
 	{
 		_with_port_mmio([&](Port_mmio &mmio) {
-			reset(mmio);
 
-			if (!enable(mmio))
-				throw 1;
+			if (!enable(mmio)) {
+				/*
+				 * No SATA link. On boot or S3 resume the link is already
+				 * established by the BIOS / powered controller, so a missing
+				 * link means the port is empty.
+				 */
+				if (!is_resume)
+					throw 1;
+
+				/*
+				 * On S4 resume (full power loss) all port registers reset to
+				 * zero including PxSSTS, so the link must be re-established.
+				 * Cmd::St and FRE are guaranteed 0 after power loss, so
+				 * reset() is safe and setup_memory() inside init() will find
+				 * FR=0 immediately.
+				 */
+				reset(mmio);
+
+				if (!enable(mmio))
+					throw 1;
+			}
 
 			stop(mmio);
 
