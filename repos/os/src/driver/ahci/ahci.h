@@ -901,12 +901,22 @@ struct Ahci::Port : private Port_base
 	void reinit()
 	{
 		_with_port_mmio([&](Port_mmio &mmio) {
+
+			/*
+			 * In case we are started with an already used controller (e.g., by the
+			 * BIOS or UEFI). Stop processing and disable FIS receive DMA engine
+			 * before port reset
+			 */
+			mmio.write<Cmd::St>(0);
+			if (mmio.read<Cmd::Fre>()) {
+				mmio.write<Cmd::Fre>(0);
+				mmio.wait_for(delayer, Cmd::Fr::Equal(0));
+			}
+
 			reset(mmio);
 
 			if (!enable(mmio))
 				throw 1;
-
-			stop(mmio);
 
 			mmio.wait_for(delayer, Cmd::Cr::Equal(0));
 
@@ -1076,9 +1086,6 @@ struct Ahci::Port : private Port_base
 
 	void init(Port_mmio &mmio)
 	{
-		/* stop command list processing */
-		stop(mmio);
-
 		/* setup command list/table */
 		setup_memory(mmio);
 
@@ -1114,12 +1121,7 @@ struct Ahci::Port : private Port_base
 		enum { FIS_OFF = 1024 };
 		fis.construct(cmd_list->start + FIS_OFF, cmd_list->num_bytes - FIS_OFF);
 
-		/*
-		 *  Set fis receive base, clear Fre (FIS receive) before and wait for FR
-		 *  (FIS receive running) to clear
-		 */
-		mmio.write<Cmd::Fre>(0);
-		mmio.wait_for(delayer, Cmd::Fr::Equal(0));
+		/* set fis receive base */
 		fis_rcv_base(phys + 1024, mmio);
 
 		/* command table */
