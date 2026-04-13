@@ -96,7 +96,7 @@ Pd_session::Map_result Pd_session_component::map(Pd_session::Virt_range const vi
 					size  = size < mapped_bytes ? 0 : size - mapped_bytes;
 				},
 
-				[&] (Region_map_component &, Fault const &) { /* don't reflect */ }
+				[&] (Region_map_component &, Fault const &) { size = 0; }
 			);
 		}
 	}
