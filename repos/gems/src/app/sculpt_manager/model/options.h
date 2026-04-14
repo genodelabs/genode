@@ -78,6 +78,8 @@ class Sculpt::Enabled_options
 				{ }
 			};
 
+			bool required = false;
+
 			Constructible<Watched_option> _watched_option { };
 
 			Managed_children children { };
@@ -124,7 +126,8 @@ class Sculpt::Enabled_options
 					destroy(_alloc, &o); },
 
 				/* update */
-				[&] (Option &, Node const &) { }
+				[&] (Option &o, Node const &node) {
+					o.required = node.attribute_value("required", false); }
 			);
 			return Progress { progress };
 		}
@@ -144,7 +147,14 @@ class Sculpt::Enabled_options
 			return result;
 		}
 
-		bool exists(Name const &name) const { return _dict.exists(name); }
+		struct Info { bool exists, required; };
+
+		Info info(Name const &name) const
+		{
+			return _dict.with_element(name, [&] (Option const &o) {
+				return Info { .exists = true, .required = o.required }; },
+			[&] { return Info { }; });
+		}
 };
 
 #endif /* _MODEL__OPTIONS_H_ */

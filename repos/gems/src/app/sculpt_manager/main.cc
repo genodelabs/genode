@@ -845,7 +845,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		{
 			bool const orig = _log_visible;
-			_log_visible = _deploy.enabled_options.exists("log_view");
+			_log_visible = _deploy.enabled_options.info("log_view").exists;
 			if (orig != _log_visible)
 				_update_window_layout();
 		}

@@ -58,7 +58,9 @@ struct Sculpt::Software_options_widget : Widget<Vbox>
 		unsigned count = 0;
 		_options.for_each([&] (Options::Name const &name) {
 			Hosted_option option { { count++ } };
-			s.widget(option, name, _enabled_options.exists(name));
+			Enabled_options::Info const info = _enabled_options.info(name);
+			if (!info.required)
+				s.widget(option, name, info.exists);
 		});
 	}
 
