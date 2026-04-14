@@ -15,7 +15,7 @@ deploy | info: software-rendering example
   | + image | png: genode_logo.png | alpha: 150 | anchor: bottom_right
   |                                | xpos:  -20 | ypos: -20
   + connect
-    + gui | + parent | label: backdrop
+    + gui | + child gui | label: backdrop
 
 + child dynamic_rom | ram: 4M | pkg: dynamic_rom
   + config | verbose: yes
@@ -32,6 +32,6 @@ deploy | info: software-rendering example
 + child nano3d | pkg: nano3d | config: no
   + affinity | xpos: 1 | width: 1
   + connect
-    + gui        | + parent | label: follow_touch
+    + gui        | + child gui         | label: follow_touch
     + rom config | + child dynamic_rom | label: nano3d.config
 -
