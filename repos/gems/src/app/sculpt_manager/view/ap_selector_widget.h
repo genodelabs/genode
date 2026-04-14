@@ -34,7 +34,7 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 
 	struct Action : Interface
 	{
-		virtual void wifi_connect(Access_point::Ssid) = 0;
+		virtual void wifi_connect(Access_point::Bssid) = 0;
 		virtual void wifi_disconnect() = 0;
 	};
 
@@ -56,7 +56,11 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 			s.sub_scope<Left_floating_hbox>([&] (Scope<Hbox, Left_floating_hbox> &s) {
 				s.sub_scope<Icon>("radio", Icon::Attr { .hovered  = hovered,
 				                                        .selected = attr.selected });
-				s.sub_scope<Label>(String<20>(" ", ap.ssid));
+				if (ap.decoded_ssid.valid())
+					s.sub_scope<Label>(String<20>(" ", ap.decoded_ssid));
+				else
+					s.sub_scope<Label>(String<20>(" ", ap.ssid));
+
 				s.sub_scope<Annotation>((ap.protection == Access_point::WPA_PSK)
 				                        ? " (WPA) " : " ");
 			});

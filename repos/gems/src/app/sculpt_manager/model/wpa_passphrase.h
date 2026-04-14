@@ -18,6 +18,7 @@
 #include <util/utf8.h>
 #include <types.h>
 #include <xml.h>
+#include <net/wifi.h>
 
 namespace Sculpt {
 	struct Blind_wpa_passphrase;
@@ -82,8 +83,17 @@ struct Sculpt::Wpa_passphrase : Blind_wpa_passphrase
 				Utf8 const utf8 = utf8_from_codepoint(_characters[i].value);
 
 				auto _print = [&] (char c) {
-					if (c)
-						Genode::print(out, Char(c)); };
+					if (!c)
+						return;
+
+					if (Net::Wifi::allowed_char(c)) {
+						Genode::print(out, Char(c));
+						return;
+					}
+
+					/* print encoded */
+					Genode::print(out, Net::Wifi::Hex_char(c).string());
+				};
 
 				_print(utf8.b0); _print(utf8.b1); _print(utf8.b2);
 				_print(utf8.b3); _print(utf8.b4);

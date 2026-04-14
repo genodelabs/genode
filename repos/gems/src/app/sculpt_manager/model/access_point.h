@@ -16,6 +16,8 @@
 
 #include "types.h"
 
+#include <net/wifi.h>
+
 namespace Sculpt {
 
 	struct Access_point;
@@ -28,7 +30,7 @@ namespace Sculpt {
 struct Sculpt::Access_point : List_model<Access_point>::Element
 {
 	using Bssid = String<32>;
-	using Ssid = String<32>;
+	using Ssid  = String<128+1>;
 
 	enum Protection { UNKNOWN, UNPROTECTED, WPA_PSK, WPA3_PSK };
 
@@ -36,10 +38,15 @@ struct Sculpt::Access_point : List_model<Access_point>::Element
 	Ssid       const ssid;
 	Protection const protection;
 
+	Net::Wifi::Decoded_pstring const decoded_ssid;
+
 	unsigned quality = 0;
 
 	Access_point(Bssid const &bssid, Ssid const &ssid, Protection protection)
-	: bssid(bssid), ssid(ssid), protection(protection) { }
+	:
+		bssid(bssid), ssid(ssid), protection(protection),
+		decoded_ssid(Net::Wifi::from(Net::Wifi::Encoded_pstring(ssid)))
+	{ }
 
 	bool unprotected()   const { return protection == UNPROTECTED; }
 	bool wpa_protected() const
