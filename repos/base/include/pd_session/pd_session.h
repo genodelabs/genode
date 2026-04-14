@@ -230,7 +230,7 @@ struct Genode::Pd_session : Session, Pd_account
 	 ** Virtual address-space management **
 	 **************************************/
 
-	enum { LINKER_AREA_SIZE = 320*1024*1024UL };
+	enum { LINKER_AREA_SIZE = 350*1024*1024UL };
 
 	/**
 	 * Return region map of the PD's virtual address space
