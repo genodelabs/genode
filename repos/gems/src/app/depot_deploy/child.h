@@ -154,8 +154,14 @@ class Depot_deploy::Child : public Duplicate_checked,
 
 		Pkg _pkg = Pkg::UNKNOWN;
 
+		bool _pkg_rediscovering() const
+		{
+			return _pkg == Pkg::DISCOVER && _pkg_node.constructed();
+		}
+
 		bool _pkg_satisfied() const { return _pkg == Pkg::NONE
-		                                  || _pkg == Pkg::COMPLETE; }
+		                                  || _pkg == Pkg::COMPLETE
+		                                  || _pkg_rediscovering(); }
 
 		/*
 		 * State of the dependency of the child from other children
