@@ -17,6 +17,7 @@
 #include <view/dialog.h>
 #include <view/system_power_widget.h>
 #include <view/software_presets_widget.h>
+#include <view/system_options_widget.h>
 #include <view/software_update_widget.h>
 #include <view/software_version_widget.h>
 #include <model/settings.h>
@@ -37,21 +38,24 @@ struct Sculpt::System_dialog : Top_level_dialog
 
 	struct Action : virtual System_power_widget::Action,
 	                virtual Software_presets_widget::Action,
+	                virtual System_options_widget::Action,
 	                virtual Software_update_widget::Action { };
 
 	Action &_action;
 
-	enum Tab { POWER, PRESET, UPDATE } _selected_tab = Tab::PRESET;
+	enum Tab { POWER, PRESET, OPTIONS, UPDATE } _selected_tab = Tab::PRESET;
 
 	Hosted<Frame, Vbox, System_power_widget>     _power_widget   { Id { "power" } };
 	Hosted<Frame, Vbox, Software_presets_widget> _presets_widget { Id { "presets" } };
+	Hosted<Frame, Vbox, System_options_widget>   _options_widget;
 	Hosted<Frame, Vbox, Software_update_widget>  _update_widget;
 	Hosted<Frame, Vbox, Software_version_widget> _version_widget { Id { "version" } };
 
 	Hosted<Frame, Vbox, Hbox, Select_button<Tab>>
-		_power_tab  { Id { "Power" },   Tab::POWER  },
-		_preset_tab { Id { "Presets" }, Tab::PRESET },
-		_update_tab { Id { "Update"  }, Tab::UPDATE };
+		_power_tab   { Id { "Power"   }, Tab::POWER   },
+		_preset_tab  { Id { "Presets" }, Tab::PRESET  },
+		_options_tab { Id { "Options" }, Tab::OPTIONS },
+		_update_tab  { Id { "Update"  }, Tab::UPDATE  };
 
 	void view(Scope<> &s) const override
 	{
@@ -67,6 +71,9 @@ struct Sculpt::System_dialog : Top_level_dialog
 							s.attribute("style", "unimportant");
 						s.template sub_scope<Label>(_preset_tab.id.value);
 					});
+					s.widget(_options_tab, _selected_tab, [&] (auto &s) {
+						s.template sub_scope<Label>(_options_tab.id.value);
+					});
 					s.widget(_update_tab, _selected_tab);
 				});
 
@@ -77,6 +84,9 @@ struct Sculpt::System_dialog : Top_level_dialog
 					break;
 				case Tab::PRESET:
 					s.widget(_presets_widget, _presets);
+					break;
+				case Tab::OPTIONS:
+					s.widget(_options_widget);
 					break;
 				case Tab::UPDATE:
 					_image_index.with_node([&] (Node const &index) {
@@ -91,12 +101,14 @@ struct Sculpt::System_dialog : Top_level_dialog
 
 	void click(Clicked_at const &at) override
 	{
-		_power_tab .propagate(at, [&] (Tab t) { _selected_tab = t; });
-		_preset_tab.propagate(at, [&] (Tab t) { _selected_tab = t; });
-		_update_tab.propagate(at, [&] (Tab t) { _selected_tab = t; });
+		_power_tab  .propagate(at, [&] (Tab t) { _selected_tab = t; });
+		_preset_tab .propagate(at, [&] (Tab t) { _selected_tab = t; });
+		_options_tab.propagate(at, [&] (Tab t) { _selected_tab = t; });
+		_update_tab .propagate(at, [&] (Tab t) { _selected_tab = t; });
 
 		_power_widget.propagate(at);
 		_presets_widget.propagate(at, _presets);
+		_options_widget.propagate(at, _action);
 
 		if (_selected_tab == Tab::UPDATE)
 			_update_widget.propagate(at, _action);
@@ -119,11 +131,14 @@ struct Sculpt::System_dialog : Top_level_dialog
 	              File_operation_queue const &file_operation_queue,
 	              Depot_users          const &depot_users,
 	              Image_index          const &image_index,
+	              Options              const &options,
+	              Enabled_options      const &enabled_options,
 	              Action                     &action)
 	:
 		Top_level_dialog("system"),
 		_presets(presets), _image_index(image_index), _build_info(build_info),
 		_power_features(power_features), _action(action),
+		_options_widget(Id { "options" }, enabled_options, options),
 		_update_widget(Id { "update" },
 		               build_info, nic_state, download_queue,
 		               index_update_queue, file_operation_queue, depot_users)

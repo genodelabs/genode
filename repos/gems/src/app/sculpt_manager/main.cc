@@ -1476,7 +1476,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Popup_options_widget::Action interface
+	 * System_options_widget::Action interface
 	 */
 	void enable_option(Options::Name const &name) override
 	{
@@ -1486,7 +1486,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Popup_options_widget::Action interface
+	 * System_options_widget::Action interface
 	 */
 	void disable_option(Options::Name const &name) override
 	{
@@ -1824,16 +1824,16 @@ struct Sculpt::Main : Input_event_handler,
 	                                            _network._nic_state,
 	                                            _download_queue, _index_update_queue,
 	                                            _file_operation_queue, _scan_rom,
-	                                            _image_index_rom, *this };
+	                                            _image_index_rom, _options,
+	                                            _deploy.enabled_options, *this };
 
 	Dialog_view<Diag_dialog> _diag_dialog { _dialog_runtime, *this, _heap };
 
 	Dialog_view<Popup_dialog> _popup_dialog { _dialog_runtime, *this,
 	                                          _build_info, _sculpt_version,
-	                                          _options, _network._nic_state,
+	                                          _network._nic_state,
 	                                          _index_update_queue, _index_rom,
-	                                          _download_queue, _deploy.enabled_options,
-	                                          _runtime_state, _cached_init_config,
+	                                          _download_queue, _cached_init_config,
 	                                          _dir_query, _scan_rom, *this };
 
 	Dialog_view<File_browser_dialog> _file_browser_dialog { _dialog_runtime,

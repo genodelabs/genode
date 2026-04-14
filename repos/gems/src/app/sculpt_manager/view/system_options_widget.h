@@ -11,28 +11,25 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _VIEW__POPUP_OPTIONS_WIDGET_H_
-#define _VIEW__POPUP_OPTIONS_WIDGET_H_
+#ifndef _VIEW__SYSTEM_OPTIONS_WIDGET_H_
+#define _VIEW__SYSTEM_OPTIONS_WIDGET_H_
 
 #include <model/options.h>
 #include <view/dialog.h>
 #include <string.h>
 
-namespace Sculpt { struct Popup_options_widget; }
+namespace Sculpt { struct System_options_widget; }
 
 
-struct Sculpt::Popup_options_widget : Widget<Vbox>
+struct Sculpt::System_options_widget : Widget<Frame>
 {
-	Runtime_info    const &_runtime_info;
 	Enabled_options const &_enabled_options;
 	Options         const &_options;
 
-	Popup_options_widget(Runtime_info    const &runtime_info,
-	                     Enabled_options const &enabled_options,
-	                     Options         const &options)
+	System_options_widget(Enabled_options const &enabled_options,
+	                      Options         const &options)
 	:
-		_runtime_info(runtime_info), _enabled_options(enabled_options),
-		_options(options)
+		_enabled_options(enabled_options), _options(options)
 	{ }
 
 	struct Option : Menu_entry
@@ -43,16 +40,19 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 		}
 	};
 
-	using Hosted_option = Hosted<Vbox, Option>;
+	using Hosted_option = Hosted<Frame, Vbox, Option>;
 
-	void view(Scope<Vbox> &s) const
+	void view(Scope<Frame> &s) const
 	{
-		unsigned count = 0;
-		_options.for_each([&] (Options::Name const &name) {
-			Hosted_option option { { count++ } };
-			Enabled_options::Info const info = _enabled_options.info(name);
-			if (!info.required)
-				s.widget(option, name, info.exists);
+		s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
+			s.sub_scope<Min_ex>(35);
+			unsigned count = 0;
+			_options.for_each([&] (Options::Name const &name) {
+				Hosted_option option { { count++ } };
+				Enabled_options::Info const info = _enabled_options.info(name);
+				if (!info.required)
+					s.widget(option, name, info.exists);
+			});
 		});
 	}
 
@@ -64,7 +64,7 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 
 	void click(Clicked_at const &at, Action &action) const
 	{
-		Id const clicked_id = at.matching_id<Vbox, Option>();
+		Id const clicked_id = at.matching_id<Frame, Vbox, Option>();
 
 		unsigned count = 0;
 
@@ -84,4 +84,4 @@ struct Sculpt::Popup_options_widget : Widget<Vbox>
 	}
 };
 
-#endif /* _VIEW__POPUP_OPTIONS_WIDGET_H_ */
+#endif /* _VIEW__SYSTEM_OPTIONS_WIDGET_H_ */
