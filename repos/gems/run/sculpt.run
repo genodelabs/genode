@@ -251,7 +251,7 @@ config | prio_levels: 2
   + binary terminal_crosslink
   + provides | + service Terminal
 
-+ start deploy
++ start deploy | ram: 4M | caps: 300
   + binary depot_deploy
   + route
     + service ROM | label: config           | + child model_rom | label: runtime
