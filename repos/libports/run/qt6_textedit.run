@@ -7,74 +7,76 @@ import_from_depot [depot_user]/src/qt6_component \
 
 install_config {
 config
-  + parent-provides
-    } [qt6_parent_provides] {
-  + default | caps: 100
-  + default-route
++ parent-provides
+  } [qt6_parent_provides] {
++ default | caps: 100
++ default-route
+  + any-service
+    + parent
+    + any-child
+} [qt6_start_nodes] {
++ start ram_fs | ram: 10M
+  + binary vfs
+  + provides | + service File_system
+  + config
+    .
+    . The policy nodes constrain sessions according to their labels.
+    .
+    + vfs | + ram
+    + policy | label_prefix: textedit  | root: / | writeable: yes
+    + policy | label_prefix: textedit2 | root: / | writeable: yes
++ start clipboard | ram: 2M
+  + provides
+    + service ROM
+    + service Report
+  + config | verbose: no | match_labels: no
+    + default-policy | domain: default
+  + route
+    + service ROM | label: focus | + child wm_report_rom
     + any-service
       + parent
       + any-child
-  } [qt6_start_nodes] {
-  + start ram_fs | ram: 10M
-    + binary vfs
-    + provides | + service File_system
-    + config
-      + vfs | + ram
-      . constrain sessions according to their labels
-      + policy | label_prefix: textedit  | root: / | writeable: yes
-      + policy | label_prefix: textedit2 | root: / | writeable: yes
-  + start clipboard | ram: 2M
-    + provides
-      + service ROM
-      + service Report
-    + config | verbose: no | match_labels: no
-      + default-policy | domain: default
-    + route
-      + service ROM | label: focus | + child wm_report_rom
-      + any-service
-        + parent
-        + any-child
-  + start textedit | caps: 350 | ram: 70M
-    + config | clipboard: yes
-      + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
-      + vfs
-        + dir dev
-          + log
-          + inline rtc | : 2018-01-01 00:01
-        + dir pipe | + pipe
-        + dir fs | + fs
-        + tar qt6_dejavusans.tar
-        + tar qt6_libqgenode.tar
-    + route
-      + service Gui                             | + child wm
-      + service Report | label: shape           | + child wm
-      + service Report | label: clipboard       | + child clipboard
-      + service ROM    | label: clipboard       | + child clipboard
-      + service ROM    | label: mesa_gpu.lib.so | + parent          | label: mesa_gpu-softpipe.lib.so
-      + any-service
-        + parent
-        + any-child
-  + start textedit2 | caps: 350 | ram: 70M
-    + binary textedit
-    + config | clipboard: yes
-      + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
-      + vfs
-        + dir dev
-          + log
-          + inline rtc | : 2018-01-01 00:01
-        + dir pipe | + pipe
-        + dir fs | + fs
-        + tar qt6_dejavusans.tar
-        + tar qt6_libqgenode.tar
-    + route
-      + service Gui                             | + child wm
-      + service Report | label: shape           | + child wm
-      + service Report | label: clipboard       | + child clipboard
-      + service ROM    | label: clipboard       | + child clipboard
-      + service ROM    | label: mesa_gpu.lib.so | + parent          | label: mesa_gpu-softpipe.lib.so
-      + any-service
-        + parent
-        + any-child
++ start textedit | caps: 350 | ram: 70M
+  + config | clipboard: yes
+    + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+    + vfs
+      + dir dev
+        + log
+        + inline rtc | : 2018-01-01 00:01
+      + dir pipe | + pipe
+      + dir fs | + fs
+      + tar qt6_dejavusans.tar
+      + tar qt6_libqgenode.tar
+  + route
+    + service Gui                             | + child wm
+    + service Report | label: shape           | + child wm
+    + service Report | label: clipboard       | + child clipboard
+    + service ROM    | label: clipboard       | + child clipboard
+    + service ROM    | label: mesa_gpu.lib.so | + parent          | label: mesa_gpu-softpipe.lib.so
+    + any-service
+      + parent
+      + any-child
++ start textedit2 | caps: 350 | ram: 70M
+  + binary textedit
+  + config | clipboard: yes
+    + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+    + vfs
+      + dir dev
+        + log
+        + inline rtc | : 2018-01-01 00:01
+      + dir pipe | + pipe
+      + dir fs | + fs
+      + tar qt6_dejavusans.tar
+      + tar qt6_libqgenode.tar
+  + route
+    + service Gui                             | + child wm
+    + service Report | label: shape           | + child wm
+    + service Report | label: clipboard       | + child clipboard
+    + service ROM    | label: clipboard       | + child clipboard
+    + service ROM    | label: mesa_gpu.lib.so | + parent          | label: mesa_gpu-softpipe.lib.so
+    + any-service
+      + parent
+      + any-child
 -
 }
 

@@ -6,32 +6,32 @@ import_from_depot [depot_user]/src/qt6_component \
 
 install_config {
 config
-  + parent-provides
-    } [qt6_parent_provides] {
-  + default | caps: 100
-  + default-route
++ parent-provides
+  } [qt6_parent_provides] {
++ default | caps: 100
++ default-route
+  + any-service
+    + parent
+    + any-child
+} [qt6_start_nodes] {
++ start test-qt_quick | caps: 300 | ram: 80M
+  + config
+    + vfs
+      + dir dev
+        + log
+        + inline rtc | : 2018-01-01 00:01
+      + dir pipe | + pipe
+      + tar qt6_declarative_qml.tar
+      + tar qt6_dejavusans.tar
+      + tar qt6_libqgenode.tar
+    + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+  + route
+    + service Gui                             | + child wm
+    + service Report | label: shape           | + child pointer | label: wm -> test-qt_quick -> shape
+    + service ROM    | label: mesa_gpu.lib.so | + parent        | label: mesa_gpu-softpipe.lib.so
     + any-service
       + parent
       + any-child
-  } [qt6_start_nodes] {
-  + start test-qt_quick | caps: 300 | ram: 80M
-    + config
-      + vfs
-        + dir dev
-          + log
-          + inline rtc | : 2018-01-01 00:01
-        + dir pipe | + pipe
-        + tar qt6_declarative_qml.tar
-        + tar qt6_dejavusans.tar
-        + tar qt6_libqgenode.tar
-      + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
-    + route
-      + service Gui                             | + child wm
-      + service Report | label: shape           | + child pointer | label: wm -> test-qt_quick -> shape
-      + service ROM    | label: mesa_gpu.lib.so | + parent        | label: mesa_gpu-softpipe.lib.so
-      + any-service
-        + parent
-        + any-child
 -
 }
 

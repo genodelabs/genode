@@ -9,37 +9,37 @@ import_from_depot [depot_user]/src/qt5_component \
 
 install_config {
 config
-  + parent-provides
-    } [qt5_parent_provides] {
-  + default | caps: 300
-  + default-route
++ parent-provides
+  } [qt5_parent_provides] {
++ default | caps: 300
++ default-route
+  + any-service
+    + parent
+    + child | name: wm
+    + any-child
+} [qt5_start_nodes] {
++ start basic | caps: 500 | ram: 100M
+  + config
+    + vfs
+      + dir dev
+        + log
+        + inline rtc | : 2018-01-01 00:01
+      + dir pipe | + pipe
+      + tar qt5_dejavusans.tar
+      + tar qt5_declarative_qml.tar
+      + tar qt5_libqgenode.tar
+      + tar qt5_libqsvg.tar
+      + tar qt5_libqtvirtualkeyboardplugin.tar
+      + tar qt5_quickcontrols2_qml.tar
+      + tar qt5_virtualkeyboard_qml.tar
+    + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
+  + route
+    + service Gui                             | + child wm
+    + service Report | label: shape           | + child pointer | label: wm -> basic -> shape
+    + service ROM    | label: mesa_gpu.lib.so | + parent        | label: mesa_gpu-softpipe.lib.so
     + any-service
       + parent
-      + child | name: wm
       + any-child
-  } [qt5_start_nodes] {
-  + start basic | caps: 500 | ram: 100M
-    + config
-      + vfs
-        + dir dev
-          + log
-          + inline rtc | : 2018-01-01 00:01
-        + dir pipe | + pipe
-        + tar qt5_dejavusans.tar
-        + tar qt5_declarative_qml.tar
-        + tar qt5_libqgenode.tar
-        + tar qt5_libqsvg.tar
-        + tar qt5_libqtvirtualkeyboardplugin.tar
-        + tar qt5_quickcontrols2_qml.tar
-        + tar qt5_virtualkeyboard_qml.tar
-      + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe | rtc: /dev/rtc
-    + route
-      + service Gui                             | + child wm
-      + service Report | label: shape           | + child pointer | label: wm -> basic -> shape
-      + service ROM    | label: mesa_gpu.lib.so | + parent        | label: mesa_gpu-softpipe.lib.so
-      + any-service
-        + parent
-        + any-child
 -
 }
 

@@ -25,25 +25,25 @@ import_from_depot [depot_user]/pkg/[drivers_interactive_pkg] \
 
 proc qt6_layouter_config { } {
 	return {
-    + config | rules: rom
-      + report | rules: yes
-      + rules
-        + screen screen
-        + assign | label_prefix: | target: screen | xpos: any | ypos: any
-      + press | key: BTN_LEFT | action: drag
-        + release | key: BTN_LEFT | action: drop}
+  + config | rules: rom
+    + report | rules: yes
+    + rules
+      + screen screen
+      + assign | label_prefix: | target: screen | xpos: any | ypos: any
+    + press | key: BTN_LEFT | action: drag
+      + release | key: BTN_LEFT | action: drop}
 }
 
 proc qt6_decorator_binary { } { return "decorator" }
 
 proc qt6_decorator_config { } {
 	return {
-    + config
-      . this is an example config for the themed decorator
-      . + vfs
-      .   + tar plain_decorator_theme.tar
-      . + libc
-      + default-policy}
+  + config
+    . this is an example config for the themed decorator
+    . + vfs
+    .   + tar plain_decorator_theme.tar
+    . + libc
+    + default-policy}
 }
 
 proc qt6_parent_provides { } {
@@ -114,177 +114,177 @@ proc qt6_start_nodes { } {
 
 	append start_nodes {
 
-  + start timer | ram: 1M
-    + provides | + service Timer
++ start timer | ram: 1M
+  + provides | + service Timer
 
-  + start numlock_remap_rom | ram: 1M
-    .
-    . toggle key mappings depending on the numlock state
-    .
-    + binary rom_filter
-    + provides | + service ROM
-    + config
-      + input numlock_enabled | rom: numlock | node: numlock
-        + attribute enabled
-      + output | node: remap
-        + if
-          + has_value | input: numlock_enabled | value: no
-          + then
-            + inline
-              + key KEY_KP0   | to: KEY_INSERT
-              + key KEY_KP1   | to: KEY_END
-              + key KEY_KP2   | to: KEY_DOWN
-              + key KEY_KP3   | to: KEY_PAGEDOWN
-              + key KEY_KP4   | to: KEY_LEFT
-              + key KEY_KP5   | to: KEY_RESERVED
-              + key KEY_KP6   | to: KEY_RIGHT
-              + key KEY_KP7   | to: KEY_HOME
-              + key KEY_KP8   | to: KEY_UP
-              + key KEY_KP9   | to: KEY_PAGEUP
-              + key KEY_KPDOT | to: KEY_DELETE
-    + route
-      + service ROM | label: numlock | + child wm_report_rom
-      + any-service | + parent
++ start numlock_remap_rom | ram: 1M
+  .
+  . toggle key mappings depending on the numlock state
+  .
+  + binary rom_filter
+  + provides | + service ROM
+  + config
+    + input numlock_enabled | rom: numlock | node: numlock
+      + attribute enabled
+    + output | node: remap
+      + if
+        + has_value | input: numlock_enabled | value: no
+        + then
+          + inline
+            + key KEY_KP0   | to: KEY_INSERT
+            + key KEY_KP1   | to: KEY_END
+            + key KEY_KP2   | to: KEY_DOWN
+            + key KEY_KP3   | to: KEY_PAGEDOWN
+            + key KEY_KP4   | to: KEY_LEFT
+            + key KEY_KP5   | to: KEY_RESERVED
+            + key KEY_KP6   | to: KEY_RIGHT
+            + key KEY_KP7   | to: KEY_HOME
+            + key KEY_KP8   | to: KEY_UP
+            + key KEY_KP9   | to: KEY_PAGEUP
+            + key KEY_KPDOT | to: KEY_DELETE
+  + route
+    + service ROM | label: numlock | + child wm_report_rom
+    + any-service | + parent
 
-  + start drivers | caps: 1500 | ram: 64M | managing_system: yes
-    + binary init
-    + route
-      + service ROM     | label: config                        | + parent                  | label: drivers.config
-      + service ROM     | label: event_filter.config           | + parent                  | label: qt6_event_filter.config
-      + service ROM     | label: event_filter -> capslock      | + child wm_report_rom
-      + service ROM     | label: event_filter -> numlock.remap | + child numlock_remap_rom
-      + service Timer                                          | + child timer
-      + service Capture                                        | + child nitpicker
-      + service Event                                          | + child nitpicker
-      + any-service                                            | + parent
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM     | label: config                        | + parent                  | label: drivers.config
+    + service ROM     | label: event_filter.config           | + parent                  | label: qt6_event_filter.config
+    + service ROM     | label: event_filter -> capslock      | + child wm_report_rom
+    + service ROM     | label: event_filter -> numlock.remap | + child numlock_remap_rom
+    + service Timer                                          | + child timer
+    + service Capture                                        | + child nitpicker
+    + service Event                                          | + child nitpicker
+    + any-service                                            | + parent
 
-  + start nitpicker | caps: 200 | ram: 2M
-    + provides
-      + service Gui
-      + service Capture
-      + service Event
-    + route
-      + service Report | + child wm_report_rom
-      + any-service
-        + parent
-        + any-child
-    + config
-      + capture
-      + event
++ start nitpicker | caps: 200 | ram: 2M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + route
+    + service Report | + child wm_report_rom
+    + any-service
+      + parent
+      + any-child
+  + config
+    + capture
+    + event
 
-      + report | focus: yes | hover: yes | xray: yes
+    + report | focus: yes | hover: yes | xray: yes
 
-      + domain pointer | layer: 1 | label: no | content: client | origin: pointer
-      + domain default | layer: 2 | label: no | content: client
-                       | focus: click | hover: always | width: 1024 | height: 768
+    + domain pointer | layer: 1 | label: no | content: client | origin: pointer
+    + domain default | layer: 2 | label: no | content: client
+                     | focus: click | hover: always | width: 1024 | height: 768
 
-      + policy | label_prefix: pointer | domain: pointer
-      + default-policy | domain: default
+    + policy | label_prefix: pointer | domain: pointer
+    + default-policy | domain: default
 
-      + global-key KEY_CAPSLOCK | label: global_keys_handler -> input
-      + global-key KEY_NUMLOCK  | label: global_keys_handler -> input
+    + global-key KEY_CAPSLOCK | label: global_keys_handler -> input
+    + global-key KEY_NUMLOCK  | label: global_keys_handler -> input
 
-  + start pointer | ram: 2M
-    + provides | + service Report
-    + config | shapes: yes
-    + route
-      + service Gui                | + child nitpicker
-      + service ROM | label: hover | + child wm_report_rom
-      + service ROM | label: xray  | + child wm_report_rom
-      + any-service
-        + parent
-        + any-child
++ start pointer | ram: 2M
+  + provides | + service Report
+  + config | shapes: yes
+  + route
+    + service Gui                | + child nitpicker
+    + service ROM | label: hover | + child wm_report_rom
+    + service ROM | label: xray  | + child wm_report_rom
+    + any-service
+      + parent
+      + any-child
 
-  + start wm_report_rom | ram: 4M
-    + binary report_rom
-    + provides
-      + service Report
-      + service ROM
-    + config | verbose: no
-      + policy | label: layouter -> focus_request           | report: wm -> focus_request
-      + policy | label: decorator -> pointer                | report: wm -> pointer
-      + policy | label: layouter -> window_list             | report: wm -> window_list
-      + policy | label: wm -> focus                         | report: layouter -> focus
-      + policy | label: wm -> resize_request                | report: layouter -> resize_request
-      + policy | label: decorator -> window_layout          | report: layouter -> window_layout
-      + policy | label: layouter -> rules                   | report: layout_rules
-      + policy | label: layouter -> decorator_margins       | report: decorator -> decorator_margins
-      + policy | label: layouter -> hover                   | report: decorator -> hover
-      + policy | label: clipboard -> focus                  | report: nitpicker -> focus
-      + policy | label: pointer -> hover                    | report: nitpicker -> hover
-      + policy | label: pointer -> xray                     | report: nitpicker -> xray
-      + policy | label: drivers -> event_filter -> capslock | report: global_keys_handler -> capslock
-      + policy | label: numlock_remap_rom -> numlock        | report: global_keys_handler -> numlock
-      + policy | label: ps2 -> capslock                     | report: global_keys_handler -> capslock
-      + policy | label: ps2 -> numlock                      | report: global_keys_handler -> numlock
-      + policy | label: usb -> capslock                     | report: global_keys_handler -> capslock
-      + policy | label: usb -> numlock                      | report: global_keys_handler -> numlock
++ start wm_report_rom | ram: 4M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label: layouter -> focus_request           | report: wm -> focus_request
+    + policy | label: decorator -> pointer                | report: wm -> pointer
+    + policy | label: layouter -> window_list             | report: wm -> window_list
+    + policy | label: wm -> focus                         | report: layouter -> focus
+    + policy | label: wm -> resize_request                | report: layouter -> resize_request
+    + policy | label: decorator -> window_layout          | report: layouter -> window_layout
+    + policy | label: layouter -> rules                   | report: layout_rules
+    + policy | label: layouter -> decorator_margins       | report: decorator -> decorator_margins
+    + policy | label: layouter -> hover                   | report: decorator -> hover
+    + policy | label: clipboard -> focus                  | report: nitpicker -> focus
+    + policy | label: pointer -> hover                    | report: nitpicker -> hover
+    + policy | label: pointer -> xray                     | report: nitpicker -> xray
+    + policy | label: drivers -> event_filter -> capslock | report: global_keys_handler -> capslock
+    + policy | label: numlock_remap_rom -> numlock        | report: global_keys_handler -> numlock
+    + policy | label: ps2 -> capslock                     | report: global_keys_handler -> capslock
+    + policy | label: ps2 -> numlock                      | report: global_keys_handler -> numlock
+    + policy | label: usb -> capslock                     | report: global_keys_handler -> capslock
+    + policy | label: usb -> numlock                      | report: global_keys_handler -> numlock
 
-  + start global_keys_handler | ram: 1M
-    + config
-      + bool capslock | initial: no
-      + bool numlock  | initial: no
++ start global_keys_handler | ram: 1M
+  + config
+    + bool capslock | initial: no
+    + bool numlock  | initial: no
 
-      + press KEY_CAPSLOCK | bool: capslock | change: toggle
-      + press KEY_NUMLOCK  | bool: numlock  | change: toggle
+    + press KEY_CAPSLOCK | bool: capslock | change: toggle
+    + press KEY_NUMLOCK  | bool: numlock  | change: toggle
 
-      + report capslock | + bool capslock
-      + report numlock  | + bool numlock
-    + route
-      + service Report | + child wm_report_rom
-      + service Gui    | + child nitpicker
-      + service Timer  | + child timer
-      + any-service
-        + parent
-        + any-child
+    + report capslock | + bool capslock
+    + report numlock  | + bool numlock
+  + route
+    + service Report | + child wm_report_rom
+    + service Gui    | + child nitpicker
+    + service Timer  | + child timer
+    + any-service
+      + parent
+      + any-child
 
-  + start wm | caps: 250 | ram: 8M
-    + provides
-      + service Gui
-      + service Report
-      + service ROM
-    + config
-      + policy | label_prefix: decorator | role: decorator
-      + policy | label_prefix: layouter  | role: layouter
-      + default-policy
-    + route
-      + service ROM    | label: focus          | + child wm_report_rom
-      + service ROM    | label: resize_request | + child wm_report_rom
-      + service Report | label_last: shape     | + child pointer
-      + service Report                         | + child wm_report_rom
-      + any-service
-         + child nitpicker
-         + parent
-         + any-child
++ start wm | caps: 250 | ram: 8M
+  + provides
+    + service Gui
+    + service Report
+    + service ROM
+  + config
+    + policy | label_prefix: decorator | role: decorator
+    + policy | label_prefix: layouter  | role: layouter
+    + default-policy
+  + route
+    + service ROM    | label: focus          | + child wm_report_rom
+    + service ROM    | label: resize_request | + child wm_report_rom
+    + service Report | label_last: shape     | + child pointer
+    + service Report                         | + child wm_report_rom
+    + any-service
+       + child nitpicker
+       + parent
+       + any-child
 
-  + start layouter | caps: 150 | ram: 4M
-    + binary window_layouter
-    } [qt6_layouter_config] {
-    + route
-      + service ROM    | label: window_list       | + child wm_report_rom
-      + service ROM    | label: focus_request     | + child wm_report_rom
-      + service ROM    | label: hover             | + child wm_report_rom
-      + service ROM    | label: decorator_margins | + child wm_report_rom
-      + service ROM    | label: rules             | + child wm_report_rom
-      + service Report | label: rules             | + child wm_report_rom | label: layout_rules
-      + service Report                            | + child wm_report_rom
-      + any-service
-        + child wm
-        + parent
-        + any-child
++ start layouter | caps: 150 | ram: 4M
+  + binary window_layouter
+  } [qt6_layouter_config] {
+  + route
+    + service ROM    | label: window_list       | + child wm_report_rom
+    + service ROM    | label: focus_request     | + child wm_report_rom
+    + service ROM    | label: hover             | + child wm_report_rom
+    + service ROM    | label: decorator_margins | + child wm_report_rom
+    + service ROM    | label: rules             | + child wm_report_rom
+    + service Report | label: rules             | + child wm_report_rom | label: layout_rules
+    + service Report                            | + child wm_report_rom
+    + any-service
+      + child wm
+      + parent
+      + any-child
 
-  + start decorator | caps: 300 | ram: 32M
-    + binary } [qt6_decorator_binary] {
-    } [qt6_decorator_config] {
-    + route
-      + service ROM    | label: window_layout | + child wm_report_rom
-      + service ROM    | label: pointer       | + child wm_report_rom
-      + service Report                        | + child wm_report_rom
-      + any-service
-        + child wm
-        + parent
-        + any-child
-    }
++ start decorator | caps: 300 | ram: 32M
+  + binary } [qt6_decorator_binary] {
+  } [qt6_decorator_config] {
+  + route
+    + service ROM    | label: window_layout | + child wm_report_rom
+    + service ROM    | label: pointer       | + child wm_report_rom
+    + service Report                        | + child wm_report_rom
+    + any-service
+      + child wm
+      + parent
+      + any-child
+  }
 
 	return $start_nodes
 }

@@ -12,31 +12,31 @@ import_from_depot [depot_user]/src/[base_src] \
 
 install_config {
 config | verbose: yes
-  + parent-provides
-    + service ROM
-    + service LOG
-    + service RM
-    + service CPU
-    + service PD
-    + service IRQ
-    + service IO_PORT
-    + service IO_MEM
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_PORT
+  + service IO_MEM
 
-  + default-route
-    + any-service
-      + parent
-      + any-child
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-  + default | caps: 100 | ram: 1M
++ default | caps: 100 | ram: 1M
 
-  + start timer
-    + provides | + service Timer
++ start timer
+  + provides | + service Timer
 
-  + start test-qt_core_cmake | ram: 10M
-    + config
-      + vfs
-        + dir dev | + log
-      + libc | stdout: /dev/log | stderr: /dev/log
++ start test-qt_core_cmake | ram: 10M
+  + config
+    + vfs
+      + dir dev | + log
+    + libc | stdout: /dev/log | stderr: /dev/log
 -
 }
 
