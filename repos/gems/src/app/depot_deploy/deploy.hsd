@@ -137,6 +137,7 @@ schema deploy
   + attr priority        | type: integer   | default: -3
   + attr managing_system | type: bool      | default: no
   + attr ld              | type: bool      | default: no
+  + attr enabled         | type: any       | default: yes
 
   + node heartbeat | multiple: no
     + attr restart_after_skipped | type: natural | default: 0
