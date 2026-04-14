@@ -39,7 +39,7 @@ class Sculpt::Presets : public Noncopyable
 			static Text _info_text(Node const &node)
 			{
 				Text result { };
-				node.with_optional_sub_node("config", [&] (Node const &config) {
+				node.with_optional_sub_node("deploy", [&] (Node const &config) {
 					result = config.attribute_value("info", Text()); });
 				return result;
 			}
