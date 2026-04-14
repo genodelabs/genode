@@ -43,14 +43,14 @@ set use_ahci 0
 set use_nvme 0
 set use_wifi 1
 
-proc priority_timer    { } { return {priority="0"} }
-proc priority_base     { } { return {priority="-1"} }
-proc priority_config   { } { return {priority="-1"} }
-proc priority_gui      { } { return {priority="-1"} }
-proc priority_wm       { } { return {priority="-2"} }
-proc priority_log      { } { return {priority="-2"} }
-proc priority_drivers  { } { return {priority="-2"} }
-proc priority_scenario { } { return {priority="-3"} }
+proc priority_timer    { } { return { | priority:  0 } }
+proc priority_base     { } { return { | priority: -1 } }
+proc priority_config   { } { return { | priority: -1 } }
+proc priority_gui      { } { return { | priority: -1 } }
+proc priority_wm       { } { return { | priority: -2 } }
+proc priority_log      { } { return { | priority: -2 } }
+proc priority_drivers  { } { return { | priority: -2 } }
+proc priority_scenario { } { return { | priority: -3 } }
 
 
 proc display_config { } {
@@ -58,69 +58,52 @@ proc display_config { } {
 
 	if {$board_non_intel} {
 		return {
-			<start name="fb" caps="1000" ram="60M">
-				<binary name="vesa_fb"/>
-			<!--
-				<binary name="boot_fb"/>
-			 -->
-				<config ld_verbose="yes" width="1280" height="1024">
-					<report connectors="yes"/>
-				</config>
-				<route>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>}
-
-		return $return_display
+  |         + start fb | caps: 1000 | ram: 60M
+  |           + binary vesa_fb
+  |           x binary boot_fb
+  |           + config | ld_verbose: yes | width: 1280 | height: 1024
+  |             + report | connectory: yes
+  |           + route
+  |             + any-service | + parent }
 	}
 
 	return {
-		<start name="intel_fb" caps="1000" ram="60M">
-			<binary name="pc_intel_fb"/>
-			<config ld_verbose="yes" width="1024" height="768">
-				<report connectors="yes"/>
-			</config>
-			<route>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>}
+  |         + start intel_fb | caps: 1000 | ram: 60M
+  |           + binary pc_intel_fb
+  |           + config | ld_verbose: yes | width: 1280 | height: 1024
+  |             + report | connectory: yes
+  |           + route
+  |             + any-service | + parent }
 }
 
 
 proc restartable_drivers { } {
+
 	set return_drivers ""
 
 	append return_drivers {
-							<inline>
-
-								<parent-provides>
-									<service name="ROM"/>
-									<service name="IO_MEM"/>
-									<service name="IO_PORT"/>
-									<service name="PD"/>
-									<service name="RM"/>
-									<service name="CPU"/>
-									<service name="LOG"/>
-									<service name="Platform"/>
-									<service name="Report"/>
-									<service name="Timer"/>
-									<service name="Capture"/>
-									<service name="Event"/>
-									<service name="Gui"/>
-								</parent-provides>
-
-	} [display_config] {
-	} [input_config] {
-	} [wifi_config] {
-
-								<start name="nano3d" caps="100" ram="8M">
-									<route>
-										<any-service> <parent/> </any-service>
-									</route>
-								</start>
-
-							</inline>
-	}
+  |       + inline
+  |         + parent-provides
+  |           + service ROM
+  |           + service IO_MEM
+  |           + service IO_PORT
+  |           + service PD
+  |           + service RM
+  |           + service CPU
+  |           + service LOG
+  |           + service Platform
+  |           + service Report
+  |           + service Timer
+  |           + service Capture
+  |           + service Event
+  |           + service Gui
+} [display_config] {
+} [input_config] {
+} [wifi_config] {
+  |         + start nano3d | caps: 100 | ram: 8M
+  |           + route
+  |             + any-service
+  |               + parent }
 
 	return $return_drivers
 }
@@ -130,63 +113,87 @@ proc gui_config { } {
 	set return_gui ""
 
 	append return_gui {
++ start nitpicker | caps: 120 | ram: 8M } [priority_gui] {
+  + provides
+  | + service Gui
+  | + service Capture
+  | + service Event
+  + config
+  | + capture
+  | + event
+  | + report
+  | |        focus: yes
+  | |        hover: yes
+  | + domain pointer
+  | |        layer:   1
+  | |        content: client
+  | |        label:   no
+  | |        origin:  pointer
+  | + domain panel
+  | |        layer:   2
+  | |        content: client
+  | |        label:   no
+  | |        focus:   none
+  | + domain default
+  | |        layer:   3
+  | |        content: client
+  | |        label:   no
+  | |        focus:   click
+  | |        hover:   always
+  | + policy
+  | |        label_prefix: pointer
+  | |        domain:       pointer
+  | + default-policy
+  |                  domain: default
+  + route
+    + service Timer
+    | + child timer
+    + service Report
+    | + child gui_reports
+    + any-service
+      + parent
+      + any-child
 
-	<start name="nitpicker" caps="120" ram="8M" } [priority_gui] {>
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
-			<report focus="yes" hover="yes" />
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="panel"   layer="2" content="client" label="no" focus="none" />
-			<domain name=""        layer="3" content="client" label="no" focus="click" hover="always"/>
++ start pointer | caps: 100 | ram: 2M } [priority_gui] {
+  + provides
+  | + service Report
+  + config | shapes: yes | verbose: no
+  + route
+    + service Gui
+    | + child nitpicker
+    + service ROM | label: hover
+    | + child gui_reports
+    + service ROM | label: xray
+    | + child gui_reports
+    + any-service
+      + parent
 
-			<policy label_prefix="pointer"    domain="pointer"/>
++ start gui_reports | caps: 100 | ram: 1M } [priority_gui] {
+  + binary report_rom
+  + provides
+  | + service Report
+  | + service ROM
+  + config
+    + policy | label: pointer -> hover | report: nitpicker -> hover
+    + policy | label: pointer -> xray | report: nitpicker -> xray
+    + policy | label: usb_hid -> report | report: usb -> devices
 
-			<default-policy domain=""/>
-		</config>
-		<route>
-			<service name="Timer">  <child name="timer"/></service>
-			<service name="Report"> <child name="gui_reports"/></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-
-	<start name="pointer" caps="100" ram="2M" } [priority_gui] {>
-		<provides> <service name="Report"/> </provides>
-		<config shapes="yes" verbose="no"/>
-		<route>
-			<service name="Gui"> <child name="nitpicker"/>  </service>
-			<service name="ROM" label="hover"> <child name="gui_reports"/> </service>
-			<service name="ROM" label="xray"> <child name="gui_reports"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="gui_reports" caps="100" ram="1M" } [priority_gui] {>
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
-			<policy label="pointer -> hover"  report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"   report="nitpicker -> xray"/>
-			<policy label="usb_hid -> report" report="usb -> devices"/>
-		</config>
-	</start>
-
-	<start name="wm" caps="1000" ram="32M" } [priority_wm] {>
-		<binary name="init"/>
-		<provides>
-			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
-		</provides>
-		<route>
-			<service name="ROM"    label="config"> <parent label="wm.config"/> </service>
-			<service name="Report" label_last="shape">  <child name="pointer"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	}
++ start wm | caps: 1000 | ram: 32M } [priority_wm] {
+  + binary init
+  + provides
+  | + service Gui
+  | + service Report
+  | + service ROM
+  + route
+    + service ROM | label: config
+    | + parent | label: wm.config
+    + service Report | label_last: shape
+    | + child pointer
+    + service Gui
+    | + child nitpicker
+    + any-service
+      + parent
+      + any-child }
 
 	return $return_gui
 }
@@ -194,25 +201,26 @@ proc gui_config { } {
 
 proc input_config { } {
 	return {
-
-	<start name="ps2" caps="100" ram="3M">
-		<config/>
-		<route>
-			<service name="Platform"> <parent/> </service>
-			<service name="Event"> <child name="event_filter" label="ps2"/> </service>
-			<any-service><parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="event_filter" caps="100" ram="2M">
-		<provides> <service name="Event"/> </provides>
-		<route>
-			<service name="ROM" label="config"> <parent label="event_filter.config"/> </service>
-			<service name="Event"> <parent/> </service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-	}
+  |         + start ps2 | caps: 100 | ram: 3M
+  |           + config
+  |           + route
+  |             + service Platform | + parent
+  |             + service Event    | + child event_filter | label: ps2
+  |             + any-service
+  |               + parent
+  |               + any-child
+  |
+  |         + start event_filter | caps: 100 | ram: 2M
+  |           + provides
+  |           | + service Event
+  |           + route
+  |             + service ROM | label: config
+  |             | + parent | label: event_filter.config
+  |             + service Event
+  |             | + parent
+  |             + any-service
+  |               + parent
+  |               + any-child }
 }
 
 
@@ -221,69 +229,71 @@ proc log_output { } {
 	set return_log ""
 
 	append return_log {
-	<start name="log_core" caps="100" ram="10M" } [priority_log] {>
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
-			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label="log"> <parent label="core_log"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="LOG" label="log"> <child name="terminal_log"/> </service>
-			<service name="PD"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>
++ start log_core | caps: 100 | ram: 10M } [priority_log] {
+  + config | period_ms: 2000
+  + route
+    + service ROM | unscoped_label: log_core
+    | + parent
+    + service ROM | unscoped_label: ld.lib.so
+    | + parent
+    + service ROM | label: log
+    | + parent | label: core_log
+    + service Timer
+    | + child timer
+    + service LOG | label: log
+    | + child terminal_log
+    + service PD
+    | + parent
+    + service CPU
+    | + parent
+    + service LOG
+      + parent
 
-	<start name="terminal_log" caps="100" ram="1M" } [priority_log] {>
-		<provides> <service name="LOG"/> </provides>
-		<config/>
-		<route>
-			<service name="Terminal"> <child name="terminal"/> </service>
-			<service name="Timer">    <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start terminal_log | caps: 100 | ram: 1M } [priority_log] {
+  + provides
+  | + service LOG
+  + config
+  + route
+    + service Terminal
+    | + child terminal
+    + service Timer
+    | + child timer
+    + any-service
+      + parent
 
-	<start name="terminal" caps="110" ram="6M" } [priority_log] {>
-		<provides><service name="Terminal"/></provides>
-		<config>
-			<initial width="1200" height="780"/>
-			<palette>
-				<color index="0" value="#2f3953"/>
-				<color index="8" value="#2f3953"/>
-			</palette>
-			<vfs>
-				<rom name="VeraMono.ttf"/>
-				<dir name="font">
-					<dir name="monospace">
-						<ttf name="regular" path="/VeraMono.ttf" size_px="10"/>
-					</dir>
-				</dir>
-			</vfs>
-		</config>
-		<route>
-			<service name="Gui"> <child name="wm"/> </service>
-			<any-service> <parent/> <any-child/></any-service>
-		</route>
-	</start>
-	}
++ start terminal | caps: 110 | ram: 6M } [priority_log] {
+  + provides
+  | + service Terminal
+  + config
+  | + initial | width: 1200 | height: 780
+  | + palette
+  | | + color | index: 0 | value: #2f3953
+  | | + color | index: 8 | value: #2f3953
+  | + vfs
+  |   + rom VeraMono.ttf
+  |   + dir font
+  |     + dir monospace
+  |       + ttf regular | path: /VeraMono.ttf | size_px: 10
+  + route
+    + service Gui
+    | + child wm
+    + any-service
+      + parent
+      + any-child }
 
 	append_if [have_spec nova] return_log {
-	<start name="log_kernel" caps="100" ram="10M" } [priority_log] {>
-		<binary name="log_core"/>
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
-			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="PD"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>
-	}
+
++ start log_kernel | caps: 100 | ram: 10M } [priority_log] {
+  + binary log_core
+  + config | period_ms: 2000
+  + route
+    + service ROM | unscoped_label: log_core  | + parent
+    + service ROM | unscoped_label: ld.lib.so | + parent
+    + service ROM | label: log                | + parent | label: kernel_log
+    + service Timer                           | + child timer
+    + service PD                              | + parent
+    + service CPU                             | + parent
+    + service LOG                             | + parent }
 
 	return $return_log
 }
@@ -293,51 +303,38 @@ proc ahci_config { } {
 
 	global use_ahci
 
+	if {!$use_ahci} { return }
+
 	set return_ahci ""
 
-	if {!$use_ahci} {
-		return $return_ahci
-	}
+	append return_ahci {
++ start ahci | caps: 300 | ram: 12M } [priority_drivers] {
+  + provides | + service Block
+  + config | atapi: yes | system: yes
+    + report | ports: yes
+    + policy | label: test-ahci ->
+             | device: 0
+             | writeable: no
+  + route
+    + service Platform            | + child platform
+    + service ROM | label: system | + child dynamic_rom
+    + service Report              | + child drivers_reports
+    + any-service
+      + parent
+      + any-child }
 
 	append return_ahci {
-		<start name="ahci" caps="300" ram="12M" } [priority_drivers] {>
-			<provides><service name="Block" /></provides>
-			<config atapi="yes" system="yes">
-				<report ports="yes"/>
-				<policy label="test-ahci -> " device="0" writeable="no" />
-			</config>
-			<route>
-				<service name="Platform">
-					<child name="platform"/>
-				</service>
 
-				<service name="ROM" label="system">
-					<child name="dynamic_rom"/>
-				</service>
-
-				<service name="Report">
-					<child name="drivers_reports"/>
-				</service>
-
-				<any-service> <parent /> <any-child/> </any-service>
-			</route>
-		</start>
-	}
-
-	append return_ahci {
-		<start name="test-ahci" caps="200" ram="50M" } [priority_scenario] {>
-			<binary name="block_tester" />
-			<config verbose="yes" report="no" log="yes" stop_on_error="no">
-				<tests>
-				    <random size="128K" length="1024G" seed="0xaffeaffe" batch="8"/>
-				</tests>
-			</config>
-			<route>
-				<service name="Block"><child name="ahci"/></service>
-				<any-service> <parent/> <any-child /> </any-service>
-			</route>
-		</start>
-	}
++ start test-ahci | caps: 200 | ram: 50M } [priority_scenario] {
+  + binary block_tester
+  + config | verbose: yes | report: no | log: yes | stop_on_error: no
+    + tests
+      + random | size: 128K | length: 1024G | seed: 0xaffeaffe | batch: 8
+  + route
+    + service Block | + child ahci
+    + any-service
+      + parent
+      + any-child }
 
 	return $return_ahci
 }
@@ -354,43 +351,34 @@ proc nvme_config { } {
 	}
 
 	append return_nvme {
-		<start name="nvme" caps="300" ram="24M" } [priority_drivers] {>
-			<provides> <service name="Block"/> </provides>
-			<config max_hmb_size="16M" verbose_regs="yes" verbose_identify="yes" system="yes">
-				<policy label="test-nvme -> " writeable="no"/>
-			</config>
-			<route>
-				<service name="Platform">
-					<child name="platform"/>
-				</service>
-
-				<service name="ROM" label="system">
-					<child name="dynamic_rom"/>
-				</service>
-
-				<service name="Report">
-					<child name="drivers_reports"/>
-				</service>
-
-				<any-service> <parent /> <any-child/> </any-service>
-			</route>
-		</start>
-	}
++ start nvme | caps: 300 | ram: 24M } [priority_drivers] {
+  + provides | + service Block
+  + config | max_hmb_size:     16M
+  |        | verbose_regs:     yes
+  |        | verbose_identify: yes
+  |        | system:           yes
+  | + policy | label: test-nvme ->  | writeable: no
+  + route
+    + service Platform            | + child platform
+    + service ROM | label: system | + child dynamic_rom
+    + service Report              | + child drivers_reports
+    + any-service
+      + parent
+      + any-child }
 
 	append return_nvme {
-		<start name="test-nvme" caps="200" ram="50M" } [priority_scenario] {>
-			<binary name="block_tester" />
-			<config verbose="yes" report="no" log="yes" stop_on_error="no">
-				<tests>
-				    <random size="128K" length="1024G" seed="0xaffeaffe" batch="8"/>
-				</tests>
-			</config>
-			<route>
-				<service name="Block"><child name="nvme"/></service>
-				<any-service> <parent/> <any-child /> </any-service>
-			</route>
-		</start>
-	}
+
++ start test-nvme | caps: 200 | ram: 50M } [priority_scenario] {
+  + binary block_tester
+  + config | verbose: yes | report: no | log: yes | stop_on_error: no
+  | + tests
+  |   + random | size: 128K | length: 1024G | seed: 0xaffeaffe | batch: 8
+  + route
+    + service Block
+    | + child nvme
+    + any-service
+      + parent
+      + any-child }
 
 	return $return_nvme
 }
@@ -404,35 +392,80 @@ proc gpu_config { } {
 	set return_gpu ""
 
 	append return_gpu {
-		<start name="gpu" caps="2000" ram="40M" } [priority_drivers] {>
-			<binary name="intel_gpu"/>
-			<provides>
-				<service name="Gpu"/>
-				<service name="Platform"/>
-			</provides>
-			<config system="yes">
-				<device vendor="0x8086" device="0x1606" generation="8" platform="broadwell" description="HD Graphics (BDW GT1 ULT)"/>
-				<device vendor="0x8086" device="0x1616" generation="8" platform="broadwell" description="HD Graphics 5500 (BDW GT2 ULT)"/>
-				<device vendor="0x8086" device="0x1622" generation="8" platform="broadwell" description="Iris Pro Graphics 6200 (BDW GT3e)"/>
-				<device vendor="0x8086" device="0x1916" generation="9" platform="skylake"  description="HD Graphics 520 (Skylake, Gen9)"/>
-				<device vendor="0x8086" device="0x191b" generation="9" platform="skylake"  description="HD Graphics 530 (Skylake, Gen9)"/>
-				<device vendor="0x8086" device="0x5916" generation="9" platform="kabylake" description="HD Graphics 620 (Kaby Lake, Gen9p5)"/>
-				<device vendor="0x8086" device="0x5917" generation="9" platform="kabylake" description="UHD Graphics 620 (Kaby Lake, Gen9p5)"/>
-				<device vendor="0x8086" device="0x591b" generation="9" platform="kabylake" description="HD Graphics 630 (Kaby Lake, Gen9p5)"/>
-				<device vendor="0x8086" device="0x3ea0" generation="9" platform="whiskeylake" description="UHD Graphics 620 (Whiskey Lake, Gen9p5)"/>
-				<device vendor="0x8086" device="0x9a49" generation="12" platform="tigerlake" description="Iris Xe Graphics (Tiger Lake, Xe)"/>
-			</config>
-			<route>
-				<service name="Platform">
-					<child name="platform" label="fb"/>
-				</service>
-
-				<service name="ROM" label="system">
-					<child name="dynamic_rom"/>
-				</service>
-				<any-service> <parent /> <any-child/> </any-service>
-			</route>
-		</start>}
++ start gpu | caps: 2000 | ram: 40M } [priority_drivers] {
+  + binary intel_gpu
+  + provides
+  | + service Gpu
+  | + service Platform
+  + config | system: yes
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x1606
+  | |        generation:  8
+  | |        platform:    broadwell
+  | |        description: HD Graphics (BDW GT1 ULT)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x1616
+  | |        generation:  8
+  | |        platform:    broadwell
+  | |        description: HD Graphics 5500 (BDW GT2 ULT)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x1622
+  | |        generation:  8
+  | |        platform:    broadwell
+  | |        description: Iris Pro Graphics 6200 (BDW GT3e)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x1916
+  | |        generation:  9
+  | |        platform:    skylake
+  | |        description: HD Graphics 520 (Skylake, Gen9)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x191b
+  | |        generation:  9
+  | |        platform:    skylake
+  | |        description: HD Graphics 530 (Skylake, Gen9)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x5916
+  | |        generation:  9
+  | |        platform:    kabylake
+  | |        description: HD Graphics 620 (Kaby Lake, Gen9p5)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x5917
+  | |        generation:  9
+  | |        platform:    kabylake
+  | |        description: UHD Graphics 620 (Kaby Lake, Gen9p5)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x591b
+  | |        generation:  9
+  | |        platform:    kabylake
+  | |        description: HD Graphics 630 (Kaby Lake, Gen9p5)
+  | + device
+  | |        vendor:      0x8086
+  | |        device:      0x3ea0
+  | |        generation:  9
+  | |        platform:    whiskeylake
+  | |        description: UHD Graphics 620 (Whiskey Lake, Gen9p5)
+  | + device
+  |          vendor:      0x8086
+  |          device:      0x9a49
+  |          generation:  12
+  |          platform:    tigerlake
+  |          description: Iris Xe Graphics (Tiger Lake, Xe)
+  + route
+    + service Platform
+    | + child platform | label: fb
+    + service ROM | label: system
+    | + child dynamic_rom
+    + any-service
+      + parent
+      + any-child }
 
 	return $return_gpu
 }
@@ -447,35 +480,32 @@ proc gpu_client { } {
 	set return_gpu ""
 
 	append return_gpu {
-		<start name="glmark2" caps="500" ram="240M" } [priority_scenario] {>
-			<config>
-				<vfs>
-					<dir name="dev">
-						<log/> <gpu/>
-					</dir>
-					<dir name="data">
-						<tar name="glmark2_assets.tar"/>
-					</dir>
-				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log"/>
-				<arg>glmark2</arg>
-				<!-- <arg value="\-\-debug"/> -->
-				<arg>-b</arg>
-				<arg>:duration=10.0</arg>
-				<arg>--run-forever</arg>
-				<env name="GALLIUM_HUD">fps</env>
-			</config>
-			<route>
-				<service name="Gpu">   <child name="gpu"/>   </service>
-				<service name="Gui">   <child name="wm"/>    </service>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="ROM" label="mesa_gpu.lib.so">
-					<parent label="mesa_gpu-iris.lib.so"/>
-				</service>
-				<any-service> <parent /> </any-service>
-			</route>
-		</start>
-	}
++ start glmark2 | caps: 500 | ram: 240M } [priority_scenario] {
+  + config
+  | + vfs
+  | | + dir dev
+  | | | + log
+  | | | + gpu
+  | | + dir data
+  | |   + tar glmark2_assets.tar
+  | + libc | stdout: /dev/log | stderr: /dev/log
+  | + arg
+  | | : glmark2
+  | x arg | value: \-\-debug
+  | + arg
+  | | : -b
+  | + arg
+  | | : :duration=10.0
+  | + arg
+  | | : --run-forever
+  | + env GALLIUM_HUD
+  |   : fps
+  + route
+    + service Gpu                          | + child gpu
+    + service Gui                          | + child wm
+    + service Timer                        | + child timer
+    + service ROM | label: mesa_gpu.lib.so | + parent | label: mesa_gpu-iris.lib.so
+    + any-service                          | + parent }
 
 	return $return_gpu
 }
@@ -484,58 +514,60 @@ proc wifi_config { } {
 
 	global use_wifi
 
+	if {!$use_wifi} { return }
+
 	set return_wifi ""
 
-	if {!$use_wifi} { return $return_wifi }
-
 	append return_wifi {
-		<start name="pc_rtc" caps="100" ram="1M">
-			<provides> <service name="Rtc"/> </provides>
-			<route> <any-service> <parent/> </any-service> </route>
-		</start>
-
-		<start name="config_rom" caps="100" ram="4M">
-			<binary name="dynamic_rom"/>
-			<provides><service name="ROM"/></provides>
-			<config verbose="no">
-				<rom name="wifi_config">
-					<inline description="disconnect">
-					</inline>
-					<sleep milliseconds="15000"/>
-				</rom>
-			</config>
-			<route> <any-service> <parent/> </any-service> </route>
-		</start>
-
-		<start name="wifi" caps="260" priority="-1" ram="32M">
-			<config ld_verbose="no">
-				<report mac_address="true"/>
-				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/urandom"/>
-				<vfs>
-					<dir name="dev"> <log/> <null/> <rtc/>
-						<jitterentropy name="random"/>
-						<jitterentropy name="urandom"/>
-					</dir>
-					<dir name="firmware">
-						<tar name="wifi_firmware.tar"/>
-					</dir>
-				</vfs>
-			</config>
-			<route>
-				<service name="Uplink">   <parent/>    </service>
-				<service name="Rtc">      <any-child/> </service>
-				<service name="Report">   <parent/>    </service>
-				<service name="Report" label="accesspoints"> <parent/> </service>
-				<service name="Report" label="state"> <parent label="wifi_state"/> </service>
-				<service name="Report" label="devices"> <parent label="wifi_devices"/> </service>
-
-				<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
-				<service name="ROM" label="wifi.lib.so"> <parent label="pc_wifi.lib.so"/> </service>
-				<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-	}
+  |         + start ps2 | caps: 100 | ram: 3M
+  |
+  |         + start pc_rtc | caps: 100 | ram: 1M
+  |           + provides
+  |           | + service Rtc
+  |           + route
+  |             + any-service
+  |               + parent
+  |
+  |         + start config_rom | caps: 100 | ram: 4M
+  |           + binary dynamic_rom
+  |           + provides
+  |           | + service ROM
+  |           + config | verbose: no
+  |           | + rom wifi_config
+  |           |   + inline | description: disconnect
+  |           |   + sleep | milliseconds: 15000
+  |           + route
+  |             + any-service
+  |               + parent
+  |
+  |         + start wifi | caps: 260 | priority: -1 | ram: 32M
+  |           + config | ld_verbose: no
+  |           | + report | mac_address: true
+  |           | + libc
+  |           | |      stdout: /dev/log
+  |           | |      stderr: /dev/log
+  |           | |      rtc:    /dev/rtc
+  |           | |      rng:    /dev/urandom
+  |           | + vfs
+  |           |   + dir dev
+  |           |   | + log
+  |           |   | + null
+  |           |   | + rtc
+  |           |   | + jitterentropy random
+  |           |   | + jitterentropy urandom
+  |           |   + dir firmware
+  |           |     + tar wifi_firmware.tar
+  |           + route
+  |             + service Uplink                         | + parent
+  |             + service Rtc                            | + any-child
+  |             + service Report                         | + parent
+  |             + service Report | label: accesspoints   | + parent
+  |             + service Report | label: state          | + parent | label: wifi_state
+  |             + service Report | label: devices        | + parent | label: wifi_devices
+  |             + service ROM | label: wifi_config       | + child config_rom
+  |             + service ROM | label: wifi.lib.so       | + parent | label: pc_wifi.lib.so
+  |             + service ROM | label: wifi_firmware.tar | + parent | label: pc_wifi_firmware.tar
+  |             + any-service | + parent }
 
 	return $return_wifi
 }
@@ -585,216 +617,200 @@ if {$use_wifi} {
 
 set config ""
 append config {
-	<config verbose="no" prio_levels="4">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="TRACE"/>
-		</parent-provides>
+config | verbose: no | prio_levels: 4
++ parent-provides
+  + service ROM
+  + service CPU
+  + service RM
+  + service PD
+  + service LOG
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service TRACE
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-		<start name="timer" caps="100" ram="1M" } [priority_timer] {>
-			<provides><service name="Timer"/></provides>
-		</start>
++ start timer | caps: 100 | ram: 1M } [priority_timer] {
+  + provides
+    + service Timer
 
-		<start name="drivers_reports" caps="100" ram="1M" } [priority_base] {>
-			<binary name="report_rom"/>
-			<provides>
-				<service name="Report"/>
-				<service name="ROM"/>
-			</provides>
-			<config verbose="no">
-				<policy label="platform -> acpi" report="acpi -> acpi"/>
-				<policy label="platform -> devices" report="pci_decode -> devices"/>
-				<policy label="pci_decode -> system" report="acpi -> acpi"/>
-				<policy label="platform -> sleep_states" report="acpica -> sleep_states"/>
-				<policy label="intel_fb -> intel_opregion" report="acpi -> intel_opregion"/>
-			</config>
-		</start>
++ start drivers_reports | caps: 100 | ram: 1M } [priority_base] {
+  + binary report_rom
+  + provides
+  | + service Report
+  | + service ROM
+  + config | verbose: no
+    + policy | label: platform -> acpi           | report: acpi -> acpi
+    + policy | label: platform -> devices        | report: pci_decode -> devices
+    + policy | label: pci_decode -> system       | report: acpi -> acpi
+    + policy | label: platform -> sleep_states   | report: acpica -> sleep_states
+    + policy | label: intel_fb -> intel_opregion | report: acpi -> intel_opregion
 
-		<start name="acpi" caps="350" ram="5M" } [priority_base] {>
-			<config report="yes"/>
-			<route>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start acpi | caps: 350 | ram: 8M } [priority_base] {
+  + config | report: yes
+  + route
+    + service Report
+    | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-		<start name="pci_decode" caps="350" ram="1M" } [priority_base] {>
-			<route>
-				<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start pci_decode | caps: 350 | ram: 1M } [priority_base] {
+  + route
+    + service ROM | label: system
+    | + child drivers_reports
+    + service Report
+    | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-		<start name="platform" caps="300" managing_system="yes" ram="8M" } [priority_base] {>
-			<binary name="pc_platform"/>
-			<provides>
-				<service name="Platform"/>
-			</provides>
-			<config system="yes">
-				<report devices="yes"/>
++ start platform | caps: 300 | managing_system: yes | ram: 8M } [priority_base] {
+  + binary pc_platform
+  + provides
+  | + service Platform
+  + config | system: yes
+  | + report | devices: yes
+  | + policy | label_prefix: ps2
+  | | + device ps2
+  | + policy | label_prefix: fb | info: yes
+  | | + pci | class: VGA
+  | | + pci | class: ISABRIDGE
+  | + policy | label_prefix: acpica
+  | | + device acpi
+  | + policy | label: ahci ->
+  | | + pci | class: AHCI
+  | + policy | label: nvme ->  | info: yes
+  | | + pci | class: NVME
+  | + policy | label: wifi | info: yes
+  |   + pci | class: WIFI
+  + route
+    + service ROM | label: system
+    | + child dynamic_rom
+    + service ROM | label: acpi
+    | + child drivers_reports
+    + service ROM | label: devices
+    | + child drivers_reports
+    + service ROM | label: sleep_states
+    | + child drivers_reports
+    + service Report
+    | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
+} [  gpu_config] {
+} [  gui_config] {
+} [  log_output] {
+} [  gpu_client] {
+} [ ahci_config] {
+} [ nvme_config] {
 
-				<policy label_prefix="ps2">
-					<device name="ps2"/>
-				</policy>
-				<policy label_prefix="fb" info="yes">
-					<pci class="VGA"/>
-					<pci class="ISABRIDGE"/>
-				</policy>
-				<policy label_prefix="acpica">
-					<device name="acpi"/>
-				</policy>
-				<policy label="ahci -> ">            <pci class="AHCI"/> </policy>
-				<policy label="nvme -> " info="yes"> <pci class="NVME"/> </policy>
-				<policy label="wifi"     info="yes"> <pci class="WIFI"/> </policy>
-			</config>
-			<route>
-				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
-				<service name="ROM" label="acpi"> <child name="drivers_reports"/> </service>
-				<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
-				<service name="ROM" label="sleep_states"> <child name="drivers_reports"/> </service>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start drivers_init | caps: 10000 | ram: 128M } [priority_drivers] {
+  + binary init
+  + route
+    + service Report
+    | + child drivers_reports
+    + service Platform | label_prefix: ps2 ->
+    | + child platform | label: ps2
+    + service Platform | label_prefix: wifi ->
+    | + child platform | label: wifi
+    + service Platform | label_prefix: fb ->
+    | + child platform | label: fb
+    + service Platform | label_prefix: intel_fb ->
+    | + child gpu
+    + service ROM | label: intel_fb -> intel_opregion
+    | + child drivers_reports | label: intel_fb -> intel_opregion
+    + service ROM | label: config
+    | + child drivers_init_config
+    + service Gui
+    | + child wm
+    + service ROM | label: system
+    | + child dynamic_rom
+    + any-service
+      + parent
+      + any-child
 
-	} [  gpu_config] {
-	} [  gui_config] {
-	} [  log_output] {
-	} [  gpu_client] {
-	} [ ahci_config] {
-	} [ nvme_config] {
++ start drivers_init_config | caps: 100 | ram: 1M } [priority_config] {
+  + binary rom_filter
+  + provides
+  | + service ROM
+  + config | verbose: yes
+  | + input check_system | rom: system | node: system | default:
+  | | + attribute state
+  | + output | node: config
+  |   + attribute prio_levels | value: 2
+  |   + attribute verbose | value: no
+  |   + if
+  |     + has_value | input: check_system | value:
+  |     + then } [restartable_drivers] {
+  |     + else
+  |       + inline
+  + route
+    + service ROM | label: system
+    | + child dynamic_rom
+    + any-service
+      + parent
 
-		<start name="drivers_init" caps="10000" ram="128M" } [priority_drivers] {>
-			<binary name="init"/>
-			<route>
-				<service name="Report">
-					<child name="drivers_reports"/>
-				</service>
-				<service name="Platform" label_prefix="ps2 ->">
-					<child name="platform" label="ps2"/>
-				</service>
-				<service name="Platform" label_prefix="wifi ->">
-					<child name="platform" label="wifi"/>
-				</service>
-				<service name="Platform" label_prefix="fb ->">
-					<child name="platform" label="fb"/>
-				</service>
-				<service name="Platform" label_prefix="intel_fb ->">
-					<child name="gpu"/>
-				</service>
-				<service name="ROM" label="intel_fb -> intel_opregion">
-					<child name="drivers_reports" label="intel_fb -> intel_opregion"/>
-				</service>
-				<service name="ROM" label="config">
-					<child name="drivers_init_config"/>
-				</service>
-				<service name="Gui">
-					<child name="wm"/>
-				</service>
-				<service name="ROM" label="system">
-					<child name="dynamic_rom"/>
-				</service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start acpica | caps: 400 | ram: 8M } [priority_scenario] {
+  + config
+  |        ld_verbose: yes
+  |        sleep:      yes
+  |        reset:      no
+  |        poweroff:   no
+  |        report:     yes
+  |        acpi_ready: no
+  |        poll_reg:   yes
+  |        use_gpe:    } $use_gpe {
+  + route
+    + service Platform
+    | + child platform
+    + service ROM | label: system
+    | + child dynamic_rom
+    + service Report
+    | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-		<start name="drivers_init_config" caps="100" ram="1M" } [priority_config] {>
-			<binary name="rom_filter"/>
-			<provides> <service name="ROM"/> </provides>
-			<config verbose="yes">
-				<input name="check_system" rom="system" node="system" default="">
-					<attribute name="state"/>
-				</input>
-
-				<output node="config">
-					<attribute name="prio_levels" value="2"/>
-					<attribute name="verbose"     value="no"/>
-					<if> <has_value input="check_system" value=""/>
-						<then> } [restartable_drivers] { </then>
-						<else>
-							<inline/>
-						</else>
-					</if>
-				</output>
-			</config>
-			<route>
-				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="acpica" caps="200" ram="8M" } [priority_scenario] {>
-			<config ld_verbose="yes" sleep="yes" reset="no" poweroff="no" report="yes" acpi_ready="no" use_gpe="} $use_gpe {">
-			</config>
-			<route>
-				<service name="Platform"> <child name="platform"/> </service>
-				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-
-		<start name="dynamic_rom" caps="100" ram="4M" } [priority_config] {>
-			<provides><service name="ROM"/></provides>
-			<config verbose="yes">
-				<rom name="system">
-
-					<inline description="system normal">
-						<system state=""/>
-					</inline>
-					<sleep milliseconds="10000"/>
-
-					<inline description="notify non-restartable drivers">
-						<system state="driver_stop"/>
-					</inline>
-					<sleep milliseconds="4000"/>
-
-					<!--
-					     TODO: for a real OS scenario, e.g. Sculpt OS - you
-					     have now to wait until all devices are unused and
-					     powered off, e.g. you have to evaluate the
-					     report of the platform driver until it is in the
-					     right state !!!!!!!
-					-->
-
-					<inline description="prepare suspending">
-						<system state="s3_prepare"/>
-					</inline>
-					<sleep milliseconds="10000"/>
-
-					<!--
-					     TODO: for a real OS scenario, e.g. Sculpt OS -
-					     waits until s3_prepare is done, e.g. evaluate the
-					     ACPICA sleep_state report!
-					-->
-
-					<inline description="suspend system">
-						<system state="suspend"/>
-					</inline>
-					<sleep milliseconds="10000"/>
-
-					<inline description="resume system">
-						<system state="s3_resume"/>
-					</inline>
-					<sleep milliseconds="10000"/>
-
-				</rom>
-			</config>
-		</start>
-	</config>
-}
++ start dynamic_rom | caps: 100 | ram: 4M } [priority_config] {
+  + provides
+  | + service ROM
+  + config | verbose: yes
+    + rom system
+      + inline | description: system normal
+      | + system | state:
+      + sleep | milliseconds: 10000
+      + inline | description: notify non-restartable drivers
+      | + system | state: driver_stop
+      + sleep | milliseconds: 4000
+      + inline | description: prepare suspending
+      | .
+      | .
+      | . TODO: for a real OS scenario, e.g. Sculpt OS - you
+      | . have now to wait until all devices are unused and
+      | . powered off, e.g. you have to evaluate the
+      | . report of the platform driver until it is in the
+      | . right state !!!!!!!
+      | .
+      | + system | state: s3_prepare
+      + sleep | milliseconds: 10000
+      + inline | description: suspend system
+      | .
+      | .
+      | . TODO: for a real OS scenario, e.g. Sculpt OS -
+      | . waits until s3_prepare is done, e.g. evaluate the
+      | . ACPICA sleep_state report!
+      | .
+      | + system | state: suspend
+      + sleep | milliseconds: 10000
+      + inline | description: resume system
+      | + system | state: s3_resume
+      + sleep | milliseconds: 10000
+- }
 
 install_config $config
 
