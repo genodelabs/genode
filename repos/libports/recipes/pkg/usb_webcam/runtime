@@ -46,8 +46,8 @@ runtime | binary: init | caps: 900 | ram: 64M
     + config | request_framebuffer: no
       + report | panorama: yes
       + capture
-      + domain  | layer: 1 | content: client | label: no
-      + default-policy | domain:
+      + domain default | layer: 1 | content: client | label: no
+      + default-policy | domain: default
     + route
       + service Report | + child report_rom
       + any-service    | + parent
