@@ -2394,8 +2394,10 @@ void Sculpt::Main::_handle_update_state(Node const &update_state)
 	bool const installation_complete =
 		!update_state.attribute_value("progress", false);
 
-	if (installation_complete)
+	if (installation_complete) {
 		_bump_depot_version();
+		_query_depot();
+	}
 
 	_generate_dialog();
 }
