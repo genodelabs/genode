@@ -14,5 +14,5 @@ option
     + platform | + child platform | label: audio
     + record   | + child mixer
     + play     | + child mixer
-    + report   | + parent
+    + report   | + child report
 -
