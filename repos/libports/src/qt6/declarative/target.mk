@@ -7,12 +7,13 @@ QT6_DECLARATIVE_PORT_DIR := $(call select_from_ports,qt6_declarative)
 QT6_DECLARATIVE_DIR       = $(QT6_DECLARATIVE_PORT_DIR)/src/lib/qt6_declarative
 endif
 
-QT6_PORT_LIBS = libQt6Core libQt6Gui libQt6OpenGL libQt6Network libQt6Sql libQt6Test libQt6Widgets
+QT6_PORT_LIBS = libQt6Core libQt6Gui libQt6OpenGL libQt6Network libQt6Sql libQt6Svg libQt6Test libQt6Widgets
 
 LIBS = qt6_cmake ldso_so_support libc libm mesa egl qt6_component stdcxx
 
 INSTALL_LIBS = lib/libQt6LabsAnimation.lib.so \
                lib/libQt6LabsFolderListModel.lib.so \
+               lib/libQt6LabsPlatform.lib.so \
                lib/libQt6LabsQmlModels.lib.so \
                lib/libQt6LabsSettings.lib.so \
                lib/libQt6LabsSharedImage.lib.so \
@@ -21,12 +22,25 @@ INSTALL_LIBS = lib/libQt6LabsAnimation.lib.so \
                lib/libQt6QmlCompiler.lib.so \
                lib/libQt6QmlCore.lib.so \
                lib/libQt6QmlLocalStorage.lib.so \
+               lib/libQt6QmlMeta.lib.so \
                lib/libQt6QmlModels.lib.so \
+               lib/libQt6QmlNetwork.lib.so \
                lib/libQt6QmlWorkerScript.lib.so \
                lib/libQt6QmlXmlListModel.lib.so \
                lib/libQt6Quick.lib.so \
                lib/libQt6QuickControls2.lib.so \
+               lib/libQt6QuickControls2Basic.lib.so \
+               lib/libQt6QuickControls2BasicStyleImpl.lib.so \
+               lib/libQt6QuickControls2FluentWinUI3StyleImpl.lib.so \
+               lib/libQt6QuickControls2Fusion.lib.so \
+               lib/libQt6QuickControls2FusionStyleImpl.lib.so \
+               lib/libQt6QuickControls2Imagine.lib.so \
+               lib/libQt6QuickControls2ImagineStyleImpl.lib.so \
                lib/libQt6QuickControls2Impl.lib.so \
+               lib/libQt6QuickControls2Material.lib.so \
+               lib/libQt6QuickControls2MaterialStyleImpl.lib.so \
+               lib/libQt6QuickControls2Universal.lib.so \
+               lib/libQt6QuickControls2UniversalStyleImpl.lib.so \
                lib/libQt6QuickDialogs2.lib.so \
                lib/libQt6QuickDialogs2QuickImpl.lib.so \
                lib/libQt6QuickDialogs2Utils.lib.so \
@@ -36,22 +50,25 @@ INSTALL_LIBS = lib/libQt6LabsAnimation.lib.so \
                lib/libQt6QuickShapes.lib.so \
                lib/libQt6QuickTemplates2.lib.so \
                lib/libQt6QuickTest.lib.so \
+               lib/libQt6QuickVectorImage.lib.so \
                lib/libQt6QuickWidgets.lib.so \
                qml/Qt/labs/animation/liblabsanimationplugin.lib.so \
                qml/Qt/labs/folderlistmodel/libqmlfolderlistmodelplugin.lib.so \
-               qml/Qt/labs/platform/libqtlabsplatformplugin.lib.so \
+               qml/Qt/labs/platform/liblabsplatformplugin.lib.so \
                qml/Qt/labs/qmlmodels/liblabsmodelsplugin.lib.so \
                qml/Qt/labs/settings/libqmlsettingsplugin.lib.so \
                qml/Qt/labs/sharedimage/libsharedimageplugin.lib.so \
                qml/Qt/labs/wavefrontmesh/libqmlwavefrontmeshplugin.lib.so \
                qml/QtCore/libqtqmlcoreplugin.lib.so \
-               qml/QtQml/Base/libqmlplugin.lib.so \
+               qml/QtNetwork/libqmlnetworkplugin.lib.so \
                qml/QtQml/Models/libmodelsplugin.lib.so \
                qml/QtQml/WorkerScript/libworkerscriptplugin.lib.so \
                qml/QtQml/XmlListModel/libqmlxmllistmodelplugin.lib.so \
-               qml/QtQml/libqmlmetaplugin.lib.so \
+               qml/QtQml/libqmlplugin.lib.so \
                qml/QtQuick/Controls/Basic/libqtquickcontrols2basicstyleplugin.lib.so \
                qml/QtQuick/Controls/Basic/impl/libqtquickcontrols2basicstyleimplplugin.lib.so \
+               qml/QtQuick/Controls/FluentWinUI3/libqtquickcontrols2fluentwinui3styleplugin.lib.so \
+               qml/QtQuick/Controls/FluentWinUI3/impl/libqtquickcontrols2fluentwinui3styleimplplugin.lib.so \
                qml/QtQuick/Controls/Fusion/libqtquickcontrols2fusionstyleplugin.lib.so \
                qml/QtQuick/Controls/Fusion/impl/libqtquickcontrols2fusionstyleimplplugin.lib.so \
                qml/QtQuick/Controls/Imagine/libqtquickcontrols2imaginestyleplugin.lib.so \
@@ -71,6 +88,7 @@ INSTALL_LIBS = lib/libQt6LabsAnimation.lib.so \
                qml/QtQuick/Particles/libparticlesplugin.lib.so \
                qml/QtQuick/Shapes/libqmlshapesplugin.lib.so \
                qml/QtQuick/Templates/libqtquicktemplates2plugin.lib.so \
+               qml/QtQuick/VectorImage/libqquickvectorimageplugin.lib.so \
                qml/QtQuick/Window/libquickwindowplugin.lib.so \
                qml/QtQuick/tooling/libquicktoolingplugin.lib.so \
                qml/QtQuick/libqtquick2plugin.lib.so \
@@ -101,6 +119,7 @@ build: cmake_prepared.tag qt6_so_files
 		-DCMAKE_MODULE_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_SHLIB)" \
 		-DQT_QMAKE_TARGET_MKSPEC=$(QT_PLATFORM) \
 		-DCMAKE_INSTALL_PREFIX=/qt \
+		-DQT_GENERATE_SBOM=OFF \
 		$(QT6_DECLARATIVE_DIR) \
 		$(QT6_OUTPUT_FILTER)
 

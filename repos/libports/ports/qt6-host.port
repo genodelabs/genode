@@ -1,10 +1,10 @@
 LICENSE := GPL
-VERSION := 6.6.2
+VERSION := 6.8.3
 
 DOWNLOADS := qt6.archive
 
-URL(qt6) := https://download.qt.io/archive/qt/6.6/6.6.2/single/qt-everywhere-src-6.6.2.tar.xz
-SHA(qt6) := 3c1e42b3073ade1f7adbf06863c01e2c59521b7cc2349df2f74ecd7ebfcb922d
+URL(qt6) := https://download.qt.io/archive/qt/6.8/$(VERSION)/single/qt-everywhere-src-$(VERSION).tar.xz
+SHA(qt6) := cdd3a69967208276bb01af7ace7dba0ba53e679f886a4cbe624225c60fb73f2c
 DIR(qt6) := src/lib/qt6
 
 PATCHES   := src/qt6/host/patches/qtwebengine_qtbug59769.patch

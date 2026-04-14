@@ -1,8 +1,8 @@
 LICENSE := LGPL
-VERSION := 6.6.2
+VERSION := 6.8.3
 
 DOWNLOADS := qt6_base.git
 
-URL(qt6_base) := https://github.com/cproc/qt6_base.git
-REV(qt6_base) := issue5631
+URL(qt6_base) := https://codeberg.org/cproc/qt6_base.git
+REV(qt6_base) := issue5854_2
 DIR(qt6_base) := src/lib/qt6_base

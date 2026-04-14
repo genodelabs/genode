@@ -8,7 +8,7 @@ QT6_QT5COMPAT_DIR       = $(QT6_QT5COMPAT_PORT_DIR)/src/lib/qt6_qt5compat
 endif
 
 QT6_PORT_LIBS  = libQt6Core libQt6Gui libQt6Network libQt6OpenGL
-QT6_PORT_LIBS += libQt6Qml libQt6QmlModels libQt6Quick
+QT6_PORT_LIBS += libQt6Qml libQt6QmlMeta libQt6QmlModels libQt6QmlWorkerScript libQt6Quick
 QT6_PORT_LIBS += libQt6ShaderTools
 
 LIBS = qt6_cmake ldso_so_support libc libm egl mesa qt6_component stdcxx
@@ -39,6 +39,7 @@ build: cmake_prepared.tag qt6_so_files
 		-DCMAKE_MODULE_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_SHLIB)" \
 		-DQT_QMAKE_TARGET_MKSPEC=$(QT_PLATFORM) \
 		-DCMAKE_INSTALL_PREFIX=/qt \
+		-DQT_GENERATE_SBOM=OFF \
 		$(QT6_QT5COMPAT_DIR) \
 		$(QT6_OUTPUT_FILTER)
 

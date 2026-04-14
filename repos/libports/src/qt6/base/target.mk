@@ -37,13 +37,18 @@ build: cmake_prepared.tag
 	@# run cmake
 	@#
 
+	@# -DFEATURE_libstdcpp_assertions=OFF: prevent undefined reference to __glibcxx_assert_fail
+	@# -DFEATURE_version_tagging=OFF:      version tags like @@Qt_6 are not supported by the abi_symbols tool
+	@# -DFEATURE_intelcet=OFF:             not supported on ARM
+	@# -DFEATURE_stack_protector=OFF:      not supported on Genode
+
 	$(VERBOSE)cmake \
 		-G "Unix Makefiles" \
 		-DQT_SILENCE_CMAKE_GENERATOR_WARNING=ON \
 		-DCMAKE_SYSTEM_NAME="Genode" \
 		-DCMAKE_AR="$(AR)" \
 		-DCMAKE_C_COMPILER="$(CC)" \
-		-DCMAKE_C_FLAGS="$(GENODE_CMAKE_CFLAGS)" \
+		-DCMAKE_C_FLAGS="$(GENODE_CMAKE_CFLAGS) -DPCRE2_DISABLE_JIT" \
 		-DCMAKE_CXX_COMPILER="$(CXX)" \
 		-DCMAKE_CXX_FLAGS="$(GENODE_CMAKE_CFLAGS)" \
 		-DCMAKE_EXE_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_APP)" \
@@ -56,6 +61,7 @@ build: cmake_prepared.tag
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DQT_BUILD_EXAMPLES=OFF \
 		-DQT_QPA_DEFAULT_PLATFORM=genode \
+		-DQT_GENERATE_SBOM=OFF \
 		-DFEATURE_cxx20=ON \
 		-DFEATURE_relocatable=OFF \
 		-DFEATURE_evdev=OFF \
@@ -75,6 +81,10 @@ build: cmake_prepared.tag
 		-DFEATURE_vulkan=OFF \
 		-DFEATURE_reduce_relocations=OFF \
 		-DFEATURE_pkg_config=OFF \
+		-DFEATURE_libstdcpp_assertions=OFF \
+		-DFEATURE_version_tagging=OFF \
+		-DFEATURE_intelcet=OFF \
+		-DFEATURE_stack_protector=OFF \
 		$(QT6_BASE_DIR) \
 		$(QT6_OUTPUT_FILTER)
 

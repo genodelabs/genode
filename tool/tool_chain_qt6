@@ -38,8 +38,9 @@ GENODE_DIR               := $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 CONTRIB_DIR               = $(shell $(GENODE_DIR)/tool/ports/current qt6-host)
 QT6_DIR                   = $(CONTRIB_DIR)/src/lib/qt6
 TOOL_VERSION              = 25.05
-BUILD_DIR                 = $(GENODE_DIR)/build/tool/qt6/$(TOOL_VERSION)
-DEFAULT_INSTALL_LOCATION  = /usr/local/genode/tool/$(TOOL_VERSION)/qt6
+QT_VERSION                = 6.8.3
+BUILD_DIR                 = $(GENODE_DIR)/build/tool/qt$(QT_VERSION)/$(TOOL_VERSION)
+DEFAULT_INSTALL_LOCATION  = /usr/local/genode/tool/$(TOOL_VERSION)/qt$(QT_VERSION)
 INSTALL_LOCATION         ?= $(DEFAULT_INSTALL_LOCATION)
 SUDO                     ?= sudo
 
@@ -104,7 +105,7 @@ build: $(BUILD_DIR) $(QT6_DIR)
 	-DBUILD_qtserialport=OFF \
 	-DBUILD_qtshadertools=ON \
 	-DBUILD_qtspeech=OFF \
-	-DBUILD_qtsvg=OFF \
+	-DBUILD_qtsvg=ON \
 	-DBUILD_qttools=ON \
 	-DBUILD_qttranslations=OFF \
 	-DBUILD_qtvirtualkeyboard=OFF \
