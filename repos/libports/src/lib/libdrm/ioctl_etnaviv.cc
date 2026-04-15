@@ -391,13 +391,15 @@ class Etnaviv::Call
 
 				static unsigned long _stat_gpu(int fd)
 				{
-					struct ::stat buf;
-					if (::fstat(fd, &buf) < 0) {
-						error("Could not stat '/dev/gpu'");
+					unsigned long id = ~0ul;
+
+					if ((ssize_t)sizeof(id) != ::read(fd, &id, sizeof(id))) {
+						error("Could not read '/dev/gpu'");
 						::close(fd);
 						throw Gpu::Session::Invalid_state();
 					}
-					return buf.st_ino;
+
+					return id;
 				}
 
 				int           const _fd;
@@ -639,7 +641,7 @@ class Etnaviv::Call
 							if (gc.gpu().complete(seqno))
 								break;
 
-							char buf;
+							unsigned long buf;
 							(void)::read(gc.fd(), &buf, sizeof(buf));
 						} while (true);
 
@@ -727,7 +729,7 @@ class Etnaviv::Call
 					if (map_cap.valid())
 						break;
 
-					char buf;
+					unsigned long buf;
 					(void)::read(_main_ctx->fd(), &buf, sizeof(buf));
 				} while (true);
 				res = 0;

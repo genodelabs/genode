@@ -468,8 +468,8 @@ struct Drm::Context
 			}
 
 			/* wait for completion signal in VFS plugin */
-			char buf;
-			Libc::read(_fd, &buf, 1);
+			unsigned long buf;
+			(void)Libc::read(_fd, &buf, sizeof(buf));
 		}
 
 		/* mark done buffer objects */
@@ -1012,16 +1012,16 @@ class Drm::Call
 				return -1;
 			}
 
-			struct Libc::stat buf;
-			if (fstat(fd, &buf) < 0) {
-				Genode::error("Could not stat '/dev/gpu'");
+			unsigned long id = ~0ul;
+			if ((ssize_t)sizeof(id) != Libc::read(fd, &id, sizeof(id))) {
+				Genode::error("Could not read '/dev/gpu'");
 				return -1;
 			}
 
 			/* use inode to retrieve GPU connection */
-			Gpu::Connection *gpu = vfs_gpu_connection(buf.st_ino);
+			Gpu::Connection *gpu = vfs_gpu_connection(id);
 			if (!gpu) {
-				Genode::error("Could not find GPU session for id: ", buf.st_ino);
+				Genode::error("Could not find GPU session for id: ", id);
 				Libc::close(fd);
 				return -1;
 			}

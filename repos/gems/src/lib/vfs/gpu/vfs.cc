@@ -34,7 +34,8 @@ struct Vfs_gpu::File_system : Single_file_system
 {
 	struct Gpu_vfs_handle : Single_vfs_handle
 	{
-		bool             _complete { false };
+		/* allow for initial read to query the ID */
+		bool             _complete { true };
 		Vfs::Env        &_env;
 		Gpu::Connection  _gpu_session { _env.env() };
 
@@ -67,9 +68,14 @@ struct Vfs_gpu::File_system : Single_file_system
 		{
 			if (!_complete) return READ_QUEUED;
 
+			unsigned long const id_value = _elem.id().value;
+
+			if (dst.num_bytes < sizeof(id_value))
+				return READ_ERR_INVALID;
+
 			_complete    = false;
-			dst.start[0] = 1;
-			out_count    = 1;
+			out_count    = sizeof(id_value);
+			memcpy(dst.start, &id_value, sizeof(id_value));
 
 			return READ_OK;
 		}
@@ -89,8 +95,7 @@ struct Vfs_gpu::File_system : Single_file_system
 
 	using Config = String<32>;
 
-	Id_space<Gpu_vfs_handle>     _handle_space { };
-	Id_space<Gpu_vfs_handle>::Id _last_id { .value = ~0ul };
+	Id_space<Gpu_vfs_handle> _handle_space { };
 
 	File_system(Vfs::Env &env, Node const &config)
 	:
@@ -112,23 +117,12 @@ struct Vfs_gpu::File_system : Single_file_system
 			Gpu_vfs_handle *handle  = new (alloc)
 				Gpu_vfs_handle(_env, *this, *this, alloc, _handle_space);
 
-			_last_id = handle->id();
 			*out_handle = handle;
 
 			return OPEN_OK;
 		}
 		catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
 		catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
-	}
-
-	Stat_result stat(char const *path, Stat &out) override
-	{
-		if (!_single_file(path))
-			return STAT_ERR_NO_ENTRY;
-
-		out.inode = (unsigned long)_last_id.value;
-
-		return STAT_OK;
 	}
 
 	static char const *type_name() { return "gpu"; }
@@ -139,7 +133,7 @@ struct Vfs_gpu::File_system : Single_file_system
 static Vfs_gpu::File_system *_fs { nullptr };
 
 /**
- * XXX: return GPU session for given ID, retrieved by 'stat->inode'.
+ * XXX: return GPU session for given ID, returned on every 'read()' call
  * This function is used, for example, by libdrm
  */
 Gpu::Connection *vfs_gpu_connection(unsigned long id)
