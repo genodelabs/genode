@@ -117,8 +117,6 @@ struct Gpu::Virtual_address
  */
 struct Gpu::Session : public Genode::Session
 {
-	struct Out_of_ram           : Genode::Exception { };
-	struct Out_of_caps          : Genode::Exception { };
 	struct Invalid_state        : Genode::Exception { };
 	struct Conflicting_id       : Genode::Exception { };
 	struct Mapping_vram_failed  : Genode::Exception { };
@@ -281,20 +279,20 @@ struct Gpu::Session : public Genode::Session
 	                 GENODE_TYPE_LIST(Invalid_state),
 	                 Gpu::Vram_id, Genode::off_t);
 	GENODE_RPC_THROW(Rpc_alloc_vram, Genode::Dataspace_capability, alloc_vram,
-	                 GENODE_TYPE_LIST(Out_of_caps, Out_of_ram),
+	                 GENODE_TYPE_LIST(Genode::Out_of_caps, Genode::Out_of_ram),
 	                 Gpu::Vram_id, Genode::size_t);
 	GENODE_RPC(Rpc_free_vram, void, free_vram, Gpu::Vram_id);
 	GENODE_RPC(Rpc_export_vram, Gpu::Vram_capability, export_vram, Gpu::Vram_id);
 	GENODE_RPC_THROW(Rpc_import_vram, void, import_vram,
-	                 GENODE_TYPE_LIST(Out_of_caps, Out_of_ram, Conflicting_id, Invalid_state),
+	                 GENODE_TYPE_LIST(Genode::Out_of_caps, Genode::Out_of_ram, Conflicting_id, Invalid_state),
 	                 Gpu::Vram_capability, Gpu::Vram_id);
 	GENODE_RPC_THROW(Rpc_map_cpu, Genode::Dataspace_capability, map_cpu,
-	                 GENODE_TYPE_LIST(Mapping_vram_failed, Out_of_caps, Out_of_ram),
+	                 GENODE_TYPE_LIST(Mapping_vram_failed, Genode::Out_of_caps, Genode::Out_of_ram),
 	                 Gpu::Vram_id, Gpu::Mapping_attributes);
 	GENODE_RPC(Rpc_unmap_cpu, void, unmap_cpu,
 	           Gpu::Vram_id);
 	GENODE_RPC_THROW(Rpc_map_gpu, bool, map_gpu,
-	                 GENODE_TYPE_LIST(Mapping_vram_failed, Out_of_caps, Out_of_ram),
+	                 GENODE_TYPE_LIST(Mapping_vram_failed, Genode::Out_of_caps, Genode::Out_of_ram),
 	                 Gpu::Vram_id, Genode::size_t, Genode::off_t, Gpu::Virtual_address);
 	GENODE_RPC(Rpc_unmap_gpu, void, unmap_gpu,
 	           Gpu::Vram_id, Genode::off_t, Gpu::Virtual_address);

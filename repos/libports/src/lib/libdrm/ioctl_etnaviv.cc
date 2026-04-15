@@ -664,9 +664,9 @@ class Etnaviv::Call
 			size_t donate = size;
 			Vram *vram = nullptr;
 			try {
-				retry<Gpu::Session::Out_of_ram>(
+				retry<Genode::Out_of_ram>(
 				[&] () {
-					retry<Gpu::Session::Out_of_caps>(
+					retry<Genode::Out_of_caps>(
 					[&] () {
 						vram =
 							new (&_heap) Vram(_main_ctx->gpu(), size,

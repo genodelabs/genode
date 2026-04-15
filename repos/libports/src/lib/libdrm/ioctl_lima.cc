@@ -753,9 +753,9 @@ class Lima::Call
 				return;
 
 			try {
-				retry<Gpu::Session::Out_of_ram>(
+				retry<Genode::Out_of_ram>(
 				[&] () {
-					retry<Gpu::Session::Out_of_caps>(
+					retry<Genode::Out_of_caps>(
 					[&] () {
 						buffer =
 							new (&_heap) Vram(_main_ctx->gpu(), size, va,

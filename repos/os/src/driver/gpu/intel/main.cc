@@ -59,10 +59,8 @@ namespace Igd {
 
 struct Igd::Device
 {
-	struct Unsupported_device    : Genode::Exception { };
-	struct Out_of_caps           : Genode::Exception { };
-	struct Out_of_ram            : Genode::Exception { };
-	struct Could_not_map_vram    : Genode::Exception { };
+	struct Unsupported_device : Genode::Exception { };
+	struct Could_not_map_vram : Genode::Exception { };
 
 	/* 300 ms */
 	enum { WATCHDOG_TIMEOUT = 300*1000 };
@@ -94,15 +92,15 @@ struct Igd::Device
 				UPGRADE_ATTEMPTS = ~0U
 			};
 
-			return retry<Genode::Out_of_ram>(
+			return retry<Out_of_ram>(
 				[&] () {
-					return retry<Genode::Out_of_caps>(
+					return retry<Out_of_caps>(
 						[&] () { return _pci.Client::alloc_dma_buffer(size, CACHED); },
 						[&] ()
 						{
 							if (_env.pd().avail_caps().value < UPGRADE_CAPS) {
-								if (DEBUG) warning("alloc dma vram: out if caps");
-								throw Gpu::Session::Out_of_caps();
+								if (DEBUG) warning("alloc dma vram: out of caps");
+								throw Out_of_caps();
 							}
 
 							_pci.upgrade_caps(UPGRADE_CAPS);
@@ -113,7 +111,7 @@ struct Igd::Device
 				{
 					if (_env.pd().avail_ram().value < size) {
 						if (DEBUG) warning("alloc dma vram: out of ram");
-						throw Gpu::Session::Out_of_ram();
+						throw Out_of_ram();
 					}
 					_pci.upgrade_ram(size);
 				},
@@ -1886,7 +1884,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 								 */
 								Genode::error("Quota guard out of caps! from ",
 								              __builtin_return_address(0));
-								throw Gpu::Session::Out_of_caps();
+								throw Out_of_caps();
 							});
 					},
 					[&] (Ram_quota_guard::Error) {
@@ -1894,7 +1892,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 						              __builtin_return_address(0));
 						Genode::error("guard ram: ", _ram_quota_guard.avail(),
 						              " requested: ", needed_ram);
-						throw Gpu::Session::Out_of_ram();
+						throw Out_of_ram();
 					}
 				);
 			}
@@ -2167,10 +2165,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			size = align_addr(size, Genode::AT_PAGE);
 
 			if (_resource_guard.avail_caps() == false)
-				throw Gpu::Session::Out_of_caps();
+				throw Out_of_caps();
 
 			if (_resource_guard.avail_ram(size) == false)
-				throw Gpu::Session::Out_of_ram();
+				throw Out_of_ram();
 
 			size_t caps_before = _env.pd().avail_caps().value;
 			size_t ram_before  = _env.pd().avail_ram().value;
@@ -2242,16 +2240,12 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			if (_id_conflict(id))
 				throw Gpu::Session::Conflicting_id();
 
-			try {
-				Vram_local *vram_local = new (_heap) Vram_local(cap, 0, _vram_space, id);
+			Vram_local *vram_local = new (_heap) Vram_local(cap, 0, _vram_space, id);
 
-				_apply_vram(*vram_local, [&](Vram &vram) {
-					vram_local->size = vram.size;
-					return false;
-				});
-			}
-			catch (Out_of_caps) { throw Gpu::Session::Out_of_caps(); }
-			catch (Out_of_ram)  { throw Gpu::Session::Out_of_ram(); }
+			_apply_vram(*vram_local, [&](Vram &vram) {
+				vram_local->size = vram.size;
+				return false;
+			});
 		}
 
 		Genode::Dataspace_capability map_cpu(Gpu::Vram_id,
@@ -2301,10 +2295,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			};
 
 			if (_resource_guard.avail_caps() == false)
-				throw Gpu::Session::Out_of_caps();
+				throw Out_of_caps();
 
 			if (_resource_guard.avail_ram() == false)
-				throw Gpu::Session::Out_of_ram();
+				throw Out_of_ram();
 
 			size_t caps_before = _env.pd().avail_caps().value;
 			size_t ram_before  = _env.pd().avail_ram().value;
@@ -2383,7 +2377,7 @@ class Gpu::Root : public Gpu::Root_component
 				Genode::warning("insufficient dontated ram_quota (", ram_quota,
 				                " bytes), require ", required_quota, " bytes ",
 				                " by '", label, "'");
-				throw Session::Out_of_ram();
+				throw Out_of_ram();
 			}
 
 			Genode::Session::Resources resources = session_resources_from_args(args);

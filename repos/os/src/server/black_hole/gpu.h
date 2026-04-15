@@ -144,7 +144,7 @@ class Black_hole::Gpu_root : public Gpu_root_component
 				        " bytes), require ", required_quota, " bytes ",
 				        " by '", label, "'");
 
-				throw Gpu::Session::Out_of_ram();
+				throw Genode::Out_of_ram();
 			}
 			Genode::Session::Resources const resources {
 				session_resources_from_args(args) };

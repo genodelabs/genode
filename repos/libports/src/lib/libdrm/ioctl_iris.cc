@@ -506,9 +506,9 @@ struct Drm::Context
 
 	void _map_buffer_gpu(Buffer &buffer, Gpu::Virtual_address vaddr)
 	{
-		Genode::retry<Gpu::Session::Out_of_ram>(
+		Genode::retry<Genode::Out_of_ram>(
 		[&]() {
-			Genode::retry<Gpu::Session::Out_of_caps>(
+			Genode::retry<Genode::Out_of_caps>(
 			[&] () {
 				_gpu.map_gpu(buffer.vram.id,
 				             buffer.vram.size,
@@ -543,9 +543,9 @@ struct Drm::Context
 
 		Gpu::Vram_capability cap = _gpu_master.export_vram(id);
 
-		Genode::retry<Gpu::Session::Out_of_ram>(
+		Genode::retry<Genode::Out_of_ram>(
 		[&]() {
-			Genode::retry<Gpu::Session::Out_of_caps>(
+			Genode::retry<Genode::Out_of_caps>(
 			[&] () {
 				_gpu.import_vram(cap, id);
 				new (_alloc) Vram_map(_vram_map, id);
@@ -755,9 +755,9 @@ class Drm::Call
 
 		template <typename FN> void _gpu_op( FN const &fn)
 		{
-			Genode::retry<Gpu::Session::Out_of_ram>(
+			Genode::retry<Genode::Out_of_ram>(
 			[&] () {
-				Genode::retry<Gpu::Session::Out_of_caps>(
+				Genode::retry<Genode::Out_of_caps>(
 				[&] () {
 					fn();
 				},
