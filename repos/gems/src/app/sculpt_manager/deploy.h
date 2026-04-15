@@ -54,16 +54,10 @@ struct Sculpt::Deploy
 		enabled_options.watch_options(vfs, action);
 	}
 
-	void manage_resource_requests(Vfs &vfs, Runtime_state  const &state,
-	                                        Runtime_config const &config) const
+	static void assign_resources(Vfs &vfs, Runtime_config const &config,
+	                             Start_name const &name,
+	                             size_t const ram, size_t const caps)
 	{
-		auto with_managed_attr = [&] (auto const &name, auto const &fn)
-		{
-			_dict.with_element(name,
-				[&] (Managed_children::Child const &child) { fn(child.attr); },
-				[&] { });
-		};
-
 		auto assign = [&] (auto const &option_name, auto const &child_name,
 		                   size_t const ram, size_t const caps)
 		{
@@ -85,6 +79,20 @@ struct Sculpt::Deploy
 			});
 		};
 
+		config.with_component(name, [&] (Runtime_config::Component const &c) {
+			assign(c.option, name, ram, caps); }, [&] { });
+	}
+
+	void manage_resource_requests(Vfs &vfs, Runtime_state  const &state,
+	                                        Runtime_config const &config) const
+	{
+		auto with_managed_attr = [&] (auto const &name, auto const &fn)
+		{
+			_dict.with_element(name,
+				[&] (Managed_children::Child const &child) { fn(child.attr); },
+				[&] { });
+		};
+
 		state.for_each_resource_request(
 			[&] (Start_name const &name, Runtime_state::Resource_request request) {
 				with_managed_attr(name, [&] (Managed_children::Attr attr) {
@@ -100,8 +108,7 @@ struct Sculpt::Deploy
 					if (!ram && !caps)
 						return;
 
-					config.with_component(name, [&] (Runtime_config::Component const &c) {
-						assign(c.option, name, ram, caps); }, [&] { });
+					assign_resources(vfs, config, name, ram, caps);
 				});
 			});
 	}

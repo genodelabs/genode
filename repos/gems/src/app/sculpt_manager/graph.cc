@@ -40,6 +40,7 @@ struct Dialog::Selectable_node
 	{
 		bool selected;
 		bool important;
+		bool alert;
 		Dialog::Id primary_dep;
 		Start_name pretty_name;
 	};
@@ -49,7 +50,9 @@ struct Dialog::Selectable_node
 	{
 		s.sub_scope<Frame>(id, [&] (Scope<Depgraph, Frame> &s) {
 
-			if (!attr.important)
+			if (attr.alert)
+				s.attribute("style", "alert");
+			else if (!attr.important)
 				s.attribute("style", "unimportant");
 
 			if (attr.primary_dep.valid()) {
@@ -62,9 +65,12 @@ struct Dialog::Selectable_node
 
 				s.sub_scope<Button>(id, [&] (Scope<Depgraph, Frame, Vbox, Button> &s) {
 
-					if (!attr.important) s.attribute("style",    "unimportant");
-					if (s.hovered())     s.attribute("hovered",  "yes");
-					if (attr.selected)   s.attribute("selected", "yes");
+					bool const dimmed = (!attr.important || attr.alert)
+					                  && !attr.selected;
+
+					if (dimmed)        s.attribute("style",    "unimportant");
+					if (s.hovered())   s.attribute("hovered",  "yes");
+					if (attr.selected) s.attribute("selected", "yes");
 
 					s.sub_scope<Label>(attr.pretty_name);
 				});
@@ -78,43 +84,98 @@ struct Dialog::Selectable_node
 
 
 void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
-                                        Start_name const &name,
-                                        Runtime_state::Info const &info) const
+                                        Runtime_config::Component const &component,
+                                        Attr const &attr) const
 {
 	s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-		s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox> &s) {
-			s.widget(_remove);
-			s.widget(_restart); }); });
 
-	if (name == "ram_fs")
+		if (attr.alert) s.attribute("style", "alert");
+
+		s.sub_scope<Vbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Vbox> &s) {
+
+			if (component._stalled.constructed()) {
+				s.sub_scope<Vgap>();
+				component._stalled->with_optional_sub_node("deploy", [&] (Node const &deploy) {
+
+					deploy.with_optional_sub_node("pkg_corrupt", [&] (Node const &) {
+						auto const pkg = deploy.attribute_value("pkg", Depot::Archive::Path());
+						s.sub_scope<Label>(String<80>(" corrupt ", pkg, " ")); });
+
+					deploy.with_optional_sub_node("pkg_missing", [&] (Node const &) {
+						auto const pkg = deploy.attribute_value("pkg", Depot::Archive::Path());
+						s.sub_scope<Label>(String<80>(" missing ", pkg, " ")); });
+
+					deploy.with_optional_sub_node("deps", [&] (Node const &dep) {
+						dep.for_each_sub_node([&] (Node const &node) {
+							Start_name const server = node.attribute_value("name", Start_name());
+							node.for_each_sub_node([&] (Node const &resource) {
+								auto detail = resource.attribute_value("name", String<32>());
+								if (detail.length() > 1)
+									detail = { " (", detail, ")" };
+								s.sub_scope<Label>(String<80>(" requires ", server,
+								                              " for ", resource.type(),
+								                              detail, " "));
+							});
+						});
+					});
+				});
+				s.sub_scope<Vgap>();
+			}
+			if (attr.ram.requested || attr.caps.requested) {
+				String<128> msg { };
+				if (attr.ram.requested) {
+					msg = { msg, " RAM quota (", Num_bytes{attr.ram.requested}, ")" };
+					if (attr.caps.requested)
+						msg = { msg, "," };
+				}
+				if (attr.caps.requested)
+					msg = { msg, " cap quota (", attr.caps.requested, ")" };
+				msg = { msg, " requested " };
+
+				s.sub_scope<Vgap>();
+				s.sub_scope<Label>(msg);
+				s.sub_scope<Vgap>();
+			}
+			s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Vbox, Hbox> &s) {
+
+				if (attr.ram.requested || attr.caps.requested)
+					s.widget(_grant);
+
+				s.widget(_remove);
+				s.widget(_restart);
+			});
+		});
+	});
+
+	if (component.name == "ram_fs")
 		s.widget(_ram_fs_widget, _selected_target, _ram_fs_state);
 
-	if (name == "intel_fb" || name == "vesa_fb")
+	if (component.name == "intel_fb" || component.name == "vesa_fb")
 		s.widget(_fb_widget, _fb_connectors, _fb_config, _hovered_display);
 
 	String<100> const
-		ram (Capacity{info.ram.assigned - info.ram.avail}, " / ",
-		     Capacity{info.ram.assigned}),
-		caps(info.caps.assigned - info.caps.avail, " / ",
-		     info.caps.assigned, " caps");
+		ram (Capacity{attr.ram.assigned - attr.ram.avail}, " / ",
+		     Capacity{attr.ram.assigned}),
+		caps(attr.caps.assigned - attr.caps.avail, " / ",
+		     attr.caps.assigned, " caps");
 
 	s.sub_scope<Min_ex>(25);
 	s.sub_scope<Label>(ram);
 	s.sub_scope<Label>(caps);
 
-	if ((name == "usb") && _storage_devices.num_usb_devices)
+	if ((component.name == "usb") && _storage_devices.num_usb_devices)
 		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 			s.widget(_usb_devices_widget); });
 
-	if (name == "ahci")
+	if (component.name == "ahci")
 		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 			s.widget(_ahci_devices_widget); });
 
-	if (name == "nvme")
+	if (component.name == "nvme")
 		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 			s.widget(_nvme_devices_widget); });
 
-	if (name == "mmc")
+	if (component.name == "mmc")
 		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 			s.widget(_mmc_devices_widget); });
 }
@@ -174,15 +235,23 @@ void Graph::view(Scope<Depgraph> &s) const
 
 		Runtime_state::Info const info = _runtime_state.info(name);
 
+		bool const alert = component._stalled.constructed()
+		                || info.ram.requested || info.caps.requested;
+
 		Selectable_node::view(s, component.graph_id,
 			{
 				.selected    = component.selected,
 				.important   = !unimportant,
+				.alert       = alert,
 				.primary_dep = primary_dep,
 				.pretty_name = pretty_name
 			},
 			[&] (Scope<Depgraph, Frame, Vbox> &s) {
-				_view_selected_node_content(s, name, info);
+				_view_selected_node_content(s, component, {
+					.ram   = info.ram,
+					.caps  = info.caps,
+					.alert = alert
+				});
 			}
 		);
 	});
@@ -251,6 +320,9 @@ void Graph::click(Clicked_at const &at, Action &action)
 	_nvme_devices_widget.propagate(at, action);
 	_mmc_devices_widget .propagate(at, action);
 	_usb_devices_widget .propagate(at, action);
+
+	_grant.propagate(at, [&] {
+		action.grant_resource_request(_runtime_config.selected()); });
 
 	_remove .propagate(at);
 	_restart.propagate(at);

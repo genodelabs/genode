@@ -1300,6 +1300,19 @@ struct Sculpt::Main : Input_event_handler,
 	/*
 	 * Graph::Action interface
 	 */
+	void grant_resource_request(Start_name const &name) override
+	{
+		using Request = Runtime_state::Resource_request;
+		_runtime_state.for_each_resource_request([&] (Start_name const &n, Request req) {
+			if (n == name)
+				_deploy.assign_resources(_vfs, _cached_init_config, name,
+				                         req.ram.wanted(), req.caps.wanted());
+		});
+	}
+
+	/*
+	 * Graph::Action interface
+	 */
 	void remove_deployed_component(Start_name const &name) override
 	{
 		_cached_init_config.with_component(name, [&] (Runtime_config::Component const &c) {

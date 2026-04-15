@@ -53,7 +53,10 @@ struct Sculpt::Graph : Widget<Depgraph>
 	Hosted<Depgraph, Frame, Vbox, Fb_widget>
 		_fb_widget { Id { "fb" } };
 
-	Hosted<Depgraph, Frame, Vbox, Frame, Hbox, Deferred_action_button>
+	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Action_button>
+		_grant { Id { "Grant" } };
+
+	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Deferred_action_button>
 		_remove  { Id { "Remove"  } },
 		_restart { Id { "Restart" } };
 
@@ -75,9 +78,15 @@ struct Sculpt::Graph : Widget<Depgraph>
 
 	bool _storage_selected = false;
 
+	struct Attr
+	{
+		Runtime_state::Ram  ram;
+		Runtime_state::Caps caps;
+		bool                alert;
+	};
+
 	void _view_selected_node_content(Scope<Depgraph, Frame, Vbox> &,
-	                                 Start_name const &,
-	                                 Runtime_state::Info const &) const;
+	                                 Runtime_config::Component const &, Attr const &) const;
 
 	Graph(Runtime_state          const &runtime_state,
 	      Runtime_config               &runtime_config,
@@ -101,6 +110,7 @@ struct Sculpt::Graph : Widget<Depgraph>
 	struct Action : virtual Storage_device_widget::Action,
 	                virtual Fb_widget::Action
 	{
+		virtual void grant_resource_request(Start_name const &) = 0;
 		virtual void remove_deployed_component(Start_name const &) = 0;
 		virtual void restart_deployed_component(Start_name const &) = 0;
 		virtual void open_popup_dialog(Rect) = 0;
