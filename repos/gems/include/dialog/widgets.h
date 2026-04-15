@@ -80,12 +80,12 @@ struct Dialog::Select_button : Widget<Button>
 
 struct Dialog::Action_button : Widget<Button>
 {
-	Event::Seq_number _seq_number { };
+	Event::Seq_number _seq_number { ~0u /* not selected in initial state */ };
 
 	template <typename FN>
 	void view(Scope<Button> &s, FN const &fn) const
 	{
-		bool const selected = _seq_number == s.hover.seq_number,
+		bool const selected = (_seq_number == s.hover.seq_number) && s.dragged(),
 		           hovered  = (s.hovered() && (!s.dragged() || selected));
 
 		if (selected) s.attribute("selected", "yes");

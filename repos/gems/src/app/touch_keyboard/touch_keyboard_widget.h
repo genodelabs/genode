@@ -62,7 +62,7 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 
 			static bool type_matches(Node const &node) { return node.type() == "key"; }
 
-			Hosted<Vbox, Action_button> _button { Id { } };
+			Hosted<Vbox, Action_button> _button { Id { "key" } };
 
 			void update(Node const &key) {
 
