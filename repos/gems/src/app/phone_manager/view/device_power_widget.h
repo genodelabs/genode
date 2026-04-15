@@ -29,7 +29,7 @@ struct Sculpt::Device_power_widget : Widget<Vbox>
 
 	struct Conditional_confirm : Widget<Right_floating_hbox>
 	{
-		Hosted<Right_floating_hbox, Deferred_action_button> _button { Id { } };
+		Hosted<Right_floating_hbox, Deferred_action_button> _button { Id { "confirm" } };
 
 		void view(Scope<Right_floating_hbox> &s, bool condition) const
 		{
