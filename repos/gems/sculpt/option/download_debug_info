@@ -5,6 +5,6 @@ option
     + fs depot         | + child default_fs_rw | prepend_resource: /depot
     + fs public        | + child default_fs_rw | prepend_resource: /public
     + rom build_info   | + parent | label: build_info
-    + nic              | + child nic_router
+    + nic              | + child network
     + rm               | + parent
 -

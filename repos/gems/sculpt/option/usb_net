@@ -5,5 +5,5 @@ option
   + connect
     + usb    | + child usb
     + report | + child report
-    + uplink | + child nic_router | label: usb_net
+    + uplink | + child network | label: usb_net
 -

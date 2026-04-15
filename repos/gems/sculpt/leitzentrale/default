@@ -170,7 +170,7 @@ config
     + service Report | label: depot_version_config      | + child model_fs_report | label: depot -> version
     + service Report | label: child/wifi_config         | + child model_fs_report | label: child -> wifi
     + service Report | label: child/font_config         | + child model_fs_report | label: child -> font
-    + service Report | label: child/nic_router_config   | + child model_fs_report | label: child -> nic_router
+    + service Report | label: child/network_config      | + child model_fs_report | label: child -> network
     + service Report | label: fb_config                 | + child model_fs_report | label: fb
     + service Report | label: child/dir_query_config    | + child model_fs_report | label: child -> dir_query
     + service Report | label: child/gui_config          | + child model_fs_report | label: child -> gui

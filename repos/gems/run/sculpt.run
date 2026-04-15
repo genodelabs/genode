@@ -349,7 +349,7 @@ set required_child_configs {
 	gui
 	clipboard
 	log_view
-	nic_router
+	network
 	numlock_remap
 	global_keys
 	leitzentrale

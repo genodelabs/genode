@@ -14,10 +14,10 @@ option
   |   + dir firmware
   |     + tar pc_wifi_firmware.tar
   + connect
-    + platform                      | + child platform   | label: wifi
-    + uplink                        | + child nic_router | label: wifi
+    + platform                      | + child platform | label: wifi
+    + uplink                        | + child network  | label: wifi
     + report                        | + child report
-    + rom wifi_config               | + child model      | label: child/wifi
+    + rom wifi_config               | + child model    | label: child/wifi
     + rom libcrypto.lib.so          | + parent
     + rom vfs.lib.so                | + parent
     + rom libc.lib.so               | + parent

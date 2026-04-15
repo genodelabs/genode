@@ -92,7 +92,7 @@ config
     + service Report | label: child/wifi_config       | + child model_fs_report | label: child -> wifi
     + service Report | label: modem_config            | + child model_fs_report | label: modem
     + service Report | label: audio_config            | + child model_fs_report | label: audio
-    + service Report | label: child/nic_router_config | + child model_fs_report | label: child -> nic_router
+    + service Report | label: child/network_config    | + child model_fs_report | label: child -> network
     + service Report | label: child/dir_query_config  | + child model_fs_report | label: child -> dir_query
     + service Report | label: child/usb_config        | + child model_fs_report | label: child -> usb
     + service Report | label: system_config           | + child model_fs_report | label: system

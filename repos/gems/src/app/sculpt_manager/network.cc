@@ -90,7 +90,7 @@ void Sculpt::Network::_handle_wlan_state(Node const &state)
 }
 
 
-void Sculpt::Network::_handle_nic_router_state(Node const &state)
+void Sculpt::Network::_handle_network_state(Node const &state)
 {
 	Nic_state const orig = _nic_state;
 	_nic_state = Nic_state::from_node(state);

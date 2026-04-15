@@ -28,7 +28,7 @@ deploy | info: disposable web browser
 + child falkon_qt6-jemalloc | pkg: cproc/pkg/falkon_qt6-jemalloc/2025-10-27
   + connect
     + rm                  | + parent
-    + nic                 | + child nic_router
+    + nic                 | + child network
     + rtc                 | + child system_clock
     + play                | + child mixer
     + record              | + child mixer

@@ -69,6 +69,6 @@ void Sculpt::gen_update_child_content(Generator &g)
 		gen_relabeled_log("dynamic -> extract",  "extract");
 
 		g.node("nic", [&] {
-			gen_named_node(g, "child", "nic_router"); });
+			gen_named_node(g, "child", "network"); });
 	});
 }

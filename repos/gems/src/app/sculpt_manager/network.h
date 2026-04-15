@@ -61,8 +61,8 @@ struct Sculpt::Network : Noncopyable
 	Rom_handler<Network> _wlan_state_rom {
 		_env, "report -> wifi/state", *this, &Network::_handle_wlan_state };
 
-	Rom_handler<Network> _nic_router_state_rom {
-		_env, "report -> nic_router/state", *this, &Network::_handle_nic_router_state };
+	Rom_handler<Network> _network_state_rom {
+		_env, "report -> network/state", *this, &Network::_handle_network_state };
 
 	Access_points _access_points { };
 
@@ -74,7 +74,7 @@ struct Sculpt::Network : Noncopyable
 
 	void _handle_wlan_accesspoints(Node const &);
 	void _handle_wlan_state(Node const &);
-	void _handle_nic_router_state(Node const &);
+	void _handle_network_state(Node const &);
 
 	Wlan_config_policy _wlan_config_policy = Wlan_config_policy::MANAGED;
 

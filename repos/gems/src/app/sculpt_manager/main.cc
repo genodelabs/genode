@@ -567,7 +567,7 @@ struct Sculpt::Main : Input_event_handler,
 			Runtime_state const &runtime = _main._runtime_state;
 			_main._drivers.with_board_info([&] (Board_info const &board_info) {
 				s.sub_scope<Frame>([&] (Scope<Frame> &s) {
-					if (!runtime.present_in_runtime("nic_router"))
+					if (!runtime.present_in_runtime("network"))
 						return;
 
 					_main._network.dialog.view(s, board_info,
