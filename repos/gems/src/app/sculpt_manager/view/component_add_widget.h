@@ -16,11 +16,10 @@
 
 #include <model/capacity.h>
 #include <view/index_menu_widget.h>
-#include <view/pd_route_widget.h>
+#include <view/pd_connect_widget.h>
 #include <view/resource_widget.h>
 #include <view/debug_widget.h>
-#include <view/pd_route_widget.h>
-#include <view/fs_route_widget.h>
+#include <view/fs_connect_widget.h>
 #include <view/component_info_widget.h>
 
 namespace Sculpt { struct Component_add_widget; }
@@ -38,42 +37,42 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 	Runtime_config const &_runtime_config;
 	Dir_query      const &_dir_query;
 
-	using Route_entry   = Hosted<Vbox, Frame, Vbox, Menu_entry>;
+	using Conn_entry    = Hosted<Vbox, Frame, Vbox, Menu_entry>;
 	using Service_entry = Hosted<Vbox, Frame, Vbox, Menu_entry>;
 
 	Hosted<Vbox, Index_menu_widget::Sub_menu_title> _back      { Id { "back" } };
 	Hosted<Vbox, Deferred_action_button>            _launch    { Id { "Add component" } };
 	Hosted<Vbox, Frame, Vbox, Resource_widget>      _resources { Id { "resources" } };
-	Hosted<Vbox, Frame, Pd_route_widget>            _pd_route  { Id { "pd_route" }, _runtime_config };
+	Hosted<Vbox, Frame, Pd_connect_widget>          _pd_conn   { Id { "pd_conn" }, _runtime_config };
 	Hosted<Vbox, Frame, Debug_widget>               _debug     { Id { "debug" } };
 
-	Id _selected_route { };
+	Id _selected_connection { };
 
-	void _apply_to_selected_route(Action &action, auto const &fn)
+	void _apply_to_selected_connection(Action &action, auto const &fn)
 	{
 		unsigned count = 0;
 		action.apply_to_construction([&] (Component &component) {
-			component.routes.for_each([&] (Route &route) {
-				Route::Id const id { count++ };
-				if (_route_selected(id))
-					fn(route, id); }); });
+			component.connect.for_each([&] (Connection &conn) {
+				Connection::Id const id { count++ };
+				if (_connection_selected(id))
+					fn(conn, id); }); });
 	}
 
-	bool _route_selected(Route::Id const &id) const
+	bool _connection_selected(Connection::Id const &id) const
 	{
-		return _selected_route.valid() && id == _selected_route.value;
+		return _selected_connection.valid() && id == _selected_connection.value;
 	}
 
 	bool _resource_widget_selected() const
 	{
-		return _route_selected("resources");
+		return _connection_selected("resources");
 	}
 
-	bool _file_system_route_selected(Action &action)
+	bool _file_system_connection_selected(Action &action)
 	{
 		bool result = false;
-		_apply_to_selected_route(action, [&] (Route const &route, Route::Id) {
-			if (route.required == Service::Type::FS)
+		_apply_to_selected_connection(action, [&] (Connection const &conn, Connection::Id) {
+			if (conn.required == Service::Type::FS)
 				result = true; });
 		return result;
 	}
@@ -91,18 +90,18 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 		s.sub_scope<Vgap>();
 
 		unsigned count = 0;
-		component.routes.for_each([&] (Route const &route) {
+		component.connect.for_each([&] (Connection const &conn) {
 
 			Id const id { Id::Value { count++ } };
 
 			/*
-			 * Present directory selector for file-system routes
+			 * Present directory selector for file-system connections
 			 */
-			if (route.required == Service::Type::FS) {
+			if (conn.required == Service::Type::FS) {
 				s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
-					Hosted<Vbox, Frame, Fs_route_widget> fs_route_widget(id);
-					s.widget(fs_route_widget, _selected_route, component,
-					         route, _runtime_config, _dir_query);
+					Hosted<Vbox, Frame, Fs_connect_widget> fs_connect_widget(id);
+					s.widget(fs_connect_widget, _selected_connection, component,
+					         conn, _runtime_config, _dir_query);
 				});
 				return;
 			}
@@ -110,22 +109,22 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
 				s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
 
-					bool const selected = _route_selected(id.value);
-					bool const defined  = route.selected_service.constructed();
+					bool const selected = _connection_selected(id.value);
+					bool const defined  = conn.selected_service.constructed();
 
 					if (!selected) {
-						Route_entry entry { id };
+						Conn_entry entry { id };
 						s.widget(entry, defined,
-						         defined ? Info(route.selected_service->info)
-						                 : Info(route));
+						         defined ? Info(conn.selected_service->info)
+						                 : Info(conn));
 					}
 
 					/*
 					 * List of routing options
 					 */
 					if (selected) {
-						Route_entry back { Id { "back" } };
-						s.widget(back, true, Info(route), "back");
+						Conn_entry back { Id { "back" } };
+						s.widget(back, true, Info(conn), "back");
 
 						unsigned count = 0;
 						_runtime_config.for_each_service([&] (Service const &service) {
@@ -133,10 +132,10 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 							Id const service_id { Id::Value("service.", count++) };
 
 							bool const service_selected =
-								route.selected_service.constructed() &&
-								service_id.value == route.selected_service_id;
+								conn.selected_service.constructed() &&
+								service_id.value == conn.selected_service_id;
 
-							if (service.type == route.required) {
+							if (service.type == conn.required) {
 								Service_entry entry { service_id };
 								s.widget(entry, service_selected, service.info);
 							}
@@ -149,20 +148,20 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 		/* don't show the PD menu if only the system PD service is available */
 		if (_runtime_config.num_service_options(Service::Type::PD) > 1)
 			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
-				s.widget(_pd_route, _selected_route, component); });
+				s.widget(_pd_conn, _selected_connection, component); });
 
 		s.sub_scope<Frame>(Id { "resources" }, [&] (Scope<Vbox, Frame> &s) {
 			s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
 
-				bool const selected = _route_selected("resources");
+				bool const selected = _connection_selected("resources");
 
 				if (!selected) {
-					Route_entry entry { Id { "resources" } };
+					Conn_entry entry { Id { "resources" } };
 					s.widget(entry, false, "Resource assignment ...", "enter");
 				}
 
 				if (selected) {
-					Route_entry entry { Id { "back" } };
+					Conn_entry entry { Id { "back" } };
 					s.widget(entry, true, "Resource assignment ...", "back");
 
 					s.widget(_resources, component);
@@ -174,9 +173,9 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 			s.widget(_debug, component); });
 
 		/*
-		 * Display "Add component" button once all routes are defined
+		 * Display "Add component" button once all connections are defined
 		 */
-		if (component.all_routes_defined())
+		if (component.all_connections_defined())
 			s.widget(_launch);
 	}
 
@@ -186,7 +185,7 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 		_runtime_config(runtime_config), _dir_query(dir_query)
 	{ }
 
-	void reset() { _selected_route = { }; }
+	void reset() { _selected_connection = { }; }
 
 	void view(Scope<Vbox> &s, Component const &component) const
 	{
@@ -203,25 +202,25 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 			action.apply_to_construction([&] (Component &component) {
 				_debug.propagate(at, component); });
 
-		Id const route_id = at.matching_id<Vbox, Frame, Vbox, Menu_entry>();
+		Id const conn_id = at.matching_id<Vbox, Frame, Vbox, Menu_entry>();
 
-		/* select route to present routing options */
-		if (!_selected_route.valid() && route_id.valid())
-			_selected_route = route_id;
+		/* select connection to present routing options */
+		if (!_selected_connection.valid() && conn_id.valid())
+			_selected_connection = conn_id;
 
 		/*
-		 * Route selected
+		 * Connection selected
 		 */
 
-		/* close selected route */
-		if (route_id.value == "back") {
-			_selected_route = { };
+		/* close selected connection */
+		if (conn_id.value == "back") {
+			_selected_connection = { };
 
 		} else if (_resource_widget_selected()) {
 
-			bool const clicked_on_different_route = route_id.valid();
-			if (clicked_on_different_route) {
-				_selected_route = route_id;
+			bool const clicked_on_different_connection = conn_id.valid();
+			if (clicked_on_different_connection) {
+				_selected_connection = conn_id;
 
 			} else {
 
@@ -229,86 +228,86 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 					_resources.propagate(at, component); });
 			}
 
-		} else if (_file_system_route_selected(action)) {
+		} else if (_file_system_connection_selected(action)) {
 
-			_apply_to_selected_route(action, [&] (Route &route, Route::Id id) {
+			_apply_to_selected_connection(action, [&] (Connection &conn, Connection::Id id) {
 
-				if (at.matching_id<Vbox, Frame, Fs_route_widget>() != Id { id }) {
-					/* select different route */
-					if (route_id.valid())
-						_selected_route = route_id;
+				if (at.matching_id<Vbox, Frame, Fs_connect_widget>() != Id { id }) {
+					/* select different connection */
+					if (conn_id.valid())
+						_selected_connection = conn_id;
 					return;
 				}
 
-				/* click inside the file-system route widget */
+				/* click inside the file-system connection widget */
 				action.apply_to_construction([&] (Component &component) {
 
-					Hosted<Vbox, Frame, Fs_route_widget> fs_route_widget(Id { id });
+					Hosted<Vbox, Frame, Fs_connect_widget> fs_connect_widget(Id { id });
 
-					Route::Id const orig_selected_service = route.selected_service_id;
-					Path      const orig_selected_path    = route.selected_path;
+					Connection::Id const orig_selected_service = conn.selected_service_id;
+					Path           const orig_selected_path    = conn.selected_path;
 
-					fs_route_widget.propagate(at, _runtime_config, _dir_query,
-					                          component, route);
+					fs_connect_widget.propagate(at, _runtime_config, _dir_query,
+					                            component, conn);
 
 					Dir_query::Query const query =
-						Fs_route_widget::browsed_path_query(component, route);
+						Fs_connect_widget::browsed_path_query(component, conn);
 
 					if (query != _dir_query._query)
 						action.query_directory(query);
 
-					bool const selection_changed = (orig_selected_service != route.selected_service_id)
-					                            || (orig_selected_path    != route.selected_path);
+					bool const selection_changed = (orig_selected_service != conn.selected_service_id)
+					                            || (orig_selected_path    != conn.selected_path);
 
 					if (selection_changed) /* close options on selection or deselection */
-						_selected_route = { };
+						_selected_connection = { };
 				});
 			});
 
 		} else {
 
-			bool clicked_on_selected_route = false;
+			bool clicked_on_selected_connection = false;
 
-			_apply_to_selected_route(action, [&] (Route &route, Route::Id) {
+			_apply_to_selected_connection(action, [&] (Connection &conn, Connection::Id) {
 
 				unsigned count = 0;
 				_runtime_config.for_each_service([&] (Service const &service) {
 
 					Id const id { Id::Value("service.", count++) };
 
-					if (route_id == id) {
+					if (conn_id == id) {
 
 						bool const clicked_service_already_selected =
-							route.selected_service.constructed() &&
-							id.value == route.selected_service_id;
+							conn.selected_service.constructed() &&
+							id.value == conn.selected_service_id;
 
 						if (clicked_service_already_selected) {
 
 							/* clear selection */
-							route.selected_service.destruct();
-							route.selected_service_id = { };
+							conn.selected_service.destruct();
+							conn.selected_service_id = { };
 
 						} else {
 
 							/* select different service */
-							route.selected_service.construct(service);
-							route.selected_service_id = id.value;
+							conn.selected_service.construct(service);
+							conn.selected_service_id = id.value;
 						}
 
-						_selected_route = { };
+						_selected_connection = { };
 
-						clicked_on_selected_route = true;
+						clicked_on_selected_connection = true;
 					}
 				});
 			});
 
-			if (_selected_route == _pd_route.id)
+			if (_selected_connection == _pd_conn.id)
 				action.apply_to_construction([&] (Component &component) {
-					_pd_route.propagate(at, component); });
+					_pd_conn.propagate(at, component); });
 
-			/* select different route */
-			if (!clicked_on_selected_route && route_id.valid())
-				_selected_route = route_id;
+			/* select different connection */
+			if (!clicked_on_selected_connection && conn_id.valid())
+				_selected_connection = conn_id;
 		}
 	}
 

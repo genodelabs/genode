@@ -15,7 +15,7 @@
 #define _MODEL__COMPONENT_H_
 
 #include <types.h>
-#include <model/route.h>
+#include <model/connection.h>
 #include <depot/archive.h>
 #include <blueprint.h>
 
@@ -66,22 +66,23 @@ struct Sculpt::Component : Noncopyable
 
 	Blueprint_info blueprint_info { };
 
-	List_model<Route> routes   { };
-	Route             pd_route { String<10>("<pd/>") };
+	List_model<Connection> connect { };
 
-	void _update_routes_from_node(Node const &node)
+	Connection pd_connection { String<10>("<pd/>") };
+
+	void _update_connections_from_node(Node const &node)
 	{
-		routes.update_from_node(node,
+		connect.update_from_node(node,
 
 			/* create */
-			[&] (Node const &route) -> Route & {
-				return *new (_alloc) Route(route); },
+			[&] (Node const &conn) -> Connection & {
+				return *new (_alloc) Connection(conn); },
 
 			/* destroy */
-			[&] (Route &e) { destroy(_alloc, &e); },
+			[&] (Connection &e) { destroy(_alloc, &e); },
 
 			/* update */
-			[&] (Route &, Node const &) { }
+			[&] (Connection &, Node const &) { }
 		);
 	}
 
@@ -137,7 +138,7 @@ struct Sculpt::Component : Noncopyable
 
 	~Component()
 	{
-		_update_routes_from_node(Node());
+		_update_connections_from_node(Node());
 	}
 
 	void try_apply_blueprint(Node const &blueprint)
@@ -160,7 +161,7 @@ struct Sculpt::Component : Noncopyable
 				caps = runtime.attribute_value("caps", 0UL);
 
 				runtime.with_optional_sub_node("requires", [&] (Node const &req) {
-					_update_routes_from_node(req); });
+					_update_connections_from_node(req); });
 			});
 
 			blueprint_info = {
@@ -208,27 +209,27 @@ struct Sculpt::Component : Noncopyable
 			});
 	}
 
-	void gen_pd_cpu_route(Generator &g) const
+	void gen_pd_cpu_connection(Generator &g) const
 	{
-		/* by default pd route goes to parent if nothing is specified */
-		if (!pd_route.selected_service.constructed())
+		/* by default pd connection goes to parent if nothing is specified */
+		if (!pd_connection.selected_service.constructed())
 			return;
 
 		/*
-		 * Until PD & CPU gets merged, enforce on Sculpt that PD and CPU routes
+		 * Until PD & CPU gets merged, enforce on Sculpt that PD and CPU connections
 		 * go to the same server.
 		 */
-		gen_named_node(g, "service", Sculpt::Service::name_attr(pd_route.required), [&] {
-			pd_route.selected_service->generate(g); });
-		gen_named_node(g, "service", "CPU", [&] {
-			pd_route.selected_service->generate(g); });
+		g.node(Sculpt::Service::node_type(pd_connection.required), [&] {
+			pd_connection.selected_service->generate(g); });
+		g.node("cpu", [&] {
+			pd_connection.selected_service->generate(g); });
 	}
 
-	bool all_routes_defined() const
+	bool all_connections_defined() const
 	{
 		bool result = true;
-		routes.for_each([&] (Route const &route) {
-			if (!route.selected_service.constructed())
+		connect.for_each([&] (Connection const &conn) {
+			if (!conn.selected_service.constructed())
 				result = false; });
 
 		return result;

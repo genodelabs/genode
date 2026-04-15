@@ -1,5 +1,5 @@
 /*
- * \brief  Representation of a route to a service
+ * \brief  Representation of a connection from client to service
  * \author Norman Feske
  * \date   2019-02-25
  */
@@ -11,17 +11,17 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _MODEL__ROUTE_H_
-#define _MODEL__ROUTE_H_
+#ifndef _MODEL__CONNECTION_H_
+#define _MODEL__CONNECTION_H_
 
 #include <xml.h>
 #include <types.h>
 #include <model/service.h>
 
-namespace Sculpt { struct Route; }
+namespace Sculpt { struct Connection; }
 
 
-struct Sculpt::Route : List_model<Route>::Element
+struct Sculpt::Connection : List_model<Connection>::Element
 {
 	using Id   = String<32>;
 	using Info = String<80>;
@@ -85,7 +85,7 @@ struct Sculpt::Route : List_model<Route>::Element
 	Id selected_service_id { };
 
 	/*
-	 * Directory selection of a file-system route
+	 * Directory selection of a file-system connection
 	 */
 
 	using Path = String<256>;
@@ -125,7 +125,7 @@ struct Sculpt::Route : List_model<Route>::Element
 	 *
 	 * \param required  sub node of a runtime's <requires> node
 	 */
-	Route(Node const &node)
+	Connection(Node const &node)
 	:
 		required(_required(node)),
 		required_name(node.attribute_value("name",
@@ -142,26 +142,14 @@ struct Sculpt::Route : List_model<Route>::Element
 	void generate(Generator &g) const
 	{
 		if (!selected_service.constructed()) {
-			warning("no service assigned to route ", *this);
+			warning("no service assigned to connection ", *this);
 			return;
 		}
 
-		gen_named_node(g, "service", Service::name_attr(required), [&] {
+		g.node(Service::node_type(required), [&] {
 
-			if (required_name.valid()) {
-
-				switch (selected_service->match_label) {
-				case Service::Match_label::LAST:
-					g.attribute("label_last", required_name);
-					break;
-				case Service::Match_label::FS:
-					g.attribute("label_prefix", Name(required_name, " ->"));
-					break;
-				case Service::Match_label::EXACT:
-					g.attribute("label", required_name);
-					break;
-				}
-			}
+			if (required_name.valid())
+				g.attribute("name", required_name);
 
 			if (selected_service->type == Service::Type::FS)
 				selected_service->generate(g, [&] {
@@ -185,4 +173,4 @@ struct Sculpt::Route : List_model<Route>::Element
 	}
 };
 
-#endif /* _MODEL__ROUTE_H_ */
+#endif /* _MODEL__CONNECTION_H_ */

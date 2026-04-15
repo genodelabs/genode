@@ -164,11 +164,11 @@ class Sculpt::Runtime_state : public Runtime_info
 						construction->gen_affinity(g);
 						construction->gen_monitor(g);
 
-						g.tabular_node("route", [&] {
-							construction->gen_pd_cpu_route(g);
+						g.tabular_node("connect", [&] {
+							construction->gen_pd_cpu_connection(g);
 
-							construction->routes.for_each([&] (Route const &route) {
-								route.generate(g); }); });
+							construction->connect.for_each([&] (Connection const &conn) {
+								conn.generate(g); }); });
 					}
 				});
 			}

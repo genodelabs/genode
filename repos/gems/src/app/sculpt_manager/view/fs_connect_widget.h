@@ -1,5 +1,5 @@
 /*
- * \brief  File-system route assignment widget
+ * \brief  File-system connection assignment widget
  * \author Norman Feske
  * \date   2025-04-19
  */
@@ -11,18 +11,18 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _VIEW__FS_ROUTE_WIDGET_H_
-#define _VIEW__FS_ROUTE_WIDGET_H_
+#ifndef _VIEW__FS_CONNECT_WIDGET_H_
+#define _VIEW__FS_CONNECT_WIDGET_H_
 
 /* local includes */
 #include <model/component.h>
 #include <model/dir_query.h>
 #include <view/dialog.h>
 
-namespace Sculpt { struct Fs_route_widget; }
+namespace Sculpt { struct Fs_connect_widget; }
 
 
-struct Sculpt::Fs_route_widget : Widget<Vbox>
+struct Sculpt::Fs_connect_widget : Widget<Vbox>
 {
 	using Identity = Dir_query::Identity;
 
@@ -130,9 +130,9 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 	}
 
 	static Dir_query::Identity _identity(Component const &component,
-	                                     Route const &route)
+	                                     Connection const &conn)
 	{
-		return { component.name, " -> ", route.required_name };
+		return { component.name, " -> ", conn.required_name };
 	}
 
 	static void _for_each_browsed_leading_sub_path(Path const &p, auto const &fn)
@@ -147,43 +147,43 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 				fn(const_leading, head); });
 	}
 
-	static Dir_query::Query browsed_path_query(Component const &component, Route const &route)
+	static Dir_query::Query browsed_path_query(Component const &component, Connection const &conn)
 	{
 		return {
-			.identity = _identity(component, route),
-			.fs       =         first_path_element(route.browsed.path),
-			.path     = without_first_path_element(route.browsed.path)
+			.identity = _identity(component, conn),
+			.fs       =         first_path_element(conn.browsed.path),
+			.path     = without_first_path_element(conn.browsed.path)
 		};
 	}
 
-	static Id _path_elem_id(Route const &route, unsigned level)
+	static Id _path_elem_id(Connection const &conn, unsigned level)
 	{
-		return { { "l", level, ".", route.browsed.index_at_level(level) } };
+		return { { "l", level, ".", conn.browsed.index_at_level(level) } };
 	}
 
-	void view(Scope<Vbox> &s, Id const &selected_route, Component const &component,
-	          Route const &route, Runtime_config const &runtime_config,
+	void view(Scope<Vbox> &s, Id const &selected_connection, Component const &component,
+	          Connection const &conn, Runtime_config const &runtime_config,
 	          Dir_query const &dir_query) const
 	{
 		using Info = Component::Info;
 
-		Id const fs_route_id = s.id;
+		Id const fs_conn_id = s.id;
 
-		bool const selected = (selected_route == fs_route_id);
+		bool const selected = (selected_connection == fs_conn_id);
 
 		if (!selected) {
-			bool const defined = route.selected_service.constructed();
+			bool const defined = conn.selected_service.constructed();
 
-			Hosted<Vbox, Folded_entry> entry { fs_route_id };
+			Hosted<Vbox, Folded_entry> entry { fs_conn_id };
 			s.widget(entry, defined,
-			         defined ? Info(route.selected_service->info)
-			                 : Info(route),
-			         route.selected_path);
+			         defined ? Info(conn.selected_service->info)
+			                 : Info(conn),
+			         conn.selected_path);
 			return;
 		}
 
 		Hosted<Vbox, Menu_entry> back { Id { "back" } };
-		s.widget(back, true, Info(route), "back");
+		s.widget(back, true, Info(conn), "back");
 
 		unsigned count = 0;
 		runtime_config.for_each_service([&] (Service const &service) {
@@ -193,19 +193,19 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 			if (service.type != Service::Type::FS)
 				return;
 
-			bool const fs_visible = (route.browsed.service_id == service_id.value)
-			                     || !route.browsed.service_id.valid();
+			bool const fs_visible = (conn.browsed.service_id == service_id.value)
+			                     || !conn.browsed.service_id.valid();
 			if (!fs_visible)
 				return;
 
 			/*
 			 * File system
 			 */
-			bool const selected = route.selected_service_id == service_id.value
-			                   && route.selected_path == "";
-			bool const expanded = route.browsed.path.length() > 1;
+			bool const selected = conn.selected_service_id == service_id.value
+			                   && conn.selected_path == "";
+			bool const expanded = conn.browsed.path.length() > 1;
 			bool const has_subdirs = expanded ||
-				dir_query.dir_entry_has_sub_dirs(browsed_path_query(component, route),
+				dir_query.dir_entry_has_sub_dirs(browsed_path_query(component, conn),
 				                                 Dir_query::fs_dir_name(service));
 
 			Fs_entry entry { service_id, };
@@ -217,21 +217,21 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 			});
 		});
 
-		if (route.browsed.path.length() < 2)
+		if (conn.browsed.path.length() < 2)
 			return;
 
 		/*
 		 * Path elements towards browsed path
 		 */
 		unsigned level = 0;
-		_for_each_browsed_leading_sub_path(route.browsed.path,
+		_for_each_browsed_leading_sub_path(conn.browsed.path,
 			[&] (Path const &leading, Path const &curr_elem) {
 				level++;
-				Fs_entry entry { _path_elem_id(route, level) };
+				Fs_entry entry { _path_elem_id(conn, level) };
 				s.widget(entry, curr_elem, Dir_entry::Attr {
 					.level       = level,
 					.selected    = (without_first_path_element(leading)
-					                == route.selected_path),
+					                == conn.selected_path),
 					.has_subdirs = true,
 					.expanded    = true });
 			});
@@ -241,15 +241,15 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 		 */
 		level++;
 		bool dirents_known = false;
-		dir_query.for_each_dir_entry(browsed_path_query(component, route),
+		dir_query.for_each_dir_entry(browsed_path_query(component, conn),
 			[&] (Dir_query::Entry const &dirent) {
 				dirents_known = true;
-				Path const dirent_path   { route.browsed.path, "/", dirent.name };
+				Path const dirent_path   { conn.browsed.path, "/", dirent.name };
 				Path const selected_path = without_first_path_element(dirent_path);
 				Fs_entry entry { Id { { "l", level, ".", dirent.index } } };
 				s.widget(entry, dirent.name, Dir_entry::Attr {
 					.level       = level,
-					.selected    = (route.selected_path == selected_path),
+					.selected    = (conn.selected_path == selected_path),
 					.has_subdirs = dirent.num_dirs > 0,
 					.expanded    = false }); });
 
@@ -258,7 +258,7 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 		 * the animation of directory entries when leaving/entering directories.
 		 */
 		if (!dirents_known) {
-			Fs_entry entry { _path_elem_id(route, level) };
+			Fs_entry entry { _path_elem_id(conn, level) };
 			s.widget(entry, "?", Dir_entry::Attr {
 				.level       = level,
 				.selected    = false,
@@ -268,7 +268,7 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 	}
 
 	void click(Clicked_at const &at, Runtime_config const &runtime_config,
-	           Dir_query const &dir_query, Component &component, Route &route)
+	           Dir_query const &dir_query, Component &component, Connection &conn)
 	{
 		Id const id = at.matching_id<Vbox, Dir_entry>();
 
@@ -280,21 +280,21 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 				Fs_entry entry { service_id, };
 				entry.propagate(at,
 					[&] {
-						if (route.selected_service_id == id.value
-						 && route.selected_path == "") {
-							route.deselect();
+						if (conn.selected_service_id == id.value
+						 && conn.selected_path == "") {
+							conn.deselect();
 							return;
 						}
-						route.selected_service.construct(service);
-						route.selected_service_id = id.value;
-						route.selected_path = { };
+						conn.selected_service.construct(service);
+						conn.selected_service_id = id.value;
+						conn.selected_path = { };
 					},
 					[&] {
-						if (route.browsed.path.length() > 1) {
-							route.browsed = { };
+						if (conn.browsed.path.length() > 1) {
+							conn.browsed = { };
 						} else {
-							route.browsed.path = { "/", Dir_query::fs_dir_name(service) };
-							route.browsed.service_id = service_id;
+							conn.browsed.path = { "/", Dir_query::fs_dir_name(service) };
+							conn.browsed.service_id = service_id;
 						}
 					});
 			}
@@ -305,21 +305,21 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 			unsigned count = 0;
 			runtime_config.for_each_service([&] (Service const &service) {
 				Id const service_id { Id::Value("service.", count++) };
-				if (route.browsed.service_id == service_id.value)
+				if (conn.browsed.service_id == service_id.value)
 					fn(service);
 			});
 		};
 
 		auto toggle_dir_selection = [&] (Path const &selected_path)
 		{
-			if (route.selected_path == selected_path) {
-				route.deselect();
+			if (conn.selected_path == selected_path) {
+				conn.deselect();
 				return;
 			}
 			with_browsed_fs_service([&] (Service const &service) {
-				route.selected_service.construct(service);
-				route.selected_service_id = route.browsed.service_id;
-				route.selected_path = selected_path;
+				conn.selected_service.construct(service);
+				conn.selected_service_id = conn.browsed.service_id;
+				conn.selected_path = selected_path;
 			});
 		};
 
@@ -327,10 +327,10 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 		 * Click on path element towards browsed path
 		 */
 		unsigned level = 0;
-		_for_each_browsed_leading_sub_path(route.browsed.path,
+		_for_each_browsed_leading_sub_path(conn.browsed.path,
 			[&] (Path const &leading, Path const &curr) {
 				level++;
-				Id const path_elem_id = _path_elem_id(route, level);
+				Id const path_elem_id = _path_elem_id(conn, level);
 				if (id != path_elem_id)
 					return;
 
@@ -342,7 +342,7 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 						Path const leading_without_curr {
 							Cstring(leading.string(),
 							        leading.length() - min(leading.length(), curr.length() + 1)) };
-						route.browsed.path = leading_without_curr;
+						conn.browsed.path = leading_without_curr;
 					});
 			});
 
@@ -350,21 +350,21 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 		 * Click on dir entry of browsed path
 		 */
 		level++;
-		dir_query.for_each_dir_entry(browsed_path_query(component, route),
+		dir_query.for_each_dir_entry(browsed_path_query(component, conn),
 			[&] (Dir_query::Entry const &dirent) {
 				Id const dirent_id { { "l", level, ".", dirent.index } };
 				if (id == dirent_id) {
-					Path const dirent_path { route.browsed.path, "/", dirent.name };
+					Path const dirent_path { conn.browsed.path, "/", dirent.name };
 					Fs_entry entry { dirent_id, };
 					entry.propagate(at,
 						[&] { toggle_dir_selection(without_first_path_element(dirent_path)); },
 						[&] {
-							route.browsed.index_at_level(level, dirent.index);
-							route.browsed.path = dirent_path;
+							conn.browsed.index_at_level(level, dirent.index);
+							conn.browsed.path = dirent_path;
 						});
 				}
 		});
 	}
 };
 
-#endif /* _VIEW__FS_ROUTE_WIDGET_H_ */
+#endif /* _VIEW__FS_CONNECT_WIDGET_H_ */
