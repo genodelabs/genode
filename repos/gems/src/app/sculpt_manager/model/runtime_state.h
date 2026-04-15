@@ -60,26 +60,12 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		struct Info
 		{
-			bool selected;
-
-			/* true if component is in the TCB of the selected one */
-			bool tcb;
-
-			/* true if 'tcb' is updated for the immediate dependencies */
-			bool tcb_updated;
-
 			Ram  ram;
 			Caps caps;
 
-			Version version;
-
 			bool operator != (Info const &other) const
 			{
-				return selected      != other.selected
-				    || tcb_updated   != other.tcb_updated
-				    || ram           != other.ram
-				    || caps          != other.caps
-				    || version.value != other.version.value;
+				return ram != other.ram || caps != other.caps;
 			}
 		};
 
@@ -89,18 +75,11 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		Allocator &_alloc;
 
-		Storage_target const &_storage_target;
-
 		struct Child : List_model<Child>::Element
 		{
 			Start_name const name;
 
-			Info info { .selected    = false,
-			            .tcb         = false,
-			            .tcb_updated = false,
-			            .ram         = { },
-			            .caps        = { },
-			            .version     = { 0 }};
+			Info info { };
 
 			Child(Start_name const &name) : name(name) { }
 
@@ -123,16 +102,11 @@ class Sculpt::Runtime_state : public Runtime_info
 				node.with_optional_sub_node("caps", [&] (Node const &caps) {
 					info.caps = Budget::from_node(caps, 0UL); });
 
-				info.version.value = node.attribute_value("version", 0U);
-
 				return { info != orig_info };
 			}
 		};
 
 		List_model<Child> _children { };
-
-		bool _usb_in_tcb     = false;
-		bool _storage_in_tcb = false;
 
 		struct Emerging_child : Interface
 		{
@@ -184,8 +158,7 @@ class Sculpt::Runtime_state : public Runtime_info
 
 	public:
 
-		Runtime_state(Allocator &alloc, Storage_target const &storage_target)
-		: _alloc(alloc), _storage_target(storage_target) { }
+		Runtime_state(Allocator &alloc) : _alloc(alloc) { }
 
 		~Runtime_state() { }
 
@@ -236,88 +209,12 @@ class Sculpt::Runtime_state : public Runtime_info
 			return result;
 		}
 
-		Start_name selected() const
-		{
-			Start_name result;
-			_children.for_each([&] (Child const &child) {
-				if (child.info.selected)
-					result = child.name; });
-			return result;
-		}
-
 		void for_each_resource_request(auto const &fn) const
 		{
 			_children.for_each([&] (Child const &child) {
 				if (child.info.ram.requested || child.info.caps.requested)
 					fn(child.name,
 					   Resource_request { child.info.ram, child.info.caps }); });
-		}
-
-		bool usb_in_tcb()     const { return _usb_in_tcb; }
-		bool storage_in_tcb() const { return _storage_in_tcb; }
-
-		static bool blacklisted_from_graph(Start_name const &name)
-		{
-			/*
-			 * Connections to depot_rom do not reveal any interesting
-			 * information but create a lot of noise.
-			 */
-			return name == "depot_rom" || name == "dynamic_depot_rom";
-		}
-
-		void toggle_selection(Start_name const &name, Runtime_config const &config)
-		{
-			_children.for_each([&] (Child &child) {
-				child.info.selected    = (child.name == name) && !child.info.selected;
-				child.info.tcb         = child.info.selected;
-				child.info.tcb_updated = false;
-			});
-
-			_usb_in_tcb = _storage_in_tcb = false;
-
-			/*
-			 * Update the TCB flag of the selected child's transitive
-			 * dependencies.
-			 */
-			for (;;) {
-
-				Start_name name_of_updated { };
-
-				/*
-				 * Search child that belongs to TCB but its dependencies
-				 * have not been added to the TCB yet.
-				 */
-				_children.for_each([&] (Child &child) {
-					if (!name_of_updated.valid() && child.info.tcb && !child.info.tcb_updated) {
-						name_of_updated = child.name;
-						child.info.tcb_updated = true; /* skip in next iteration */
-					}
-				});
-
-				if (!name_of_updated.valid())
-					break;
-
-				/* tag all dependencies as part of the TCB */
-				config.for_each_dependency(name_of_updated, [&] (Start_name dep) {
-
-					if (dep == "default_fs_rw")
-						dep = _storage_target.fs();
-
-					if (!blacklisted_from_graph(dep))
-						_children.for_each([&] (Child &child) {
-							if (child.name == dep)
-								child.info.tcb = true; });
-				});
-			}
-
-			_children.for_each([&] (Child const &child) {
-				if (child.info.tcb) {
-					config.for_each_dependency(child.name, [&] (Start_name dep) {
-						if (dep == "usb")     _usb_in_tcb     = true;
-						if (dep == "storage") _storage_in_tcb = true;
-					});
-				}
-			});
 		}
 
 		Start_name new_construction(Component::Path const  pkg,

@@ -35,8 +35,8 @@ namespace Sculpt { struct Graph; }
 
 struct Sculpt::Graph : Widget<Depgraph>
 {
-	Runtime_state             &_runtime_state;
-	Runtime_config      const &_runtime_config;
+	Runtime_state       const &_runtime_state;
+	Runtime_config            &_runtime_config;
 	Storage_devices     const &_storage_devices;
 	Storage_target      const &_selected_target;
 	File_system         const &_ram_fs_state;
@@ -79,8 +79,8 @@ struct Sculpt::Graph : Widget<Depgraph>
 	                                 Start_name const &,
 	                                 Runtime_state::Info const &) const;
 
-	Graph(Runtime_state                &runtime_state,
-	      Runtime_config         const &runtime_config,
+	Graph(Runtime_state          const &runtime_state,
+	      Runtime_config               &runtime_config,
 	      Storage_devices        const &storage_devices,
 	      Storage_target         const &selected_target,
 	      File_system            const &ram_fs_state,

@@ -161,6 +161,10 @@ class Sculpt::Runtime_config
 
 			Start_name primary_dependency { };
 
+			bool selected    = false,
+			     tcb         = false,
+			     tcb_updated = false;
+
 			struct Dep : List_model<Dep>::Element
 			{
 				Start_name const to_name;
@@ -451,6 +455,68 @@ class Sculpt::Runtime_config
 				if (service.type == type)
 					count++; });
 			return count;
+		}
+
+		static bool blacklisted_from_graph(Start_name const &name)
+		{
+			/*
+			 * Connections to depot_rom do not reveal any interesting
+			 * information but create a lot of noise.
+			 */
+			return name == "depot_rom" || name == "dynamic_depot_rom";
+		}
+
+		void toggle_selection(Start_name const &name, Storage_target const &storage_target)
+		{
+			_components.for_each([&] (Component &child) {
+				child.selected    = (child.name == name) && !child.selected;
+				child.tcb         = child.selected;
+				child.tcb_updated = false;
+			});
+
+			/*
+			 * Update the TCB flag of the selected child's transitive
+			 * dependencies.
+			 */
+			for (;;) {
+
+				Start_name name_of_updated { };
+
+				/*
+				 * Search child that belongs to TCB but its dependencies
+				 * have not been added to the TCB yet.
+				 */
+				_components.for_each([&] (Component &child) {
+					if (!name_of_updated.valid() && child.tcb && !child.tcb_updated) {
+						name_of_updated = child.name;
+						child.tcb_updated = true; /* skip in next iteration */
+					}
+				});
+
+				if (!name_of_updated.valid())
+					break;
+
+				/* tag all dependencies as part of the TCB */
+				for_each_dependency(name_of_updated, [&] (Start_name dep) {
+
+					if (dep == "default_fs_rw")
+						dep = storage_target.fs();
+
+					if (!blacklisted_from_graph(dep))
+						_components.for_each([&] (Component &child) {
+							if (child.name == dep)
+								child.tcb = true; });
+				});
+			}
+		}
+
+		Start_name selected() const
+		{
+			Start_name result;
+			_components.for_each([&] (Component const &child) {
+				if (child.selected)
+					result = child.name; });
+			return result;
 		}
 };
 

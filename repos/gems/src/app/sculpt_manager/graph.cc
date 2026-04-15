@@ -130,7 +130,7 @@ void Graph::view(Scope<Depgraph> &s) const
 
 	using Component = Runtime_config::Component;
 
-	bool const any_selected = _runtime_state.selected().valid();
+	bool const any_selected = _runtime_config.selected().valid();
 
 	_runtime_config.for_each_component([&] (Component const &component) {
 
@@ -160,9 +160,7 @@ void Graph::view(Scope<Depgraph> &s) const
 		if (hidden)
 			return;
 
-		Runtime_state::Info const info = _runtime_state.info(name);
-
-		bool const unimportant = any_selected && !info.tcb;
+		bool const unimportant = any_selected && !component.tcb;
 
 		/* basic categories, like GUI */
 		Dialog::Id primary_dep = Id { component.primary_dependency };
@@ -174,9 +172,11 @@ void Graph::view(Scope<Depgraph> &s) const
 		_runtime_config.with_graph_id(primary_dep,
 			[&] (Dialog::Id const &id) { primary_dep = id; });
 
+		Runtime_state::Info const info = _runtime_state.info(name);
+
 		Selectable_node::view(s, component.graph_id,
 			{
-				.selected    = info.selected,
+				.selected    = component.selected,
 				.important   = !unimportant,
 				.primary_dep = primary_dep,
 				.pretty_name = pretty_name
@@ -194,14 +194,12 @@ void Graph::view(Scope<Depgraph> &s) const
 		if (name == "ram_fs")
 			return;
 
-		Runtime_state::Info const info = _runtime_state.info(name);
-
-		bool const show_details = info.tcb;
+		bool const show_details = component.tcb;
 
 		if (show_details) {
 			component.for_each_secondary_dep([&] (Start_name dep_name) {
 
-				if (Runtime_state::blacklisted_from_graph(dep_name))
+				if (Runtime_config::blacklisted_from_graph(dep_name))
 					return;
 
 				if (dep_name == "default_fs_rw")
@@ -228,7 +226,7 @@ void Graph::click(Clicked_at const &at, Action &action)
 	Id const id = at.matching_id<Depgraph, Frame, Vbox, Button>();
 	if (id.valid())
 		_runtime_config.with_start_name(id, [&] (Start_name const &name) {
-			_runtime_state.toggle_selection(name, _runtime_config); });
+			_runtime_config.toggle_selection(name, _selected_target); });
 
 	_plus.propagate(at, [&] {
 
@@ -268,18 +266,18 @@ void Graph::clack(Clacked_at const &at, Action &action, Ram_fs_widget::Action &r
 	_usb_devices_widget .propagate(at, action);
 
 	_remove.propagate(at, [&] {
-		action.remove_deployed_component(_runtime_state.selected());
+		action.remove_deployed_component(_runtime_config.selected());
 
 		/*
 		 * Unselect the removed component to bring graph into
 		 * default state.
 		 */
-		_runtime_state.toggle_selection(_runtime_state.selected(),
-		                                _runtime_config);
+		_runtime_config.toggle_selection(_runtime_config.selected(),
+		                                 _selected_target);
 	});
 
 	_restart.propagate(at, [&] {
-		action.restart_deployed_component(_runtime_state.selected());
+		action.restart_deployed_component(_runtime_config.selected());
 	});
 }
 

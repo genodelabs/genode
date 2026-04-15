@@ -1002,7 +1002,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_runtime_state(Node const &);
 
-	Runtime_state _runtime_state { _heap, _storage._selected_target };
+	Runtime_state _runtime_state { _heap };
 
 	/**
 	 * Component::Construction_info interface
