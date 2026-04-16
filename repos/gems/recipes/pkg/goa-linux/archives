@@ -3,4 +3,5 @@ _/src/base-linux
 _/src/fb_sdl
 _/src/linux_nic
 _/src/linux_rtc
+_/src/linux_slirp_nic
 _/src/lx_fs
