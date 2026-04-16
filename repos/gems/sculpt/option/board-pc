@@ -137,4 +137,43 @@ option
     + rom capslock | + child report | label: global_keys/capslock
     + rom numlock  | + child report | label: global_keys/numlock
     + event        | + child event_filter | label: usb_hid
+
++ child nic | binary: pc_nic | ram: 20M | caps: 300 | priority: -3 | enabled: no
+  + config
+  + connect
+    + platform    | + child platform | label: nic
+    + uplink      | + child network  | label: nic
+    + report      | + child report
+    + rm          | + parent
+
++ child wifi | binary: wifi | ram: 24M | caps: 260 | priority: -3 | enabled: no
+  + config
+  | + libc | stdout: /dev/log | stderr: /dev/null | rtc: /dev/rtc
+  | + vfs
+  |   + dir dev
+  |     + null
+  |     + zero
+  |     + log
+  |     + null
+  |     + jitterentropy random
+  |     + jitterentropy urandom
+  |   + inline rtc | : 2018-01-01 00:01
+  |   + dir firmware
+  |     + tar pc_wifi_firmware.tar
+  + connect
+    + platform                      | + child platform | label: wifi
+    + uplink                        | + child network  | label: wifi
+    + report                        | + child report
+    + rom wifi_config               | + child model    | label: child/wifi
+    + rom libcrypto.lib.so          | + parent
+    + rom vfs.lib.so                | + parent
+    + rom libc.lib.so               | + parent
+    + rom libm.lib.so               | + parent
+    + rom vfs_jitterentropy.lib.so  | + parent
+    + rom libssl.lib.so             | + parent
+    + rom wifi.lib.so               | + parent | label: pc_wifi.lib.so
+    + rom pc_wifi_firmware.tar      | + parent
+    + rom wpa_driver_nl80211.lib.so | + parent
+    + rom wpa_supplicant.lib.so     | + parent
+    + rm                            | + parent
 -
