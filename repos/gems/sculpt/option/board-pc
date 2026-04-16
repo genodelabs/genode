@@ -124,4 +124,17 @@ option
     + platform   | + child platform | label: nvme
     + rom system | + child model    | label: system
     + report     | + child report
+
++ child usb_hid | binary: usb_hid | ram: 11M | caps: 180 | priority: -2 | enabled: no
+  .
+  . Enabled/disabled by the sculpt manager according to the presence of
+  . USB-HID devices.
+  .
+  + config | capslock_led: rom | numlock_led: rom
+  + connect
+    + usb          | + child usb
+    + report       | + child report
+    + rom capslock | + child report | label: global_keys/capslock
+    + rom numlock  | + child report | label: global_keys/numlock
+    + event        | + child event_filter | label: usb_hid
 -

@@ -305,9 +305,7 @@ struct Sculpt::Main : Input_event_handler,
 		.suspending = false,
 	};
 
-	Constructible<Child_state> _usb_hid { };
-
-	bool _usb_storage_acquired = false;
+	bool _usb_storage_acquired = false, _usb_hid_present = false;
 
 	/**
 	 * Drivers::Action
@@ -437,10 +435,10 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_usb_devices(Node const &devices)
 	{
-		bool const orig_usb_hid_present = _usb_hid.constructed();
+		bool const orig_usb_hid_present = _usb_hid_present;
 
-		bool usb_hid_present  = false;
 		_usb_storage_acquired = false;
+		_usb_hid_present      = false;
 
 		static constexpr unsigned CLASS_HID = 3, CLASS_STORAGE = 8;
 
@@ -449,17 +447,16 @@ struct Sculpt::Main : Input_event_handler,
 			device.for_each_sub_node("config", [&] (Node const &config) {
 				config.for_each_sub_node("interface", [&] (Node const &interface) {
 					unsigned const class_id = interface.attribute_value("class", 0u);
-					usb_hid_present       |= (class_id == CLASS_HID);
+					_usb_hid_present      |= (class_id == CLASS_HID);
 					_usb_storage_acquired |= (class_id == CLASS_STORAGE) && acquired;
 				});
 			});
 		});
 
-		if (orig_usb_hid_present != usb_hid_present) {
-			_usb_hid.conditional(usb_hid_present,
-			                     _child_states, Priority::MULTIMEDIA,
-			                     Child_name { "usb_hid" }, Binary_name { "usb_hid" },
-			                     Ram_quota { 11*1024*1024 }, Cap_quota { 180 });
+		if (orig_usb_hid_present != _usb_hid_present) {
+			_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
+				edit.adjust("option | + child usb_hid | : enabled", false,
+					[&] (unsigned) { return _usb_hid_present ? "yes" : "no"; }); });
 
 			generate_runtime_config();
 		}
@@ -2747,24 +2744,6 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 void Sculpt::Main::_generate_managed_option(Generator &g) const
 {
-	if (_usb_hid.constructed()) {
-		g.node("child", [&] {
-			_usb_hid->gen_child_node_content(g);
-			g.node("config", [&] {
-				g.attribute("capslock_led", "rom");
-				g.attribute("numlock_led",  "rom");
-			});
-			g.tabular_node("connect", [&] {
-				g.node("usb", [&] {
-					gen_named_node(g, "child", "usb"); });
-				connect_report(g);
-				connect_report_rom(g, "capslock", "global_keys/capslock");
-				connect_report_rom(g, "numlock",  "global_keys/numlock");
-				connect_event(g, "usb_hid");
-			});
-		});
-	}
-
 	_storage.gen_child_nodes(g);
 	_file_browser_state.gen_child_nodes(g);
 	_dir_query.gen_child_nodes(g);
