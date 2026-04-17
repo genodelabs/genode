@@ -7,7 +7,7 @@
 #
 # Note: the string must be exactly 5 bytes long.
 #
-proc sculpt_version { } { return "26.03" }
+proc sculpt_version { } { return "26.04" }
 
 
 proc install_hid { path args } {
