@@ -14,4 +14,7 @@ config | managed: yes | bios_handoff: no
 + policy | label_prefix: usb_webcam ->
   + device | vendor_id:  0x5986 | product_id: 0x366 | . x250 webcam
   + device | vendor_id:  0x5986 | product_id: 0x706 | . x260 webcam
+
++ policy | label_prefix: usb_net ->
+  + device | vendor_id: 0x0bda | product_id: 0x8156 | . RTL8156
 -

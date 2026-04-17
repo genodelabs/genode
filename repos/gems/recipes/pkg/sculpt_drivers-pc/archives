@@ -13,5 +13,6 @@ _/src/pc_usb_host
 _/src/ps2
 _/src/usb_block
 _/src/usb_hid
+_/src/usb_net
 _/src/vesa_fb
 _/src/rom_reporter
