@@ -250,12 +250,6 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 					fs_connect_widget.propagate(at, _runtime_config, _dir_query,
 					                            component, conn);
 
-					Dir_query::Query const query =
-						Fs_connect_widget::browsed_path_query(component, conn);
-
-					if (query != _dir_query._query)
-						action.query_directory(query);
-
 					bool const selection_changed = (orig_selected_service != conn.selected_service_id)
 					                            || (orig_selected_path    != conn.selected_path);
 
@@ -308,6 +302,19 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 			/* select different connection */
 			if (!clicked_on_selected_connection && conn_id.valid())
 				_selected_connection = conn_id;
+		}
+
+		if (_file_system_connection_selected(action)) {
+			_apply_to_selected_connection(action, [&] (Connection &conn, Connection::Id) {
+				action.apply_to_construction([&] (Component &component) {
+
+					Dir_query::Query const query =
+						Fs_connect_widget::browsed_path_query(component, conn);
+
+					if (query != _dir_query._query)
+						action.query_directory(query);
+				});
+			});
 		}
 	}
 
