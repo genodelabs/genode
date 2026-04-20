@@ -44,10 +44,13 @@ class Lid : Acpica::Callback<Lid> {
 				return;
 			}
 
-			Genode::log(onoff.object.Integer.Value ? "open    " : "closed  ",
-			            " - lid (", value, ")");
+			auto const new_state = onoff.object.Integer.Value;
 
-			_lid_state = onoff.object.Integer.Value;
+			if (_lid_state != new_state)
+				Genode::log(new_state ? "open    " : "closed  ",
+				            " - lid (", value, ")");
+
+			_lid_state = new_state;
 			_lid_count++;
 
 			if (_report)

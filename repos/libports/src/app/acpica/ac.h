@@ -43,12 +43,15 @@ class Ac : Acpica::Callback<Ac> {
 				return;
 			}
 
-			_ac_state = onoff.object.Integer.Value;
-			_ac_count++;
+			auto const new_state = onoff.object.Integer.Value;
 
-			Genode::log(_ac_state == 0 ? "offline " :
-			            _ac_state == 1 ? "online  " : "unknown ",
-			            " - ac (", value, ")");
+			if (_ac_state != new_state)
+				Genode::log(new_state == 0 ? "offline " :
+				            new_state == 1 ? "online  " : "unknown ",
+				            " - ac (", value, ")");
+
+			_ac_state = new_state;
+			_ac_count++;
 
 			if (_report)
 				_report->ac_event();
