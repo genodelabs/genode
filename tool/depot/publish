@@ -126,8 +126,10 @@ system_images_missing_error:
 include $(DEPOT_TOOL_DIR)/mk/pgp.inc
 
 # prompt for secret key passwords (when using Sequoia)
-_ARCHIVE_USERS := $(sort $(foreach A,$(ARCHIVES),$(call archive_user,$(A))))
-$(foreach U,$(_ARCHIVE_USERS),\
+_ARCHIVE_USERS := $(foreach A,$(ARCHIVES),$(call archive_user,$(A)))
+_ARCHIVE_USERS += $(foreach I,$(SYSTEM_IMAGES),$(call archive_user,$(I)))
+_ARCHIVE_USERS += $(foreach I,$(INDEX_FILES),$(call archive_user,$(I)))
+$(foreach U,$(sort $(_ARCHIVE_USERS)),\
    $(if $(call pubkey_path,$(U)),\
         $(eval $(call unlock_user_key,$(U)))))
 
