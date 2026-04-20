@@ -166,8 +166,8 @@ Report 'acpi_hid' - HID Keys by ACPI Fuji02e3 device
 Report 'sleep_states'  - supported S0-S5 sleep states
 
 ! sleep_states | version: 0 | complete: S0
-! + S1 | supported: false
-! + S2 | supported: false
-! + S3 | supported: true | SLP_TYPa: 5 | SLP_TYPb: 0
-! + S4 | supported: true | SLP_TYPa: 6 | SLP_TYPb: 0
-! + S5 | supported: true | SLP_TYPa: 7 | SLP_TYPb: 0
+! + s1 | supported: false
+! + s2 | supported: false
+! + s3 | supported: true | slp_typa: 5 | slp_typb: 0
+! + s4 | supported: true | slp_typa: 6 | slp_typb: 0
+! + s5 | supported: true | slp_typa: 7 | slp_typb: 0

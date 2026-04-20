@@ -110,7 +110,7 @@ void Driver::Main::_system_update()
 		/* save IOMMU state */
 		devices().for_each_io_mmu([&] (auto &io_mmu) { io_mmu.suspend(); });
 
-		try { _suspend("S3"); } catch (...) { error("suspend failed"); }
+		try { _suspend("s3"); } catch (...) { error("suspend failed"); }
 
 		/* re-initialise IOMMU independent of result */
 		devices().for_each_io_mmu([&] (auto &io_mmu) { io_mmu.resume(); });
@@ -141,8 +141,8 @@ void Driver::Main::_suspend(String<8> suspend_mode)
 
 	_sleep_rom.node().with_sub_node(suspend_mode.string(), [&] (auto const &node) {
 
-		auto const typea = "SLP_TYPa";
-		auto const typeb = "SLP_TYPb";
+		auto const typea = "slp_typa";
+		auto const typeb = "slp_typb";
 		auto const valid = node.attribute_value("supported", false) &&
 		                   node.has_attribute(typea) &&
 		                   node.has_attribute(typeb);

@@ -32,12 +32,12 @@ void Acpica::generate_suspend_report(Generator &g, String<32> const &state)
 		                                                 &slp_typa,
 		                                                 &slp_typb);
 
-		Genode::String<4> const state_name("S", sleep_state);
+		Genode::String<4> const state_name("s", sleep_state);
 		g.node(state_name.string(), [&] () {
 			g.attribute("supported", result == AE_OK);
 			if (result == AE_OK) {
-				g.attribute("SLP_TYPa", slp_typa);
-				g.attribute("SLP_TYPb", slp_typb);
+				g.attribute("slp_typa", slp_typa);
+				g.attribute("slp_typb", slp_typb);
 			}
 		});
 	}

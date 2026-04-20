@@ -424,9 +424,9 @@ void Acpica::Main::init_acpica(bool const use_gpe)
 		return;
 	}
 
-	/* report S0-S5 support and the SLP_TYPa/b values to be used by kernel(s) */
+	/* report S0-S5 support and the slp_typa/b values to be used by kernel(s) */
 	report_sleep_states.generate([&] (auto &node) {
-		Acpica::generate_suspend_report(node, "S0");
+		Acpica::generate_suspend_report(node, "s0");
 	});
 
 	/* use dbg level to steer error reporting in pci.cc */
