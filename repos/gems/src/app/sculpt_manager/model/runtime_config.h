@@ -99,7 +99,8 @@ class Sculpt::Runtime_config
 		{
 			static Service::Type type_from_node(Node const &service)
 			{
-				Service::Type_name const type = service.type();
+				Service::Type_name type = service.type();
+				if (type == "file_system") type = "fs"; /* deprecated */
 				for (unsigned i = 0; i < (unsigned)Type::UNDEFINED; i++) {
 					Type const t = (Type)i;
 					if (type == Service::node_type(t))
