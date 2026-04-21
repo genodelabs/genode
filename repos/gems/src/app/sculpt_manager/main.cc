@@ -908,19 +908,24 @@ struct Sculpt::Main : Input_event_handler,
 
 	Fb_connectors::Name _hovered_display { };
 
-	static bool _matches_popup_dialog(Node const &node)
+	static bool _related_to_popup_dialog(Node const &node)
 	{
 		using Label = String<128>;
 
-		Label label  { node.attribute_value("label", Label()) };
-		Label suffix { "popup" };
+		Label label { node.attribute_value("label", Label()) };
 
-		if (label.length() >= suffix.length()) {
-			size_t const offset = label.length() - suffix.length();
-			if (!strcmp(label.string() + offset, suffix.string()))
-				return true;
-		}
-		return false;
+		auto matches_suffix = [&] (Label const &suffix)
+		{
+			if (label.length() >= suffix.length()) {
+				size_t const offset = label.length() - suffix.length();
+				if (!strcmp(label.string() + offset, suffix.string()))
+					return true;
+			}
+			return false;
+		};
+
+		return matches_suffix("popup") || matches_suffix("system")
+		    || matches_suffix("panel");
 	}
 
 	/*
@@ -935,22 +940,26 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_touch_report(Node const &touch)
 	{
-		if (!_seq_number_attr_matches(touch, _emitted_touch_seq_number))
-			_popup_touched = Popup_touched::MAYBE;
-		else if (_popup_touched == Popup_touched::MAYBE)
-			_popup_touched = _matches_popup_dialog(touch) ? Popup_touched::YES
-			                                              : Popup_touched::NO;
-		_try_handle_popup_close();
+		if (components_tab_selected()) {
+			if (!_seq_number_attr_matches(touch, _emitted_touch_seq_number))
+				_popup_touched = Popup_touched::MAYBE;
+			else if (_popup_touched == Popup_touched::MAYBE)
+				_popup_touched = _related_to_popup_dialog(touch) ? Popup_touched::YES
+				                                                 : Popup_touched::NO;
+			_try_handle_popup_close();
+		}
 	}
 
 	void _handle_click_report(Node const &click)
 	{
-		if (!_seq_number_attr_matches(click, _emitted_click_seq_number))
-			_popup_clicked = Popup_clicked::MAYBE;
-		else if (_popup_clicked == Popup_clicked::MAYBE)
-			_popup_clicked = _matches_popup_dialog(click) ? Popup_clicked::YES
-			                                              : Popup_clicked::NO;
-		_try_handle_popup_close();
+		if (components_tab_selected()) {
+			if (!_seq_number_attr_matches(click, _emitted_click_seq_number))
+				_popup_clicked = Popup_clicked::MAYBE;
+			else if (_popup_clicked == Popup_clicked::MAYBE)
+				_popup_clicked = _related_to_popup_dialog(click) ? Popup_clicked::YES
+				                                                 : Popup_clicked::NO;
+			_try_handle_popup_close();
+		}
 	}
 
 	void _handle_nitpicker_hover(Node const &hover)
@@ -2330,7 +2339,7 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 			}
 		});
 
-		if (_popup.state == Popup::VISIBLE) {
+		if (_popup.state == Popup::VISIBLE && components_tab_selected()) {
 			_with_window(window_list, popup_view_label, [&] (Node const &win) {
 				Area const size = win_size(win);
 				Rect const inspect = Rect::compound(inspect_p1, inspect_p2);
