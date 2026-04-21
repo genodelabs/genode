@@ -34,20 +34,25 @@ struct Sculpt::Managed_children
 
 	struct Attr
 	{
+		using Disable = String<32>;
+
 		unsigned long max_ram, max_caps;
+		Disable disable;
 
 		static Attr from_node(Node const &node)
 		{
 			return {
 				.max_ram  = node.attribute_value("max_ram", Number_of_bytes()),
-				.max_caps = node.attribute_value("max_caps", 0UL)
+				.max_caps = node.attribute_value("max_caps", 0UL),
+				.disable  = node.attribute_value("disable", Disable())
 			};
 		}
 
 		bool operator != (Attr const &other) const
 		{
 			return max_ram  != other.max_ram
-			    || max_caps != other.max_caps;
+			    || max_caps != other.max_caps
+			    || disable  != other.disable;
 		}
 	};
 
