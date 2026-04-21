@@ -153,6 +153,15 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	if (component.name == "intel_fb" || component.name == "vesa_fb")
 		s.widget(_fb_widget, _fb_connectors, _fb_config, _hovered_display);
 
+	if (component.pkg.length()) {
+		if (component.pkg.length() > 1) {
+			s.sub_scope<Annotation>(String<80> { "  ", component.pkg, "  " });
+			if (component.option.length() > 1)
+				s.sub_scope<Annotation>(String<50> { "option ", Pretty { component.option } });
+		}
+		s.sub_scope<Small_vgap>();
+	}
+
 	String<100> const
 		ram (Capacity{attr.ram.assigned - attr.ram.avail}, " / ",
 		     Capacity{attr.ram.assigned}),
@@ -248,9 +257,11 @@ void Graph::view(Scope<Depgraph> &s) const
 			},
 			[&] (Scope<Depgraph, Frame, Vbox> &s) {
 				_view_selected_node_content(s, component, {
-					.ram   = info.ram,
-					.caps  = info.caps,
-					.alert = alert
+					.ram    = info.ram,
+					.caps   = info.caps,
+					.alert  = alert,
+					.pkg    = component.pkg,
+					.option = component.option
 				});
 			}
 		);

@@ -83,6 +83,9 @@ struct Sculpt::Graph : Widget<Depgraph>
 		Runtime_state::Ram  ram;
 		Runtime_state::Caps caps;
 		bool                alert;
+
+		Runtime_config::Component::Pkg    pkg;
+		Runtime_config::Component::Option option;
 	};
 
 	void _view_selected_node_content(Scope<Depgraph, Frame, Vbox> &,

@@ -197,6 +197,10 @@ class Sculpt::Runtime_config
 
 			Constructible<Buffered_node> _stalled { };
 
+			using Pkg = Depot::Archive::Path;
+
+			Pkg pkg { };
+
 			using Option = String<32>;
 
 			Option option { }; /* where the component's 'child' node is hosted */
@@ -268,6 +272,7 @@ class Sculpt::Runtime_config
 				option = { };
 
 				node.with_optional_sub_node("deploy", [&] (Node const &deploy) {
+					pkg    = deploy.attribute_value("pkg",    Pkg());
 					option = deploy.attribute_value("option", Option());
 					deploy.with_optional_sub_node("provides", [&] (Node const &provides) {
 						if (update_provides_from_node(alloc, provides).progressed)
