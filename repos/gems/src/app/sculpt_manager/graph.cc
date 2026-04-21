@@ -141,7 +141,14 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 				if (attr.ram.requested || attr.caps.requested)
 					s.widget(_grant);
 
-				s.widget(_remove);
+				/*
+				 * Don't allow the interactive removal of components hosted in
+				 * options. Such components should be removed by disabling
+				 * the option.
+				 */
+				if (component.option.length() <= 1)
+					s.widget(_remove);
+
 				s.widget(_restart);
 			});
 		});
