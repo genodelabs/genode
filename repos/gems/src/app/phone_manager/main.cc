@@ -405,27 +405,33 @@ struct Sculpt::Main : Input_event_handler,
 	void nic_target(Network_widget::Target const target) override
 	{
 		using Target = Network_widget::Target;
+		using Value  = String<8>;
 
 		auto disable_if_unused = [&] (auto const &name, Target driver)
 		{
 			if (_runtime_state.present_in_runtime(name) && driver != target)
-				disable_option(name);
+				_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
+					edit.adjust({ "option | + child ", name, " | : enabled" }, Value(),
+						[&] (Value const &) { return "no"; }); });
 		};
 
-		disable_if_unused("wifi",   Target::WIFI);
-		disable_if_unused("nic",    Target::NIC);
-		disable_if_unused("mobile", Target::MOBILE);
+		disable_if_unused("wifi",       Target::WIFI);
+		disable_if_unused("mobile",     Target::MOBILE);
+		disable_if_unused("modem_diag", Target::MOBILE);
+		disable_if_unused("usb",        Target::MOBILE);
 
 		auto enable_if_targeted = [&] (auto const &name, Target driver)
 		{
 			if (driver == target && !_runtime_state.present_in_runtime(name))
-				enable_option(name);
+				_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
+					edit.adjust({ "option | + child ", name, " | : enabled" }, Value(),
+						[&] (Value const &) { return "yes"; }); });
 		};
 
-		enable_if_targeted("wifi",   Target::WIFI);
-		enable_if_targeted("nic",    Target::NIC);
-		enable_if_targeted("mobile", Target::MOBILE);
-		enable_if_targeted("usb",    Target::MOBILE); /* usb_net depends on usb */
+		enable_if_targeted("wifi",       Target::WIFI);
+		enable_if_targeted("mobile",     Target::MOBILE);
+		enable_if_targeted("modem_diag", Target::MOBILE);
+		enable_if_targeted("usb",        Target::MOBILE);
 	}
 
 	/**
