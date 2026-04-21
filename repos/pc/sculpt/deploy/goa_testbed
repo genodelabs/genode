@@ -7,19 +7,18 @@ deploy | info: Goa testbed
 + option black_hole
 + option window_manager
 + option system_clock
++ option log_view
 
 + child mesa_gpu-intel | pkg: mesa_gpu-intel
   + connect | + rm | + parent
 
-+ child fs_rom |  pkg: jschlatow/pkg/fs_rom/2025-10-12
-  + connect | + fs | + parent | identity: report
-
-+ child system_info | pkg: jschlatow/pkg/system_info/2025-10-21
++ child system_info | pkg: jschlatow/pkg/system_info/2026-04-21-a
   + connect
-  | + gui                          | + parent | label: backdrop
-  | + rtc                          | + child system_clock
-  | + rom drivers/iommu            | + child fs_rom
-  | + rom runtime/nic_router/state | + child fs_rom
+  | + gui               | + child gui | label: backdrop
+  | + rtc               | + child system_clock
+  | + rom network/state | + child report
+  | + rom VERSION       | + child model
+  | + rom platform_info | + parent
   + config
     |      default_timezone: CET-1CEST,M3.5.0,M10.5.0
     |      background_color: #333955
@@ -29,14 +28,18 @@ deploy | info: Goa testbed
     |   + rtc
     + libc | stdout: /dev/log | rtc: /dev/rtc
     + label | : Goa Testbed
+    + label | rom: VERSION
     + clock
-    + tabular | rom: runtime/nic_router/state | alt: no IP found
-      + node uplink | type: domain
-        + row | label: Uplink | attribute: ipv4
-      + node default | type: domain
-        + row | label: Default | attribute: ipv4
+    + tabular | rom: network/state | alt: no IP found
+    | + node uplink | type: domain
+    |   + row | label: Uplink | attribute: ipv4
+    | + node default | type: domain
+    |   + row | label: Default | attribute: ipv4
+    + tabular | rom: platform_info | alt: no platform info
+      + node | type: kernel
+        + row | label: Kernel | attribute: name | highlight: yes
 
-+ child goa_testbed | pkg: jschlatow/pkg/goa_testbed/2025-10-21
++ child goa_testbed | pkg: jschlatow/pkg/goa_testbed/2026-04-16
   + connect
     + trace               | + parent
     + vm                  | + parent
@@ -49,10 +52,10 @@ deploy | info: Goa testbed
     + event               | + child black_hole
     + capture             | + child black_hole
     + fs                  | + child recall_fs | identity: goa_testbed
-    + nic telnet          | + child nic_router | label: telnet
-    + nic http            | + child nic_router | label: http
-    + nic gdb             | + child nic_router | label: gdb
-    + nic                 | + child nic_router | . for test scenario
+    + nic telnet          | + child network | label: telnet
+    + nic http            | + child network | label: http
+    + nic gdb             | + child network | label: gdb
+    + nic                 | + child network | . for test scenario
     + report clipboard    | + child wm
     + report shape        | + child wm
     + rom clipboard       | + child wm
