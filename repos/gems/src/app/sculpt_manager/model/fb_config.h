@@ -31,54 +31,46 @@ struct Sculpt::Fb_config
 
 		bool        defined;
 		bool        present;  /* false if imported from config but yet unused */
+		bool        enabled;
+		bool        blanking;
 		Name        name;
 		Mode_id     mode_id;
 		Mode_attr   mode_attr;
 		Brightness  brightness;
 		Orientation orientation;
 
-		Mode_id     mode_id_suspend;
-		Mode_attr   mode_attr_suspend;
-
 		static Entry from_connector(Fb_connectors::Connector const &connector)
 		{
 			Mode_attr mode_attr { };
 			Mode_id   mode_id   { };
+
 			connector.with_used_mode([&] (Fb_connectors::Connector::Mode const &mode) {
 				mode_attr = mode.attr;
 				mode_id   = mode.id; });
 
 			return { .defined     = true,
 			         .present     = true,
+			         .enabled     = connector.enabled,
+			         .blanking    = false,
 			         .name        = connector.name,
 			         .mode_id     = mode_id,
 			         .mode_attr   = mode_attr,
 			         .brightness  = connector.brightness,
-			         .orientation = connector.orientation,
-			         .mode_id_suspend = mode_id,
-			         .mode_attr_suspend = mode_attr
+			         .orientation = connector.orientation
 			       };
 		}
 
 		static Entry from_manual_node(Node const &node)
 		{
-			auto mode_id   = node.attribute_value("mode", Mode_id());
-			auto mode_attr = Mode_attr::from_node(node);
-
-			if (!node.attribute_value("enabled", true)) {
-				mode_id   = { };
-				mode_attr = { };
-			}
-
 			return { .defined     = true,
 			         .present     = false,
+			         .enabled     = node.attribute_value("enabled", true),
+			         .blanking    = node.attribute_value("blanking", false),
 			         .name        = node.attribute_value("name", Name()),
-			         .mode_id     = mode_id,
-			         .mode_attr   = mode_attr,
+			         .mode_id     = node.attribute_value("mode", Mode_id()),
+			         .mode_attr   = Mode_attr::from_node(node),
 			         .brightness  = Brightness::from_node(node),
-			         .orientation = Orientation::from_node(node),
-			         .mode_id_suspend = mode_id,
-			         .mode_attr_suspend = mode_attr
+			         .orientation = Orientation::from_node(node)
 			       };
 		}
 
@@ -88,21 +80,21 @@ struct Sculpt::Fb_config
 				return;
 
 			g.node("connector", [&] {
+				g.attribute("enabled", enabled);
+				if (blanking)
+					g.attribute("blanking", blanking);
 				g.attribute("name",   name);
-				if (valid_mode()) {
-					g.attribute("width",  mode_attr.px.w);
-					g.attribute("height", mode_attr.px.h);
-					if (mode_attr.hz)
-						g.attribute("hz", mode_attr.hz);
-					if (brightness.defined)
-						g.attribute("brightness", brightness.percent);
-					if (mode_id.length() > 1)
-						g.attribute("mode", mode_id);
+				g.attribute("width",  mode_attr.px.w);
+				g.attribute("height", mode_attr.px.h);
+				if (mode_attr.hz)
+					g.attribute("hz", mode_attr.hz);
+				if (brightness.defined)
+					g.attribute("brightness", brightness.percent);
+				if (mode_id.length() > 1)
+					g.attribute("mode", mode_id);
 
-					orientation.gen_attr(g);
-				} else {
-					g.attribute("enabled", "no");
-				}
+				orientation.gen_attr(g);
+
 			});
 		}
 
@@ -110,9 +102,6 @@ struct Sculpt::Fb_config
 		{
 			return mode_attr.px.count() < other.mode_attr.px.count();
 		}
-
-		bool valid_mode() const {
-			return mode_id.length() > 1 || mode_attr.px.valid(); }
 	};
 
 	static constexpr unsigned MAX_ENTRIES = 16;
@@ -233,10 +222,8 @@ struct Sculpt::Fb_config
 				if (e.present) /* apply config only once */
 					return;
 
-				if (!e.mode_attr.px.valid()) { /* switched off by config */
-					e.mode_id   = { };
-					e.mode_attr = { };
-					e.present   = true;
+				if (!e.enabled) { /* switched off by config */
+					e.present = true;
 					return;
 				}
 
@@ -278,16 +265,14 @@ struct Sculpt::Fb_config
 	{
 		connectors.with_mode_attr(conn, mode_id, [&] (Entry::Mode_attr const &attr) {
 			_with_entry(conn, [&] (Entry &entry) {
+				entry.enabled   = true;
 				entry.mode_attr = attr;
 				entry.mode_id   = mode_id; }); });
 	}
 
 	void disable_connector(Fb_connectors::Name const &conn)
 	{
-		_with_entry(conn, [&] (Entry &entry) {
-			entry.mode_id   = { };
-			entry.mode_attr = { };
-		});
+		_with_entry(conn, [&] (Entry &entry) { entry.enabled = false; });
 	}
 
 	void brightness(Fb_connectors::Name const &conn, unsigned percent)
@@ -481,28 +466,28 @@ struct Sculpt::Fb_config
 	void suspend_connectors()
 	{
 		for (Entry &entry : _entries) {
-			entry.mode_id_suspend   = entry.mode_id;
-			entry.mode_attr_suspend = entry.mode_attr;
-			entry.mode_id   = { };
-			entry.mode_attr = { };
+			if (entry.enabled) {
+				entry.enabled  = false;
+				entry.blanking = true;
+			}
 		}
 	}
 
 	void resume_connectors()
 	{
 		for (Entry &entry : _entries) {
-			entry.mode_id   = entry.mode_id_suspend;
-			entry.mode_attr = entry.mode_attr_suspend;
+			if (entry.blanking) {
+				entry.enabled  = true;
+				entry.blanking = false;
+			}
 		}
 	}
 
 	bool any_connector_enabled()
 	{
 		for (Entry const &entry : _entries) {
-			if (!entry.valid_mode())
-				continue;
-
-			return true;
+			if (entry.enabled)
+				return true;
 		}
 
 		return false;

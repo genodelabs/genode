@@ -113,6 +113,7 @@ struct Sculpt::Fb_connectors : private Noncopyable
 		Area        mm { };
 		Brightness  brightness  { };
 		Orientation orientation { };
+		bool        enabled     { };
 
 		struct Mode;
 		using  Modes = List_model<Mode>;
@@ -235,18 +236,21 @@ struct Sculpt::Fb_connectors : private Noncopyable
 
 		bool update(Allocator &alloc, Node const &node)
 		{
-			Area        const orig_mm = mm;
+			Area        const orig_mm          = mm;
 			Brightness  const orig_brightness  = brightness;
 			Orientation const orig_orientation = orientation;
+			bool        const orig_enabled     = enabled;
 
 			mm.w        = node.attribute_value("width_mm",  0u);
 			mm.h        = node.attribute_value("height_mm", 0u);
 			brightness  = Brightness::from_node(node);
 			orientation = Orientation::from_node(node);
+			enabled     = node.attribute_value("enabled", true);
 
 			bool progress = orig_mm          != mm
 			             || orig_brightness  != brightness
-			             || orig_orientation != orientation;
+			             || orig_orientation != orientation
+			             || orig_enabled     != enabled;
 
 			_modes.update_from_node(node,
 				[&] (Node const &node) -> Mode & {
