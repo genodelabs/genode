@@ -2275,6 +2275,8 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 	bool reconfigure_runtime = false;
 	bool regenerate_dialog   = false;
 
+	_deploy.manage_resource_requests(_vfs, _runtime_state, _cached_init_config);
+
 	/* check for completed storage operations */
 	_storage._storage_devices.for_each([&] (Storage_device &device) {
 

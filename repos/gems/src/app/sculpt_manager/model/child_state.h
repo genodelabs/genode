@@ -163,7 +163,7 @@ struct Sculpt::Child_state : Noncopyable
 			{
 				if (quota.value == max_quota.value) {
 					if (!warned_once)
-						warning(msg, " consumption of ", attr.name, " exceeeded maximum of ", max_quota);
+						warning(msg, " consumption of ", attr.name, " exceeded maximum of ", max_quota);
 					warned_once = true;
 				} else {
 					quota.value = min(quota.value*2, max_quota.value);
