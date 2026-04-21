@@ -274,8 +274,31 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void screensaver_changed() override
 	{
+		bool const orig_display_enabled = _driver_options.display;
 		_driver_options.display = _screensaver.display_enabled();
 		_drivers.update_options(_driver_options);
+
+		using Value  = String<8>;
+
+		auto for_each_conditional_driver = [&] (auto const &fn)
+		{
+			_deploy._dict.for_each([&] (auto const &child) {
+				if (child.attr.disable == "while_blanked")
+					fn(child.name); });
+		};
+
+		if (orig_display_enabled && !_driver_options.display)
+			_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
+				for_each_conditional_driver([&] (Start_name const &name) {
+					edit.adjust({ "option | + child ", name, " | : enabled" }, Value(),
+						[&] (Value const &) { return "no"; }); }); });
+
+		if (!orig_display_enabled && _driver_options.display)
+			_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
+				for_each_conditional_driver([&] (Start_name const &name) {
+					edit.adjust({ "option | + child ", name, " | : enabled" }, Value(),
+						[&] (Value const &) { return "yes"; }); }); });
+
 		generate_runtime_config();
 	}
 
