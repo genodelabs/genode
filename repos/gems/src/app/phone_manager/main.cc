@@ -511,7 +511,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Depot::Archive::User _index_user = _build_info.depot_user;
 
-	Expanding_reporter _depot_query_reporter { _env, "query", "depot_query"};
+	Expanding_reporter _depot_query_reporter { _env, "query", "child/depot_query"};
 
 	bool _software_tab_watches_depot()
 	{
@@ -2224,8 +2224,10 @@ void Sculpt::Main::_handle_update_state(Node const &update_state)
 	bool const installation_complete =
 		!update_state.attribute_value("progress", false);
 
-	if (installation_complete)
+	if (installation_complete) {
 		_bump_depot_version();
+		_query_depot();
+	}
 
 	_generate_dialog();
 }
@@ -2351,6 +2353,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 
 			/* trigger update and deploy */
 			reconfigure_runtime = true;
+			_query_depot();
 		}
 	}
 
