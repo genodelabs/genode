@@ -80,6 +80,7 @@ config | prio_levels: 2
   | + policy | label_prefix: pc_i2c_hid | info: yes
   |   + pci | vendor_id: 0x8086 | device_id: 0xa0eb | . Tiger Lake chipset
   |   + pci | vendor_id: 0x8086 | device_id: 0x51eb | . Alder Lake chipset
+  |   + pci | vendor_id: 0x8086 | device_id: 0x54ea | . Alder Lake N (StarLite)
   |   + pci | vendor_id: 0x8086 | device_id: 0x7e51 | . Meteor Lake chipset
   |   + pci | vendor_id: 0x8086 | device_id: 0x7778 | . Arrow Lake chipset
   |   + device INT34C5  | . Tiger/Alder Lake
