@@ -88,7 +88,8 @@ struct Sculpt::Main : Input_event_handler,
                       Software_update_widget::Action,
                       Software_add_widget::Action,
                       Screensaver::Action,
-                      Drivers::Action
+                      Drivers::Action,
+                      Enabled_options::Action
 {
 	Env &_env;
 
@@ -650,7 +651,18 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_deploy(Node const &deploy)
 	{
-		_deploy.apply_deploy(deploy);
+		if (!_deploy.apply_deploy(deploy).progressed)
+			return;
+
+		_deploy.watch_options(_vfs, *this);
+	}
+
+	/**
+	 * Enabled_options::Action
+	 */
+	void deploy_option_changed(Options::Name const &name, Node const &node) override
+	{
+		_deploy.apply_option(name, node);
 	}
 
 	Managed_config<Main> _managed_depot_version {
