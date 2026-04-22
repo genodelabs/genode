@@ -27,9 +27,6 @@ void Panel_dialog::view(Scope<> &s) const
 
 				if (_state.system_available())
 					s.widget(_system_button, _state.system_visible());
-
-				if (_state.settings_available())
-					s.widget(_settings_button, _state.settings_visible());
 			});
 		});
 

@@ -43,7 +43,8 @@
 #include <view/download_status_widget.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
-#include <view/settings_widget.h>
+#include <view/font_widget.h>
+#include <view/event_filter_widget.h>
 #include <view/system_dialog.h>
 #include <view/file_browser_dialog.h>
 #include <view/runtime_diag.h>
@@ -68,7 +69,8 @@ struct Sculpt::Main : Input_event_handler,
                       Graph::Action,
                       Panel_dialog::Action,
                       Network_widget::Action,
-                      Settings_widget::Action,
+                      Event_filter_widget::Action,
+                      Font_widget::Action,
                       System_dialog::Action,
                       File_browser_dialog::Action,
                       Popup_dialog::Action,
@@ -231,8 +233,8 @@ struct Sculpt::Main : Input_event_handler,
 
 		_handle_gui_mode();
 
-		/* visibility of font section of settings dialog may have changed */
-		_settings_dialog.refresh();
+		/* visibility of font dialog may have changed */
+		_graph_view.refresh();
 
 		/* visibility of settings button may have changed */
 		_refresh_panel_and_window_layout();
@@ -254,9 +256,9 @@ struct Sculpt::Main : Input_event_handler,
 					Settings::with_layout_name(rom, [&] (auto const &name) {
 						_settings.keyboard_layout = name; }); }); }); });
 
-		/* visibility of the settings dialog may have changed */
+		/* visibility of the event-filter dialog may have changed */
 		if (orig != _settings.keyboard_layout) {
-			_settings_dialog.refresh();
+			_graph_view.refresh();
 			_refresh_panel_and_window_layout();
 			_handle_gui_mode();
 		}
@@ -1003,13 +1005,10 @@ struct Sculpt::Main : Input_event_handler,
 	 * Panel_dialog::State interface
 	 */
 	bool network_visible()     const override { return _network_visible; }
-	bool settings_visible()    const override { return _settings_visible; }
 	bool system_visible()      const override { return _system_visible; }
 	bool inspect_tab_visible() const override { return _storage.any_file_system_inspected(); }
 
 	Panel_dialog::Tab selected_tab() const override { return _selected_tab; }
-
-	bool settings_available() const override { return _settings.interactive_settings_available(); }
 
 	bool system_available() const override
 	{
@@ -1407,6 +1406,10 @@ struct Sculpt::Main : Input_event_handler,
 
 	Hosted<Fb_widget> _fb_widget { Id { "fb" } };
 
+	Hosted<Event_filter_widget> _event_filter_widget { Id { "event_filter" } };
+
+	Hosted<Font_widget> _font_widget { Id { "font" } };
+
 	Hosted<Frame, Ahci_devices_widget>
 		_ahci_devices_widget { Id { "ahci_devices" },
 		                       _storage._storage_devices, _storage._selected_target };
@@ -1433,6 +1436,13 @@ struct Sculpt::Main : Input_event_handler,
 		if (selected == "ram_fs")
 			s.widget(_ram_fs_widget, _storage._selected_target, _storage._ram_fs_state);
 
+		if (selected == "event_filter")
+			s.widget(_event_filter_widget, Event_filter_widget::Attr {
+				.keyboard_layout = _settings.keyboard_layout });
+
+		if (selected == "font")
+			s.widget(_font_widget, _settings);
+
 		if (selected == "intel_fb" || selected == "vesa_fb")
 			s.widget(_fb_widget, _fb_connectors, _fb_config_model, _hovered_display);
 
@@ -1458,6 +1468,8 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void click_child_dialog(Clicked_at const &at) override
 	{
+		_event_filter_widget.propagate(at, *this);
+		_font_widget        .propagate(at, *this);
 		_ram_fs_widget      .propagate(at, _storage._selected_target, *this);
 		_fb_widget          .propagate(at, _fb_connectors, *this);
 		_ahci_devices_widget.propagate(at, *this);
@@ -1635,15 +1647,6 @@ struct Sculpt::Main : Input_event_handler,
 	/*
 	 * Panel::Action interface
 	 */
-	void toggle_settings_visibility() override
-	{
-		_settings_visible = !_settings_visible;
-		_refresh_panel_and_window_layout();
-	}
-
-	/*
-	 * Panel::Action interface
-	 */
 	void toggle_system_visibility() override
 	{
 		_system_visible = !_system_visible;
@@ -1660,29 +1663,8 @@ struct Sculpt::Main : Input_event_handler,
 		_vfs.copy({ "/model/presets/", name }, "/model/deploy");
 	}
 
-	struct Settings_top_level_dialog : Top_level_dialog
-	{
-		Main &_main;
-
-		Hosted<Frame, Settings_widget> _hosted { Id { "hosted" }, _main._settings };
-
-		Settings_top_level_dialog(Main &main)
-		: Top_level_dialog("settings"), _main(main) { }
-
-		void view(Scope<> &s) const override
-		{
-			s.sub_scope<Frame>([&] (Scope<Frame> &s) { s.widget(_hosted); });
-		}
-
-		void click(Clicked_at const &at) override { _hosted.propagate(at, _main); }
-		void clack(Clacked_at const &)   override { }
-		void drag (Dragged_at const &)   override { }
-	};
-
-	Dialog_view<Settings_top_level_dialog> _settings_dialog { _dialog_runtime, *this };
-
 	/*
-	 * Settings_dialog::Action interface
+	 * Font_widget::Action interface
 	 */
 	void select_font_size(Settings::Font_size font_size) override
 	{
@@ -1694,9 +1676,9 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/*
-	 * Settings_dialog::Action interface
+	 * Event_filter_widget::Action interface
 	 */
-	void select_keyboard_layout(Settings::Keyboard_layout::Name const &keyboard_layout) override
+	void select_keyboard_layout(Event_filter_widget::Keyboard_layout const &keyboard_layout) override
 	{
 		if (_settings.keyboard_layout == keyboard_layout)
 			return;
@@ -2242,7 +2224,6 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 		diag_view_label        ("runtime_view -> diag"),
 		popup_view_label       ("runtime_view -> popup"),
 		system_view_label      ("runtime_view -> system"),
-		settings_view_label    ("runtime_view -> settings"),
 		network_view_label     ("runtime_view -> network"),
 		file_browser_view_label("runtime_view -> file_browser");
 
@@ -2346,16 +2327,6 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 					system_right_xpos = size.w;
 			});
 		}
-
-		_with_window(window_list, settings_view_label, [&] (Node const &win) {
-			Area  const size = win_size(win);
-			Point const pos  = _settings_visible
-			                 ? Point(system_right_xpos, avail.y1())
-			                 : Point(-size.w, avail.y1());
-
-			if (_settings.interactive_settings_available())
-				gen_window(win, Rect(pos, size));
-		});
 
 		_with_window(window_list, network_view_label, [&] (Node const &win) {
 			Area  const size = win_size(win);
