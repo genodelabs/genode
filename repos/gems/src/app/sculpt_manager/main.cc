@@ -352,7 +352,21 @@ struct Sculpt::Main : Input_event_handler,
 
 			_fb_config_model.resume_connectors();
 			_generate_fb_config();
-		}
+
+			auto for_each_conditional_driver = [&] (auto const &fn)
+			{
+				_deploy._dict.for_each([&] (auto const &child) {
+					if (child.attr.disable == "while_suspended")
+						fn(child.name); });
+			};
+
+			_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
+				using Value  = String<8>;
+
+				for_each_conditional_driver([&] (Start_name const &name) {
+					edit.adjust({ "option | + child ", name, " | : enabled" }, Value(),
+						[&] (Value const &v) { return v == "resume" ? "yes" : v; }); }); });
+			}
 
 		if (orig_state != _system_state.state)
 			_broadcast_system_state();
@@ -2716,6 +2730,19 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		_system_state.state = System_state::DRIVERS_STOPPING;
 		_broadcast_system_state();
 
+		auto for_each_conditional_driver = [&] (auto const &fn)
+		{
+			_deploy._dict.for_each([&] (auto const &child) {
+				if (child.attr.disable == "while_suspended")
+					fn(child.name); });
+		};
+
+		_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
+			using Value  = String<8>;
+			for_each_conditional_driver([&] (Start_name const &name) {
+				edit.adjust({ "option | + child ", name, " | : enabled" }, Value(),
+					[&] (Value const &v) { return v == "yes" ? "resume" : v; }); }); });
+
 		_driver_options.suspending = true;
 		_drivers.update_options(_driver_options);
 
@@ -2741,7 +2768,7 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		bool const acpi_support = _cached_init_config.present_in_runtime("acpi_support");
 		Power_features const orig_power_features = _power_features;
 		_power_features.poweroff = acpi_support;
-		_power_features.suspend  = acpi_support;
+		_power_features.suspend  = acpi_support && !_usb_storage_acquired;
 		if (orig_power_features != _power_features)
 			_system_dialog.refresh();
 	}

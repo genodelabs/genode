@@ -40,6 +40,7 @@ option
     + rom platform_info | + parent
 
 + child usb | binary: pc_usb_host | ram: 16M | caps: 200 | priority: -2 | enabled: discover
+  + managed | disable: while_suspended
   + provides
     + usb
   + connect
@@ -59,7 +60,7 @@ option
     + rm         | + parent
 
 + child intel_fb | binary: pc_intel_fb | ram: 16M | caps: 800 | priority: -2 | enabled: discover
-  + managed | max_ram: 256M | max_caps: 5000
+  + managed | max_ram: 256M | max_caps: 5000 | disable: while_suspended
   + heartbeat | restart_after_skipped: 2
   + connect
     + platform           | + child intel_gpu
@@ -88,6 +89,7 @@ option
     + io_port    | + parent
 
 + child ps2 | binary: ps2 | ram: 1M | caps: 100 | priority: -2 | enabled: discover
+  + managed | disable: while_suspended
   + config | capslock_led: rom | numlock_led: rom | system: yes
   + connect
     + platform     | + child platform     | label: ps2
@@ -139,6 +141,7 @@ option
     + event        | + child event_filter | label: usb_hid
 
 + child nic | binary: pc_nic | ram: 20M | caps: 300 | priority: -3 | enabled: no
+  + managed | disable: while_suspended
   + config
   + connect
     + platform    | + child platform | label: nic
@@ -147,6 +150,7 @@ option
     + rm          | + parent
 
 + child wifi | binary: wifi | ram: 24M | caps: 260 | priority: -3 | enabled: no
+  + managed | disable: while_suspended
   + config
   | + libc | stdout: /dev/log | stderr: /dev/null | rtc: /dev/rtc
   | + vfs
