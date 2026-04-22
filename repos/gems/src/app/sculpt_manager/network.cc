@@ -22,7 +22,7 @@ void Sculpt::Network::handle_key_press(Codepoint code)
 		wpa_passphrase.remove_last_character();
 	else if (code.value == ENTER) {
 		if (wpa_passphrase.suitable_for_connect())
-			wifi_connect(dialog._ap_selector._selected);
+			_action.wifi_connect_enter();
 	}
 	else if (code.valid())
 		wpa_passphrase.append_character(code);

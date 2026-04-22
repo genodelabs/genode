@@ -29,7 +29,6 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 	{
 		virtual Tab  selected_tab()        const = 0;
 		virtual bool system_visible()      const = 0;
-		virtual bool network_visible()     const = 0;
 		virtual bool inspect_tab_visible() const = 0;
 		virtual bool system_available()    const = 0;
 
@@ -44,14 +43,11 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 	{
 		virtual void select_tab(Tab) = 0;
 		virtual void toggle_system_visibility() = 0;
-		virtual void toggle_network_visibility() = 0;
 	};
 
 	Action &_action;
 
-	Hosted<Frame, Float, Hbox, Toggle_button>
-		_system_button   { Id { "System"   } },
-		_network_button  { Id { "Network"  } };
+	Hosted<Frame, Float, Hbox, Toggle_button> _system_button { Id { "System" } };
 
 	using Tab_button = Select_button<Tab>;
 
@@ -65,7 +61,6 @@ struct Sculpt::Panel_dialog : Top_level_dialog
 	void click(Clicked_at const &at) override
 	{
 		_system_button  .propagate(at, [&] { _action.toggle_system_visibility(); });
-		_network_button .propagate(at, [&] { _action.toggle_network_visibility(); });
 		_files_tab      .propagate(at, [&] (Tab t) { _action.select_tab(t); });
 		_components_tab .propagate(at, [&] (Tab t) { _action.select_tab(t); });
 		_inspect_tab    .propagate(at, [&] (Tab t) { _action.select_tab(t); });

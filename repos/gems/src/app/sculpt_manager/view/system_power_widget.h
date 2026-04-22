@@ -64,7 +64,7 @@ struct Sculpt::System_power_widget : Widget<Vbox>
 		}
 	};
 
-	struct Power_options : Widget<Float>
+	struct Power_options : Widget<Frame>
 	{
 		struct Entry : Widget<Hbox>
 		{
@@ -95,21 +95,19 @@ struct Sculpt::System_power_widget : Widget<Vbox>
 			}
 		};
 
-		Hosted<Float, Frame, Vbox, Entry>
-			_suspend     { Id { "Standby"         }, Option::STANDBY },
-			_reboot      { Id { "Hard reboot"     }, Option::REBOOT  },
-			_off         { Id { "Hard power down" }, Option::OFF     };
+		Hosted<Frame, Vbox, Entry>
+			_suspend { Id { "Standby"         }, Option::STANDBY },
+			_reboot  { Id { "Hard reboot"     }, Option::REBOOT  },
+			_off     { Id { "Hard power down" }, Option::OFF     };
 
-		void view(Scope<Float> &s, Option const &selected, Supported const supported) const
+		void view(Scope<Frame> &s, Option const &selected, Supported const supported) const
 		{
-			s.sub_scope<Frame>([&] (Scope<Float, Frame> &s) {
-				s.sub_scope<Vbox>([&] (Scope<Float, Frame, Vbox> &s) {
-					Entry::Attr const attr { .need_confirm = true };
-					if (supported.suspend)  s.widget(_suspend, selected, attr);
-					if (supported.reset)    s.widget(_reboot,  selected, attr);
-					if (supported.poweroff) s.widget(_off,     selected, attr);
-					s.sub_scope<Min_ex>(35);
-				});
+			s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
+				Entry::Attr const attr { .need_confirm = true };
+				if (supported.suspend)  s.widget(_suspend, selected, attr);
+				if (supported.reset)    s.widget(_reboot,  selected, attr);
+				if (supported.poweroff) s.widget(_off,     selected, attr);
+				s.sub_scope<Min_ex>(35);
 			});
 		}
 

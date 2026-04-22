@@ -34,7 +34,6 @@ struct Sculpt::Keyboard_focus
 
 	Expanding_reporter _focus_reporter;
 
-	Network_widget      const &_network_widget;
 	Wpa_passphrase            &_wpa_passphrase;
 	Panel_dialog::State const &_panel;
 	System_dialog       const &_system_dialog;
@@ -42,7 +41,9 @@ struct Sculpt::Keyboard_focus
 	bool                const &_system_visible;
 	Popup               const &_popup;
 
-	void update()
+	struct Attr { bool wifi_passphrase; };
+
+	void update(Attr attr)
 	{
 		Target const orig_target = target;
 
@@ -54,7 +55,7 @@ struct Sculpt::Keyboard_focus
 		if ((_popup.state == Popup::VISIBLE) && _popup_dialog.keyboard_needed())
 			target = POPUP;
 
-		if (_panel.network_visible() && _network_widget.need_keyboard_focus_for_passphrase())
+		if (attr.wifi_passphrase)
 			target = WPA_PASSPHRASE;
 
 		if (_system_dialog.keyboard_needed() && _system_visible)
@@ -86,7 +87,6 @@ struct Sculpt::Keyboard_focus
 	}
 
 	Keyboard_focus(Env &env,
-	               Network_widget      const &network_widget,
 	               Wpa_passphrase            &wpa_passphrase,
 	               Panel_dialog::State const &panel,
 	               System_dialog       const &system_dialog,
@@ -95,16 +95,13 @@ struct Sculpt::Keyboard_focus
 	               Popup               const &popup)
 	:
 		_focus_reporter(env, "focus", "focus"),
-		_network_widget(network_widget),
 		_wpa_passphrase(wpa_passphrase),
 		_panel(panel),
 		_system_dialog(system_dialog),
 		_popup_dialog(popup_dialog),
 		_system_visible(system_visible),
 		_popup(popup)
-	{
-		update();
-	}
+	{ }
 };
 
 #endif /* _KEYBOARD_FOCUS_H_ */

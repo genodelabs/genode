@@ -22,15 +22,6 @@ void Panel_dialog::view(Scope<> &s) const
 		s.attribute("style", "unimportant");
 
 		s.sub_scope<Float>([&] (Scope<Frame, Float> &s) {
-			s.attribute("west", true);
-			s.sub_scope<Hbox>([&] (Scope<Frame, Float, Hbox> &s) {
-
-				if (_state.system_available())
-					s.widget(_system_button, _state.system_visible());
-			});
-		});
-
-		s.sub_scope<Float>([&] (Scope<Frame, Float> &s) {
 			s.sub_scope<Hbox>([&] (Scope<Frame, Float, Hbox> &s) {
 
 				Tab const tab = _state.selected_tab();
@@ -46,7 +37,8 @@ void Panel_dialog::view(Scope<> &s) const
 		s.sub_scope<Float>([&] (Scope<Frame, Float> &s) {
 			s.attribute("east", true);
 			s.sub_scope<Hbox>([&] (Scope<Frame, Float, Hbox> &s) {
-				s.widget(_network_button, _state.network_visible());
+				if (_state.system_available())
+					s.widget(_system_button, _state.system_visible());
 			});
 		});
 	});

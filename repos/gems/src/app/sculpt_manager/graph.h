@@ -47,7 +47,6 @@ struct Sculpt::Graph : Widget<Depgraph>
 		virtual void clack_child_dialog(Clacked_at const &) = 0;
 	};
 
-
 	Runtime_state  const &_runtime_state;
 	Runtime_config       &_runtime_config;
 	Storage_target const &_selected_target;
@@ -84,6 +83,11 @@ struct Sculpt::Graph : Widget<Depgraph>
 	{ }
 
 	void view(Scope<Depgraph> &, Action const &) const;
+
+	bool child_dialog_hovered(Hovered_at const &at) const
+	{
+		return at.matching_id<Depgraph, Frame, Vbox, Frame, Vbox>().valid();
+	}
 
 	void click(Clicked_at const &, Action &);
 	void clack(Clacked_at const &, Action &, Ram_fs_widget::Action &);

@@ -64,6 +64,7 @@ struct Sculpt::Main : Input_event_handler,
                       Runtime_config_generator,
                       Storage_device::Action,
                       Ram_fs_widget::Action,
+                      Ap_selector_widget::Action,
                       Network::Action,
                       Network::Info,
                       Graph::Action,
@@ -559,46 +560,19 @@ struct Sculpt::Main : Input_event_handler,
 
 	Network _network { _env, _heap, *this, *this };
 
+	/* accessed by '_keyboard_focus' as well as '_wifi_widget' */
+	Access_point::Bssid _selected_bssid { };
+
 	/**
 	 * Network::Info interface
 	 */
 	bool ap_list_hovered() const override
 	{
-		return _network_dialog.if_hovered([&] (Hovered_at const &at) {
-			return _network.dialog.ap_list_hovered(at); });
+		return _panel_dialog._state.components_tab_selected()
+		    && _cached_init_config.selected() == "wifi"
+		    && _graph_view.if_hovered([&] (Hovered_at const &at) {
+		             return _graph.child_dialog_hovered(at); });
 	}
-
-	struct Network_top_level_dialog : Top_level_dialog
-	{
-		Main &_main;
-
-		Network_top_level_dialog(Main &main)
-		: Top_level_dialog("network"), _main(main) { }
-
-		void view(Scope<> &s) const override
-		{
-			Runtime_state const &runtime = _main._runtime_state;
-			_main._drivers.with_board_info([&] (Board_info const &board_info) {
-				s.sub_scope<Frame>([&] (Scope<Frame> &s) {
-					if (!runtime.present_in_runtime("network"))
-						return;
-
-					_main._network.dialog.view(s, board_info,
-						Network_widget::View_attr::from_runtime(runtime));
-				});
-			});
-		}
-
-		void click(Clicked_at const &at) override
-		{
-			_main._network.dialog.click(at, _main);
-		}
-
-		void clack(Clacked_at const &) override { }
-		void drag (Dragged_at const &) override { }
-	};
-
-	Dialog_view<Network_top_level_dialog> _network_dialog { _dialog_runtime, *this };
 
 	/**
 	 * Network_widget::Action
@@ -634,27 +608,37 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Network_widget::Action
+	 * Ap_selector_widget::Action
 	 */
-	void wifi_connect(Access_point::Bssid bssid) override
+	void wifi_connect(Access_point::Bssid const &selected) override
 	{
-		_network.wifi_connect(bssid);
+		_selected_bssid = selected;
+		_network.wifi_connect(_selected_bssid);
 	}
 
 	/**
-	 * Network_widget::Action
+	 * Ap_selector_widget::Action
 	 */
-	void wifi_disconnect() override { _network.wifi_disconnect(); }
+	void wifi_disconnect() override
+	{
+		_selected_bssid = { };
+		_network.wifi_disconnect();
+	}
 
 	/**
 	 * Network::Action interface
 	 */
 	void network_config_changed() override
 	{
-		_network_dialog.refresh();
+		_graph_view.refresh();
 		_system_dialog.refresh();
 		generate_runtime_config(); /* spawn update if network becomes available */
 	}
+
+	/**
+	 * Network::Action interface
+	 */
+	void wifi_connect_enter() override { wifi_connect(_selected_bssid); }
 
 
 	/************
@@ -989,10 +973,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Panel_dialog::Tab _selected_tab = Panel_dialog::Tab::COMPONENTS;
 
-	bool _log_visible      = false;
-	bool _network_visible  = false;
-	bool _settings_visible = false;
-	bool _system_visible   = false;
+	bool _log_visible    = false;
+	bool _system_visible = false;
 
 	File_browser_state _file_browser_state { };
 
@@ -1004,7 +986,6 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Panel_dialog::State interface
 	 */
-	bool network_visible()     const override { return _network_visible; }
 	bool system_visible()      const override { return _system_visible; }
 	bool inspect_tab_visible() const override { return _storage.any_file_system_inspected(); }
 
@@ -1066,7 +1047,6 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_diag_dialog.refresh();
 		_graph_view.refresh();
-		_network_dialog.refresh();
 		if (_popup.state == Popup::VISIBLE)
 			_popup_dialog.refresh();
 
@@ -1138,7 +1118,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Interactive operations **
 	 ****************************/
 
-	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase,
+	Keyboard_focus _keyboard_focus { _env, _network.wpa_passphrase,
 	                                 *this, _system_dialog, _system_visible,
 	                                 _popup_dialog, _popup };
 
@@ -1154,9 +1134,20 @@ struct Sculpt::Main : Input_event_handler,
 			if (ev.release() && _main._key_cnt > 0) _main._key_cnt--;
 		}
 
-		~Keyboard_focus_guard() {
-			if (_main._key_cnt == 0) _main._keyboard_focus.update(); }
+		~Keyboard_focus_guard()
+		{
+			if (_main._key_cnt == 0) _main._update_keyboard_focus();
+		}
 	};
+
+	void _update_keyboard_focus()
+	{
+		_keyboard_focus.update({
+			.wifi_passphrase = _panel_dialog._state.components_tab_selected()
+			                && (_cached_init_config.selected() == "wifi")
+			                && _wifi_widget.need_keyboard_focus_for_passphrase(_selected_bssid)
+		});
+	}
 
 	/* used to prevent closing the popup immediatedly after opened */
 	Input::Seq_number _popup_opened_seq_number { };
@@ -1410,6 +1401,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	Hosted<Font_widget> _font_widget { Id { "font" } };
 
+	Hosted<Network_widget> _network_widget { Id { "network" } };
+
+	Hosted<Frame, Ap_selector_widget>
+		_wifi_widget { Id { "wifi" },
+		               _network._access_points, _network._wifi_connection,
+		               _network._wlan_config_policy, _network.wpa_passphrase };
+
 	Hosted<Frame, Ahci_devices_widget>
 		_ahci_devices_widget { Id { "ahci_devices" },
 		                       _storage._storage_devices, _storage._selected_target };
@@ -1443,6 +1441,21 @@ struct Sculpt::Main : Input_event_handler,
 		if (selected == "font")
 			s.widget(_font_widget, _settings);
 
+		if (selected == "network")
+			_drivers.with_board_info([&] (Board_info const &board_info) {
+				auto enabled = Network_widget::Enabled::from_runtime(_runtime_state);
+				s.widget(_network_widget, _network._nic_state, board_info, enabled,
+					[&] (Scope<Frame, Vbox, Frame, Vbox> &s) {
+						if (!_network._nic_state.ready() && enabled.wifi)
+							s.sub_scope<Label>("connect at wifi component");
+					});
+			});
+
+		if (selected == "wifi")
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+				s.widget(_wifi_widget, Ap_selector_widget::Attr {
+					.selected = _selected_bssid }); });
+
 		if (selected == "intel_fb" || selected == "vesa_fb")
 			s.widget(_fb_widget, _fb_connectors, _fb_config_model, _hovered_display);
 
@@ -1472,6 +1485,8 @@ struct Sculpt::Main : Input_event_handler,
 		_font_widget        .propagate(at, *this);
 		_ram_fs_widget      .propagate(at, _storage._selected_target, *this);
 		_fb_widget          .propagate(at, _fb_connectors, *this);
+		_network_widget     .propagate(at, *this, [&] (Clicked_at const &) { });
+		_wifi_widget        .propagate(at, _selected_bssid, *this);
 		_ahci_devices_widget.propagate(at, *this);
 		_nvme_devices_widget.propagate(at, *this);
 		_mmc_devices_widget .propagate(at, *this);
@@ -1632,15 +1647,6 @@ struct Sculpt::Main : Input_event_handler,
 		if (_selected_tab == Panel_dialog::Tab::FILES)
 			_file_browser_dialog.refresh();
 
-		_refresh_panel_and_window_layout();
-	}
-
-	/*
-	 * Panel::Action interface
-	 */
-	void toggle_network_visibility() override
-	{
-		_network_visible = !_network_visible;
 		_refresh_panel_and_window_layout();
 	}
 
@@ -2224,7 +2230,6 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 		diag_view_label        ("runtime_view -> diag"),
 		popup_view_label       ("runtime_view -> popup"),
 		system_view_label      ("runtime_view -> system"),
-		network_view_label     ("runtime_view -> network"),
 		file_browser_view_label("runtime_view -> file_browser");
 
 	auto win_size = [&] (Node const &win) { return Area::from_node(win); };
@@ -2314,27 +2319,15 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 			gen_resize(win, rect.area);
 		});
 
-		int system_right_xpos = 0;
 		if (system_available()) {
 			_with_window(window_list, system_view_label, [&] (Node const &win) {
 				Area  const size = win_size(win);
 				Point const pos  = _system_visible
-				                 ? Point(0, avail.y1())
-				                 : Point(-size.w, avail.y1());
+				                 ? Point(log_p1.x - size.w, avail.y1())
+				                 : Point(_screen_size.w, avail.y1());
 				gen_window(win, Rect(pos, size));
-
-				if (_system_visible)
-					system_right_xpos = size.w;
 			});
 		}
-
-		_with_window(window_list, network_view_label, [&] (Node const &win) {
-			Area  const size = win_size(win);
-			Point const pos  = _network_visible
-			                 ? Point(log_p1.x - size.w, avail.y1())
-			                 : Point(_screen_size.w, avail.y1());
-			gen_window(win, Rect(pos, size));
-		});
 
 		_with_window(window_list, file_browser_view_label, [&] (Node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::FILES) {
@@ -2513,11 +2506,8 @@ void Sculpt::Main::_handle_gui_mode()
 		_panel_dialog.min_width = _screen_size.w;
 		unsigned const menu_width = max((unsigned)(_font_size_px*21.0), 320u);
 		_diag_dialog.min_width = menu_width;
-		_network_dialog.min_width = menu_width;
 
 		_panel_dialog.refresh();
-		_network_dialog.refresh();
-		_diag_dialog.refresh();
 		_update_window_layout();
 		update_runtime_config = true;
 	}

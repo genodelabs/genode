@@ -21,7 +21,7 @@
 namespace Sculpt { struct Software_presets_widget; }
 
 
-struct Sculpt::Software_presets_widget : Widget<Float>
+struct Sculpt::Software_presets_widget : Widget<Frame>
 {
 	using Name = Presets::Info::Name;
 
@@ -66,16 +66,15 @@ struct Sculpt::Software_presets_widget : Widget<Float>
 	/* use one button to preserve 'Deferred_action_button' state across presets */
 	Preset::Load _load { Id { "load" } };
 
-	using Hosted_preset = Hosted<Float, Frame, Vbox, Preset>;
+	using Hosted_preset = Hosted<Frame, Vbox, Preset>;
 
-	void view(Scope<Float> &s, Presets const &presets) const
+	void view(Scope<Frame> &s, Presets const &presets) const
 	{
-		s.sub_scope<Frame>([&] (Scope<Float, Frame> &s) {
-			s.sub_scope<Vbox>([&] (Scope<Float, Frame, Vbox> &s) {
-				s.sub_scope<Min_ex>(35);
-				presets.for_each([&] (Presets::Info const &info) {
-					Hosted_preset const hosted { Id { info.name } };
-					s.widget(hosted, info, _load, _selected); }); }); });
+		s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
+			s.sub_scope<Min_ex>(35);
+			presets.for_each([&] (Presets::Info const &info) {
+				Hosted_preset const hosted { Id { info.name } };
+				s.widget(hosted, info, _load, _selected); }); });
 	}
 
 	void _with_selected_preset(Presets const &presets, auto const &fn)
@@ -88,7 +87,7 @@ struct Sculpt::Software_presets_widget : Widget<Float>
 	void click(Clicked_at const &at, Presets const &presets)
 	{
 		/* unfold preset info */
-		Id const id = at.matching_id<Float, Frame, Vbox, Vbox>();
+		Id const id = at.matching_id<Frame, Vbox, Vbox>();
 		if (id.valid())
 			_selected = id.value;
 

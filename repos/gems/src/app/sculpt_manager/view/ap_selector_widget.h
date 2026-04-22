@@ -34,14 +34,12 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 
 	struct Action : Interface
 	{
-		virtual void wifi_connect(Access_point::Bssid) = 0;
+		virtual void wifi_connect(Access_point::Bssid const &) = 0;
 		virtual void wifi_disconnect() = 0;
 	};
 
 	/* limit view to highest-quality access points */
-	unsigned const _max_visible_aps = 20;
-
-	Access_point::Bssid _selected { };
+	unsigned _max_visible_aps = 40;
 
 	Hosted<Vbox, Action_button> _connect { Id { "Connect" } };
 
@@ -83,18 +81,18 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 		return result;
 	}
 
-	bool _selected_ap_visible() const
+	bool _selected_ap_visible(Access_point::Bssid const selected) const
 	{
 		unsigned count = 0;
 		return _for_each_ap([&] (Access_point const &ap) {
-			return (count++ < _max_visible_aps) && (_selected == ap.bssid); });
+			return (count++ < _max_visible_aps) && (selected == ap.bssid); });
 	}
 
-	void _with_selected_ap(auto const &fn) const
+	void _with_selected_ap(Access_point::Bssid const selected, auto const &fn) const
 	{
 		bool done = false;
 		_access_points.for_each([&] (Access_point const &ap) {
-			if (!done && (ap.bssid == _selected)) {
+			if (!done && (ap.bssid == selected)) {
 				fn(ap);
 				done = true; } });
 
@@ -117,16 +115,18 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 		_wlan_config_policy(wlan_config_policy), _wpa_passphrase(wpa_passphrase)
 	{ }
 
-	void view(Scope<Vbox> &s) const
+	struct Attr { Access_point::Bssid selected; };
+
+	void view(Scope<Vbox> &s, Attr const attr) const
 	{
 		if (_wlan_config_policy == Wlan_config_policy::MANUAL)
 			return;
 
 		if (_wifi_connection.connecting() || _wifi_connection.connected()) {
 
-			Hosted<Vbox, Item> item { Id { _selected } };
+			Hosted<Vbox, Item> item { Id { attr.selected } };
 
-			_with_selected_ap([&] (Access_point const &ap) {
+			_with_selected_ap(attr.selected, [&] (Access_point const &ap) {
 				s.widget(item, ap, Item::Attr { .selected = true }); });
 
 			s.sub_scope<Label>(_wifi_connection.connecting()
@@ -134,7 +134,7 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 			return;
 		}
 
-		bool const selected_ap_visible = _selected_ap_visible();
+		bool const selected_ap_visible = _selected_ap_visible(attr.selected);
 
 		unsigned count = 0;
 		_access_points.for_each([&] (Access_point const &ap) {
@@ -146,7 +146,7 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 			 * Whenever the user has selected an access point, hide all others.
 			 * Should the selected AP disappear from the list, show all others.
 			 */
-			bool const selected = (_selected == ap.bssid);
+			bool const selected = (attr.selected == ap.bssid);
 			if (selected_ap_visible && !selected)
 				return;
 
@@ -194,43 +194,41 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 			s.sub_scope<Label>("Scanning...");
 	}
 
-	bool need_keyboard_focus_for_passphrase() const
+	bool need_keyboard_focus_for_passphrase(Access_point::Bssid const selected) const
 	{
 		if (_wifi_connection.state == Wifi_connection::CONNECTED
 		 || _wifi_connection.state == Wifi_connection::CONNECTING)
 			return false;
 
 		return _for_each_ap([&] (Access_point const &ap) {
-			return (_selected == ap.bssid) && ap.wpa_protected(); });
+			return (selected == ap.bssid) && ap.wpa_protected(); });
 	}
 
-	void click(Clicked_at const &at, Action &action)
+	void click(Clicked_at const &at, Access_point::Bssid &selected, Action &action)
 	{
 		Id const ap_id = at.matching_id<Vbox, Item>();
 
 		if (ap_id.valid()) {
 
-			if (ap_id.value == _selected) {
+			if (ap_id.value == selected) {
 				action.wifi_disconnect();
-				_selected = { };
 
 			} else {
-				_selected = ap_id.value;
+
+				selected = ap_id;
 
 				auto selected_ap_unprotected = [&] {
 					return _for_each_ap([&] (Access_point const &ap) {
-						return (_selected == ap.bssid) && ap.unprotected(); }); };
+						return (ap_id.value == ap.bssid) && ap.unprotected(); }); };
 
 				/* immediately connect to unprotected access point when selected */
 				if (selected_ap_unprotected())
-					action.wifi_connect(_selected);
+					action.wifi_connect(ap_id);
 			}
 		}
 
-		_connect.propagate(at, [&] { action.wifi_connect(_selected); });
+		_connect.propagate(at, [&] { action.wifi_connect(selected); });
 	}
-
-	bool ap_list_shown() const { return !_selected.valid(); }
 };
 
 #endif /* _VIEW__AP_SELECTOR_WIDGET_H_ */

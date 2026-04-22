@@ -70,6 +70,7 @@ namespace Sculpt { struct Main; }
 struct Sculpt::Main : Input_event_handler,
                       Runtime_config_generator,
                       Storage_device::Action,
+                      Ap_selector_widget::Action,
                       Network::Action,
                       Network::Info,
                       Graph::Action,
@@ -403,6 +404,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Network _network { _env, _heap, *this, *this };
 
+	Access_point::Bssid _selected_bssid { };
+
 	/**
 	 * Network::Action interface
 	 */
@@ -410,6 +413,11 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_generate_dialog();
 	}
+
+	/**
+	 * Network::Action interface
+	 */
+	void wifi_connect_enter() override { wifi_connect(_selected_bssid); }
 
 	/**
 	 * Network::Info interface
@@ -459,17 +467,22 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	/**
-	 * Network_widget::Action
+	 * Ap_selector_widget::Action
 	 */
-	void wifi_connect(Access_point::Bssid bssid) override
+	void wifi_connect(Access_point::Bssid const &bssid) override
 	{
+		_selected_bssid = bssid;
 		_network.wifi_connect(bssid);
 	}
 
 	/**
-	 * Network_widget::Action
+	 * Ap_selector_widget::Action
 	 */
-	void wifi_disconnect() override { _network.wifi_disconnect(); }
+	void wifi_disconnect() override
+	{
+		_selected_bssid = { };
+		_network.wifi_disconnect();
+	}
 
 
 	/************
@@ -836,6 +849,15 @@ struct Sculpt::Main : Input_event_handler,
 	Hosted<Vbox, Title_bar> _network_title_bar  {
 		Id { "Network" }, _selected_section, Section::NETWORK };
 
+	Conditional_widget<Network_widget>
+		_network_widget { Conditional_widget<Network_widget>::Attr { .centered = true },
+		                  Id { "net settings" } };
+
+	Hosted<Frame, Vbox, Frame, Vbox, Ap_selector_widget>
+		_wifi_widget { Id { "wifi" },
+		               _network._access_points, _network._wifi_connection,
+		               _network._wlan_config_policy, _network.wpa_passphrase };
+
 	/*
 	 * Software section
 	 */
@@ -876,13 +898,6 @@ struct Sculpt::Main : Input_event_handler,
 		_graph { Id { "graph" },
 		         _runtime_state, _cached_init_config, _storage._selected_target,
 		         _popup.state };
-
-	Conditional_widget<Network_widget>
-		_network_widget { Conditional_widget<Network_widget>::Attr { .centered = true },
-		                  Id { "net settings" },
-		                  _network._access_points,
-		                  _network._wifi_connection, _network._nic_state,
-		                  _network.wpa_passphrase, _network._wlan_config_policy };
 
 	void _view_main_dialog(Scope<> &s, Allocator &alloc) const
 	{
@@ -943,16 +958,16 @@ struct Sculpt::Main : Input_event_handler,
 
 			s.widget(_network_title_bar, [&] (auto &s) {
 
-				auto const attr = Network_widget::View_attr::from_runtime(_runtime_state);
+				auto const enabled = Network_widget::Enabled::from_runtime(_runtime_state);
 
 				auto network_status_message = [&]
 				{
 					bool const ready = _network._nic_state.ready();
 
-					if (!attr.enabled.any()) return "disconnected";
-					if (attr.enabled.nic)    return ready ? "LAN"    : "LAN ...";
-					if (attr.enabled.wifi)   return ready ? "WLAN"   : "WLAN ...";
-					if (attr.enabled.mobile) return ready ? "mobile" : "mobile ...";
+					if (!enabled.any()) return "disconnected";
+					if (enabled.nic)    return ready ? "LAN"    : "LAN ...";
+					if (enabled.wifi)   return ready ? "WLAN"   : "WLAN ...";
+					if (enabled.mobile) return ready ? "mobile" : "mobile ...";
 
 					return "off";
 				};
@@ -961,8 +976,15 @@ struct Sculpt::Main : Input_event_handler,
 			});
 
 			_drivers.with_board_info([&] (Board_info const &board_info) {
-				s.widget(_network_widget, _network_title_bar.selected(), board_info,
-					Network_widget::View_attr::from_runtime(_runtime_state)); });
+				auto enabled = Network_widget::Enabled::from_runtime(_runtime_state);
+				s.widget(_network_widget, _network_title_bar.selected(),
+				         _network._nic_state, board_info, enabled,
+					[&] (Scope<Frame, Vbox, Frame, Vbox> &s) {
+						if (enabled.wifi)
+							s.widget(_wifi_widget, Ap_selector_widget::Attr {
+								.selected = _selected_bssid });
+					});
+			});
 
 			s.widget(_software_title_bar, [&] (auto &s) {
 				_software_title_bar.view_status(s, _software_status_message()); });
@@ -1171,7 +1193,8 @@ struct Sculpt::Main : Input_event_handler,
 	bool _network_widget_has_keyboard_focus() const
 	{
 		return _network_title_bar.selected()
-		    && _network_widget.hosted.need_keyboard_focus_for_passphrase();
+		    && _runtime_state.present_in_runtime("wifi")
+		    && _wifi_widget.need_keyboard_focus_for_passphrase(_selected_bssid);
 	}
 
 	/**
@@ -1270,7 +1293,13 @@ struct Sculpt::Main : Input_event_handler,
 		_pin_widget             .propagate(at, _sim_pin, *this);
 		_dialpad_widget         .propagate(at, *this);
 		_storage_widget         .propagate(at, *this);
-		_network_widget         .propagate(at, *this);
+
+		_network_widget.propagate(at, *this,
+			[&] (Clicked_at const &at) {
+				if (_runtime_state.present_in_runtime("wifi"))
+					_wifi_widget.propagate(at, _selected_bssid, *this);
+		});
+
 		_software_presets_widget.propagate(at, _presets);
 		_software_update_widget .propagate(at, *this);
 		_software_add_widget    .propagate(at, *this);
@@ -2137,6 +2166,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Main(Env &env) : _env(env)
 	{
+		_wifi_widget._max_visible_aps = 20;
+
 		_driver_options.display = true;
 		_drivers.update_options(_driver_options);
 		_drivers.update_soc(_soc);

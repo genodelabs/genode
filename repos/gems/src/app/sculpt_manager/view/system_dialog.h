@@ -64,8 +64,6 @@ struct Sculpt::System_dialog : Top_level_dialog
 
 				/* tabs */
 				s.sub_scope<Hbox>([&] (Scope<Frame, Vbox, Hbox> &s) {
-					if (_power_features.any_support())
-						s.widget(_power_tab, _selected_tab);
 					s.widget(_preset_tab, _selected_tab, [&] (auto &s) {
 						if (!_presets.available())
 							s.attribute("style", "unimportant");
@@ -75,6 +73,8 @@ struct Sculpt::System_dialog : Top_level_dialog
 						s.template sub_scope<Label>(_options_tab.id.value);
 					});
 					s.widget(_update_tab, _selected_tab);
+					if (_power_features.any_support())
+						s.widget(_power_tab, _selected_tab);
 				});
 
 				switch (_selected_tab) {
@@ -92,9 +92,9 @@ struct Sculpt::System_dialog : Top_level_dialog
 					_image_index.with_node([&] (Node const &index) {
 						s.widget(_update_widget, index); });
 					s.widget(_version_widget, _build_info);
-					s.sub_scope<Min_ex>(40);
 					break;
 				};
+				s.sub_scope<Min_ex>(40);
 			});
 		});
 	}

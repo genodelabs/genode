@@ -37,6 +37,7 @@ struct Sculpt::Network : Noncopyable
 	struct Action : Interface
 	{
 		virtual void network_config_changed() = 0;
+		virtual void wifi_connect_enter() = 0;
 	};
 
 	struct Info : Interface
@@ -77,10 +78,6 @@ struct Sculpt::Network : Noncopyable
 	void _handle_network_state(Node const &);
 
 	Wlan_config_policy _wlan_config_policy = Wlan_config_policy::MANAGED;
-
-	Network_widget dialog {
-		_access_points,
-		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy };
 
 	Managed_config<Network> _wlan_config {
 		_env, _alloc, "config", "child/wifi", *this, &Network::_handle_wlan_config };
