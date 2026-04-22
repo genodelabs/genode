@@ -874,9 +874,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Conditional_widget<Graph>
 		_graph { Id { "graph" },
-		         _runtime_state, _cached_init_config, _storage._storage_devices,
-		         _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
-		         _fb_config_model, _hovered_display, _popup.state };
+		         _runtime_state, _cached_init_config, _storage._selected_target,
+		         _popup.state };
 
 	Conditional_widget<Network_widget>
 		_network_widget { Conditional_widget<Network_widget>::Attr { .centered = true },
@@ -972,7 +971,7 @@ struct Sculpt::Main : Input_event_handler,
 			         _storage._selected_target, _presets, _software_status_available());
 
 			s.widget(_graph, _software_title_bar.selected()
-			              && _software_tabs_widget.hosted.runtime_selected());
+			              && _software_tabs_widget.hosted.runtime_selected(), *this);
 
 			s.widget(_software_presets_widget, _software_title_bar.selected()
 			                                && _software_tabs_widget.hosted.presets_selected()
@@ -1385,7 +1384,6 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _reset_storage_widget_operation()
 	{
-		_graph.hosted.reset_storage_operation();
 		_storage_widget.hosted.reset_operation();
 	}
 
@@ -1517,6 +1515,35 @@ struct Sculpt::Main : Input_event_handler,
 	 * Graph::Action interface
 	 */
 	void open_popup_dialog(Rect) override { }
+
+	Hosted<Ram_fs_widget> _ram_fs_widget { Id { "ram_fs" } };
+
+	/*
+	 * Graph::Action interface
+	 */
+	void view_child_dialog(Scope<> &s) const override
+	{
+		Start_name const selected = _cached_init_config.selected();
+
+		if (selected == "ram_fs")
+			s.widget(_ram_fs_widget, _storage._selected_target, _storage._ram_fs_state);
+	}
+
+	/*
+	 * Graph::Action interface
+	 */
+	void click_child_dialog(Clicked_at const &at) override
+	{
+		_ram_fs_widget.propagate(at, _storage._selected_target, *this);
+	}
+
+	/*
+	 * Graph::Action interface
+	 */
+	void clack_child_dialog(Clacked_at const &at) override
+	{
+		_ram_fs_widget.propagate(at, *this);
+	}
 
 	bool _network_missing() const {
 		return _update_needed() && !_network._nic_state.ready(); }

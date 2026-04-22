@@ -85,8 +85,11 @@ struct Dialog::Selectable_node
 
 void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
                                         Runtime_config::Component const &component,
-                                        Attr const &attr) const
+                                        Action const &action, Attr const &attr) const
 {
+	if (!attr.alert)
+		s.as_new_scope([&] (Scope<> &s) { action.view_child_dialog(s); });
+
 	s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
 
 		if (attr.alert) s.attribute("style", "alert");
@@ -154,12 +157,6 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 		});
 	});
 
-	if (component.name == "ram_fs")
-		s.widget(_ram_fs_widget, _selected_target, _ram_fs_state);
-
-	if (component.name == "intel_fb" || component.name == "vesa_fb")
-		s.widget(_fb_widget, _fb_connectors, _fb_config, _hovered_display);
-
 	if (component.pkg.length()) {
 		if (component.pkg.length() > 1) {
 			s.sub_scope<Annotation>(String<80> { "  ", component.pkg, "  " });
@@ -178,26 +175,10 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	s.sub_scope<Min_ex>(25);
 	s.sub_scope<Label>(ram);
 	s.sub_scope<Label>(caps);
-
-	if ((component.name == "usb") && _storage_devices.num_usb_devices)
-		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-			s.widget(_usb_devices_widget); });
-
-	if (component.name == "ahci")
-		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-			s.widget(_ahci_devices_widget); });
-
-	if (component.name == "nvme")
-		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-			s.widget(_nvme_devices_widget); });
-
-	if (component.name == "mmc")
-		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
-			s.widget(_mmc_devices_widget); });
 }
 
 
-void Graph::view(Scope<Depgraph> &s) const
+void Graph::view(Scope<Depgraph> &s, Action const &action) const
 {
 	if (Feature::PRESENT_PLUS_MENU && _selected_target.valid())
 		s.widget(_plus, _popup_state == Popup::VISIBLE);
@@ -263,7 +244,7 @@ void Graph::view(Scope<Depgraph> &s) const
 				.pretty_name = pretty_name
 			},
 			[&] (Scope<Depgraph, Frame, Vbox> &s) {
-				_view_selected_node_content(s, component, {
+				_view_selected_node_content(s, component, action, {
 					.ram    = info.ram,
 					.caps   = info.caps,
 					.alert  = alert,
@@ -275,11 +256,6 @@ void Graph::view(Scope<Depgraph> &s) const
 	});
 
 	_runtime_config.for_each_component([&] (Component const &component) {
-
-		Start_name const name = component.name;
-
-		if (name == "ram_fs")
-			return;
 
 		bool const show_details = component.tcb;
 
@@ -307,6 +283,11 @@ void Graph::view(Scope<Depgraph> &s) const
 }
 
 
+struct Ignored { };
+
+using Narrowed_to_child_dialog = At::Narrowed<Depgraph, Frame, Vbox, Ignored>;
+
+
 void Graph::click(Clicked_at const &at, Action &action)
 {
 	/* select node */
@@ -332,12 +313,8 @@ void Graph::click(Clicked_at const &at, Action &action)
 		action.open_popup_dialog(popup_anchor(at._location));
 	});
 
-	_ram_fs_widget      .propagate(at, _selected_target, action);
-	_fb_widget          .propagate(at, _fb_connectors,   action);
-	_ahci_devices_widget.propagate(at, action);
-	_nvme_devices_widget.propagate(at, action);
-	_mmc_devices_widget .propagate(at, action);
-	_usb_devices_widget .propagate(at, action);
+	Narrowed_to_child_dialog::with_at(at, [&] (Clicked_at const &narrowed) {
+		action.click_child_dialog(narrowed); });
 
 	_grant.propagate(at, [&] {
 		action.grant_resource_request(_runtime_config.selected()); });
@@ -347,13 +324,10 @@ void Graph::click(Clicked_at const &at, Action &action)
 }
 
 
-void Graph::clack(Clacked_at const &at, Action &action, Ram_fs_widget::Action &ram_fs_action)
+void Graph::clack(Clacked_at const &at, Action &action, Ram_fs_widget::Action &)
 {
-	_ram_fs_widget      .propagate(at, ram_fs_action);
-	_ahci_devices_widget.propagate(at, action);
-	_nvme_devices_widget.propagate(at, action);
-	_mmc_devices_widget .propagate(at, action);
-	_usb_devices_widget .propagate(at, action);
+	Narrowed_to_child_dialog::with_at(at, [&] (Clacked_at const &narrowed) {
+		action.clack_child_dialog(narrowed); });
 
 	_remove.propagate(at, [&] {
 		action.remove_deployed_component(_runtime_config.selected());

@@ -338,6 +338,8 @@ class Sculpt::Runtime_config
 		                                 Service::Type::FS,
 		                                 { }, "used file system" };
 
+		Start_name _selected { };
+
 	public:
 
 		Runtime_config(Allocator &alloc) : _alloc(alloc) { }
@@ -359,6 +361,8 @@ class Sculpt::Runtime_config
 
 				/* destroy */
 				[&] (Component &e) {
+
+					if (e.name == _selected) _selected = { };
 
 					/* flush list models */
 					e.update_route_from_node   (_alloc, Node());
@@ -478,6 +482,9 @@ class Sculpt::Runtime_config
 				child.selected    = (child.name == name) && !child.selected;
 				child.tcb         = child.selected;
 				child.tcb_updated = false;
+
+				if (child.selected)
+					_selected = name;
 			});
 
 			/*
@@ -516,14 +523,7 @@ class Sculpt::Runtime_config
 			}
 		}
 
-		Start_name selected() const
-		{
-			Start_name result;
-			_components.for_each([&] (Component const &child) {
-				if (child.selected)
-					result = child.name; });
-			return result;
-		}
+		Start_name selected() const { return _selected; }
 };
 
 #endif /* _MODEL__RUNTIME_CONFIG_H_ */

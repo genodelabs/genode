@@ -1273,7 +1273,10 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _reset_storage_dialog_operation()
 	{
-		_graph.reset_storage_operation();
+		_ahci_devices_widget.reset_operation();
+		_nvme_devices_widget.reset_operation();
+		_mmc_devices_widget.reset_operation();
+		_usb_devices_widget.reset_operation();
 	}
 
 	/*
@@ -1398,6 +1401,81 @@ struct Sculpt::Main : Input_event_handler,
 		_popup.state = Popup::VISIBLE;
 		_graph_view.refresh();
 		_update_window_layout();
+	}
+
+	Hosted<Ram_fs_widget> _ram_fs_widget { Id { "ram_fs" } };
+
+	Hosted<Fb_widget> _fb_widget { Id { "fb" } };
+
+	Hosted<Frame, Ahci_devices_widget>
+		_ahci_devices_widget { Id { "ahci_devices" },
+		                       _storage._storage_devices, _storage._selected_target };
+
+	Hosted<Frame, Nvme_devices_widget>
+		_nvme_devices_widget { Id { "nvme_devices" },
+		                       _storage._storage_devices, _storage._selected_target };
+
+	Hosted<Frame, Mmc_devices_widget>
+		_mmc_devices_widget { Id { "mmc_devices" },
+		                      _storage._storage_devices, _storage._selected_target };
+
+	Hosted<Frame, Usb_devices_widget>
+		_usb_devices_widget { Id { "usb_devices" },
+		                      _storage._storage_devices, _storage._selected_target };
+
+	/*
+	 * Graph::Action interface
+	 */
+	void view_child_dialog(Scope<> &s) const override
+	{
+		Start_name const selected = _cached_init_config.selected();
+
+		if (selected == "ram_fs")
+			s.widget(_ram_fs_widget, _storage._selected_target, _storage._ram_fs_state);
+
+		if (selected == "intel_fb" || selected == "vesa_fb")
+			s.widget(_fb_widget, _fb_connectors, _fb_config_model, _hovered_display);
+
+		if ((selected == "usb") && _storage._storage_devices.num_usb_devices)
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+				s.widget(_usb_devices_widget); });
+
+		if (selected == "ahci")
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+				s.widget(_ahci_devices_widget); });
+
+		if (selected == "nvme")
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+				s.widget(_nvme_devices_widget); });
+
+		if (selected == "mmc")
+			s.sub_scope<Frame>([&] (Scope<Frame> &s) {
+				s.widget(_mmc_devices_widget); });
+	}
+
+	/*
+	 * Graph::Action interface
+	 */
+	void click_child_dialog(Clicked_at const &at) override
+	{
+		_ram_fs_widget      .propagate(at, _storage._selected_target, *this);
+		_fb_widget          .propagate(at, _fb_connectors, *this);
+		_ahci_devices_widget.propagate(at, *this);
+		_nvme_devices_widget.propagate(at, *this);
+		_mmc_devices_widget .propagate(at, *this);
+		_usb_devices_widget .propagate(at, *this);
+	}
+
+	/*
+	 * Graph::Action interface
+	 */
+	void clack_child_dialog(Clacked_at const &at) override
+	{
+		_ram_fs_widget      .propagate(at, *this);
+		_ahci_devices_widget.propagate(at, *this);
+		_nvme_devices_widget.propagate(at, *this);
+		_mmc_devices_widget .propagate(at, *this);
+		_usb_devices_widget .propagate(at, *this);
 	}
 
 	/**
@@ -2069,9 +2147,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Popup _popup { };
 
-	Graph _graph { _runtime_state, _cached_init_config, _storage._storage_devices,
-	               _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
-	               _fb_config_model, _hovered_display, _popup.state };
+	Graph _graph { _runtime_state, _cached_init_config, _storage._selected_target,
+	               _popup.state };
 
 	struct Graph_dialog : Dialog::Top_level_dialog
 	{
@@ -2082,7 +2159,7 @@ struct Sculpt::Main : Input_event_handler,
 		void view(Scope<> &s) const override
 		{
 			s.sub_scope<Depgraph>(Id { "graph" }, [&] (Scope<Depgraph> &s) {
-				_main._graph.view(s); });
+				_main._graph.view(s, _main); });
 		}
 
 		void click(Clicked_at const &at) override { _main._graph.click(at, _main); }

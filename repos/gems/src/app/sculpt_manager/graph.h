@@ -35,48 +35,32 @@ namespace Sculpt { struct Graph; }
 
 struct Sculpt::Graph : Widget<Depgraph>
 {
-	Runtime_state       const &_runtime_state;
-	Runtime_config            &_runtime_config;
-	Storage_devices     const &_storage_devices;
-	Storage_target      const &_selected_target;
-	File_system         const &_ram_fs_state;
-	Fb_connectors       const &_fb_connectors;
-	Fb_config           const &_fb_config;
-	Fb_connectors::Name const &_hovered_display;
-	Popup::State        const &_popup_state;
+	struct Action : virtual Storage_device_widget::Action,
+	                virtual Fb_widget::Action
+	{
+		virtual void grant_resource_request(Start_name const &) = 0;
+		virtual void remove_deployed_component(Start_name const &) = 0;
+		virtual void restart_deployed_component(Start_name const &) = 0;
+		virtual void open_popup_dialog(Rect) = 0;
+		virtual void view_child_dialog(Scope<> &) const = 0;
+		virtual void click_child_dialog(Clicked_at const &) = 0;
+		virtual void clack_child_dialog(Clacked_at const &) = 0;
+	};
+
+
+	Runtime_state  const &_runtime_state;
+	Runtime_config       &_runtime_config;
+	Storage_target const &_selected_target;
+	Popup::State   const &_popup_state;
 
 	Hosted<Depgraph, Toggle_button> _plus { Id { "+" } };
-
-	Hosted<Depgraph, Frame, Vbox, Ram_fs_widget>
-		_ram_fs_widget { Id { "ram_fs" } };
-
-	Hosted<Depgraph, Frame, Vbox, Fb_widget>
-		_fb_widget { Id { "fb" } };
-
-	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Action_button>
-		_grant { Id { "Grant" } };
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Deferred_action_button>
 		_remove  { Id { "Remove"  } },
 		_restart { Id { "Restart" } };
 
-	Hosted<Depgraph, Frame, Vbox, Frame, Ahci_devices_widget>
-		_ahci_devices_widget { Id { "ahci_devices" },
-		                       _storage_devices, _selected_target };
-
-	Hosted<Depgraph, Frame, Vbox, Frame, Nvme_devices_widget>
-		_nvme_devices_widget { Id { "nvme_devices" },
-		                       _storage_devices, _selected_target };
-
-	Hosted<Depgraph, Frame, Vbox, Frame, Mmc_devices_widget>
-		_mmc_devices_widget { Id { "mmc_devices" },
-		                      _storage_devices, _selected_target };
-
-	Hosted<Depgraph, Frame, Vbox, Frame, Usb_devices_widget>
-		_usb_devices_widget { Id { "usb_devices" },
-		                        _storage_devices, _selected_target };
-
-	bool _storage_selected = false;
+	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Action_button>
+		_grant { Id { "Grant" } };
 
 	struct Attr
 	{
@@ -89,46 +73,20 @@ struct Sculpt::Graph : Widget<Depgraph>
 	};
 
 	void _view_selected_node_content(Scope<Depgraph, Frame, Vbox> &,
-	                                 Runtime_config::Component const &, Attr const &) const;
+	                                 Runtime_config::Component const &,
+	                                 Action const &, Attr const &) const;
 
-	Graph(Runtime_state          const &runtime_state,
-	      Runtime_config               &runtime_config,
-	      Storage_devices        const &storage_devices,
-	      Storage_target         const &selected_target,
-	      File_system            const &ram_fs_state,
-	      Fb_connectors          const &fb_connectors,
-	      Fb_config              const &fb_config,
-	      Fb_connectors::Name    const &hovered_display,
-	      Popup::State           const &popup_state)
+	Graph(Runtime_state  const &runtime_state, Runtime_config &runtime_config,
+	      Storage_target const &selected_target, Popup::State const &popup_state)
 	:
 		_runtime_state(runtime_state), _runtime_config(runtime_config),
-		_storage_devices(storage_devices), _selected_target(selected_target),
-		_ram_fs_state(ram_fs_state), _fb_connectors(fb_connectors),
-		_fb_config(fb_config), _hovered_display(hovered_display),
-		_popup_state(popup_state)
+		_selected_target(selected_target), _popup_state(popup_state)
 	{ }
 
-	void view(Scope<Depgraph> &) const;
-
-	struct Action : virtual Storage_device_widget::Action,
-	                virtual Fb_widget::Action
-	{
-		virtual void grant_resource_request(Start_name const &) = 0;
-		virtual void remove_deployed_component(Start_name const &) = 0;
-		virtual void restart_deployed_component(Start_name const &) = 0;
-		virtual void open_popup_dialog(Rect) = 0;
-	};
+	void view(Scope<Depgraph> &, Action const &) const;
 
 	void click(Clicked_at const &, Action &);
 	void clack(Clacked_at const &, Action &, Ram_fs_widget::Action &);
-
-	void reset_storage_operation()
-	{
-		_ahci_devices_widget.reset_operation();
-		_nvme_devices_widget.reset_operation();
-		_mmc_devices_widget.reset_operation();
-		_usb_devices_widget.reset_operation();
-	}
 };
 
 #endif /* _GRAPH_H_ */
