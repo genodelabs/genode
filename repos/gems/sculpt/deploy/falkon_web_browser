@@ -14,7 +14,7 @@ deploy | info: disposable web browser
   + connect | + rm | + parent
 
 + child falkon_backdrop | pkg: sticks_blue_backdrop
-  + connect | + gui | + parent | label: backdrop
+  + connect | + gui | + child gui | label: backdrop
   + config
     + libc
     + vfs
@@ -25,7 +25,7 @@ deploy | info: disposable web browser
     + image | png: genode_logo.png | alpha:  50 | anchor: bottom_right
                                      xpos:  -20 | ypos:  -20
 
-+ child falkon_qt6-jemalloc | pkg: cproc/pkg/falkon_qt6-jemalloc/2025-10-27
++ child falkon_qt6-jemalloc | pkg: cproc/pkg/falkon_qt6-jemalloc/2026-04-22
   + connect
     + rm                  | + parent
     + nic                 | + child network
