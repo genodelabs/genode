@@ -74,6 +74,8 @@ struct Depot_deploy::Main : Option::Action
 
 	Attr _attr { };
 
+	Priorities _priorities { };
+
 	using Depot_version = String<32>;
 	Depot_version _depot_version { };
 
@@ -138,10 +140,18 @@ struct Depot_deploy::Main : Option::Action
 	{
 		_config.update();
 
-		_attr = Attr::from_config(_config.node(), _env.cpu().affinity_space());
+		Node const &config = _config.node();
+
+		_attr = Attr::from_config(config, _env.cpu().affinity_space());
 
 		if (!_attr.arch.valid())
 			warning("config lacks 'arch' attribute");
+
+		config.with_sub_node("priority",
+			[&] (Node const &priority) {
+				_priorities.update_from_node(_attr.prio_levels, _heap, priority); },
+			[&] {
+				_priorities.update_from_node(_attr.prio_levels, _heap, { }); });
 
 		_update_runtime_and_query();
 	}
@@ -186,7 +196,7 @@ struct Depot_deploy::Main : Option::Action
 		config.with_sub_node("common_routes",
 			[&] (Node const &node) {
 				_children.gen_start_nodes(g, node,
-				                          _attr.prio_levels, _attr.affinity_space,
+				                          _priorities, _attr.affinity_space,
 				                          _attr.depot_rom,
 				                          [] (Child::Name const &) { return true; });
 			},

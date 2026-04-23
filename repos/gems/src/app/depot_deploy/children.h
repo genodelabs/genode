@@ -164,7 +164,7 @@ class Depot_deploy::Children
 
 		void gen_start_nodes(Generator &g,
 		                     Node             const &common,
-		                     Prio_levels      const prio_levels,
+		                     Priorities       const &priorities,
 		                     Affinity::Space  const affinity_space,
 		                     Depot_rom_server const &default_depot_rom,
 		                     auto             const &cond_fn) const
@@ -174,7 +174,7 @@ class Depot_deploy::Children
 				.child_dict        = _child_dict,
 				.alias_dict        = _alias_dict,
 				.common            = common,
-				.prio_levels       = prio_levels,
+				.priorities        = priorities,
 				.affinity_space    = affinity_space,
 				.default_depot_rom = default_depot_rom
 			};

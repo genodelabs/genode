@@ -15,17 +15,13 @@
 #define _CHILD_H_
 
 /* Genode includes */
-#include <util/list_model.h>
-#include <util/dictionary.h>
-#include <util/progress.h>
 #include <depot/archive.h>
 
 /* local includes */
+#include "priorities.h"
 #include "resource.h"
 
 namespace Depot_deploy {
-
-	using namespace Depot;
 
 	static constexpr Generator::Max_depth MAX_NODE_DEPTH = { 20 };
 
@@ -55,23 +51,13 @@ namespace Depot_deploy {
 		}
 	};
 
-	struct Prio_levels
-	{
-		unsigned value;
-
-		int min_priority() const
-		{
-			return (value > 0) ? -(int)(value - 1) : 0;
-		}
-	};
-
 	struct Global
 	{
 		Resource::Types  const &resource_types;
 		Child_dict       const &child_dict;
 		Alias_dict       const &alias_dict;
 		Node             const &common;
-		Prio_levels             prio_levels;
+		Priorities       const &priorities;
 		Affinity::Space  const affinity_space;
 		Depot_rom_server const &default_depot_rom;
 	};
@@ -493,7 +479,7 @@ void Depot_deploy::Child::_gen_start_node(Generator         &g,
 		attr.caps     = child.attribute_value("caps",     _pkg_cap_quota);
 		attr.ram      = child.attribute_value("ram",      _pkg_ram_quota);
 		attr.version  = child.attribute_value("version",  attr.version);
-		attr.priority = child.attribute_value("priority", global.prio_levels.min_priority());
+		attr.priority = global.priorities.from_child_attr(child);
 		attr.ld       = child.attribute_value("ld",       true);
 		attr.system   = child.attribute_value("managing_system", false);
 

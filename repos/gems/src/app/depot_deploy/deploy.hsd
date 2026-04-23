@@ -1,7 +1,6 @@
 schema deploy
 
 + type any       | : .*
-+ type integer   | : -?\d+
 + type natural   | : \d+
 + type positive  | : \d*[1-9]\d*
 + type num_bytes | : \d+[GMK]?
@@ -134,7 +133,7 @@ schema deploy
   + attr config          | type: bool      | default: yes
   + attr caps            | type: natural   | default:
   + attr ram             | type: num_bytes | default:
-  + attr priority        | type: integer   | default: -3
+  + attr priority        | type: any       | default:
   + attr managing_system | type: bool      | default: no
   + attr ld              | type: bool      | default: no
   + attr enabled         | type: any       | default: yes
