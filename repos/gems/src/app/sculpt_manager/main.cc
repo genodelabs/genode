@@ -931,7 +931,10 @@ struct Sculpt::Main : Input_event_handler,
 
 	static bool _related_to_graph_dialog(Node const &node)
 	{
-		return _label_attr_matches_suffix(node, "graph");
+		return _label_attr_matches_suffix(node, "graph")
+		    || _label_attr_matches_suffix(node, "popup")
+		    || _label_attr_matches_suffix(node, "system")
+		    || _label_attr_matches_suffix(node, "panel");
 	}
 
 	/*
