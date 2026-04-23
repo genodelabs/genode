@@ -125,6 +125,10 @@ struct Genode::File_handler
 				if (!any_dir_watched)
 					warning("no dir to watch for handling file ", _path);
 			});
+
+			/* cover race if file was created while subscribing */
+			if (_dir.file_exists(_path) && !_file_handler.constructed())
+				_dir_handler->local_submit();
 		}
 
 		void _handle()
