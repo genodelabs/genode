@@ -56,14 +56,13 @@ struct Sculpt::Graph : Widget<Depgraph>
 
 	Hosted<Depgraph, Toggle_button> _plus { Id { "+" } };
 
-	using Hosted_title  = Hosted<Depgraph, Frame, Vbox, Hbox, Toggle_button>;
-	using Hosted_remove = Hosted<Depgraph, Frame, Vbox, Hbox, Deferred_action_button>;
+	using Hosted_title   = Hosted<Depgraph, Frame, Vbox, Hbox, Toggle_button>;
+	using Hosted_remove  = Hosted<Depgraph, Frame, Vbox, Hbox, Deferred_action_button>;
+	using Hosted_restart = Hosted<Depgraph, Frame, Vbox, Frame, Hbox, Button, Deferred_action_button>;
 
-	Hosted_title  _title  { Id { "title"  } };
-	Hosted_remove _remove { Id { "remove" } };
-
-	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Deferred_action_button>
-		_restart { Id { "Restart" } };
+	Hosted_title   _title   { Id { "title"   } };
+	Hosted_remove  _remove  { Id { "remove"  } };
+	Hosted_restart _restart { Id { "restart" } };
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Action_button>
 		_grant { Id { "Grant" } };

@@ -68,7 +68,8 @@ void Sculpt::Graph::_view_node(Scope<Depgraph> &s, Id const &id,
 							s.sub_scope<Button>([&] (Scope<Button, Float, Button> &s) {
 								s.attribute("style", "x");
 								s.attribute("pad", "no");
-								s.sub_node("label", [&] { }); }); }); });
+								s.sub_node("label", [&] { });
+						}); }); });
 			});
 
 			if (attr.selected)
@@ -82,75 +83,78 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
                                         Runtime_config::Component const &component,
                                         Action const &action, Attr const &attr) const
 {
-	if (!attr.alert)
+	if (!attr.alert) {
 		s.as_new_scope([&] (Scope<> &s) { action.view_child_dialog(s); });
 
-	s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
+	} else {
+		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
+			s.attribute("style", "alert");
+			s.sub_scope<Vbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Vbox> &s) {
 
-		if (attr.alert) s.attribute("style", "alert");
+				if (component._stalled.constructed()) {
+					s.sub_scope<Vgap>();
+					component._stalled->with_optional_sub_node("deploy", [&] (Node const &deploy) {
 
-		s.sub_scope<Vbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Vbox> &s) {
+						deploy.with_optional_sub_node("pkg_corrupt", [&] (Node const &) {
+							auto const pkg = deploy.attribute_value("pkg", Depot::Archive::Path());
+							s.sub_scope<Label>(String<80>(" corrupt ", pkg, " ")); });
 
-			if (component._stalled.constructed()) {
-				s.sub_scope<Vgap>();
-				component._stalled->with_optional_sub_node("deploy", [&] (Node const &deploy) {
+						deploy.with_optional_sub_node("pkg_missing", [&] (Node const &) {
+							auto const pkg = deploy.attribute_value("pkg", Depot::Archive::Path());
+							s.sub_scope<Label>(String<80>(" missing ", pkg, " ")); });
 
-					deploy.with_optional_sub_node("pkg_corrupt", [&] (Node const &) {
-						auto const pkg = deploy.attribute_value("pkg", Depot::Archive::Path());
-						s.sub_scope<Label>(String<80>(" corrupt ", pkg, " ")); });
-
-					deploy.with_optional_sub_node("pkg_missing", [&] (Node const &) {
-						auto const pkg = deploy.attribute_value("pkg", Depot::Archive::Path());
-						s.sub_scope<Label>(String<80>(" missing ", pkg, " ")); });
-
-					deploy.with_optional_sub_node("deps", [&] (Node const &dep) {
-						dep.for_each_sub_node([&] (Node const &node) {
-							Start_name const server = node.attribute_value("name", Start_name());
-							node.for_each_sub_node([&] (Node const &resource) {
-								auto detail = resource.attribute_value("name", String<32>());
-								if (detail.length() > 1)
-									detail = { " (", detail, ")" };
-								s.sub_scope<Label>(String<80>(" requires ", server,
-								                              " for ", resource.type(),
-								                              detail, " "));
+						deploy.with_optional_sub_node("deps", [&] (Node const &dep) {
+							dep.for_each_sub_node([&] (Node const &node) {
+								Start_name const server = node.attribute_value("name", Start_name());
+								node.for_each_sub_node([&] (Node const &resource) {
+									auto detail = resource.attribute_value("name", String<32>());
+									if (detail.length() > 1)
+										detail = { " (", detail, ")" };
+									s.sub_scope<Label>(String<80>(" requires ", server,
+									                              " for ", resource.type(),
+									                              detail, " "));
+								});
 							});
 						});
 					});
-				});
-				s.sub_scope<Vgap>();
-			}
-			if (attr.ram.requested || attr.caps.requested) {
-				String<128> msg { };
-				if (attr.ram.requested) {
-					msg = { msg, " RAM quota (", Num_bytes{attr.ram.requested}, ")" };
-					if (attr.caps.requested)
-						msg = { msg, "," };
+					s.sub_scope<Vgap>();
 				}
-				if (attr.caps.requested)
-					msg = { msg, " cap quota (", attr.caps.requested, ")" };
-				msg = { msg, " requested " };
+				if (attr.ram.requested || attr.caps.requested) {
+					String<128> msg { };
+					if (attr.ram.requested) {
+						msg = { msg, " RAM quota (", Num_bytes{attr.ram.requested}, ")" };
+						if (attr.caps.requested)
+							msg = { msg, "," };
+					}
+					if (attr.caps.requested)
+						msg = { msg, " cap quota (", attr.caps.requested, ")" };
+					msg = { msg, " requested " };
 
-				s.sub_scope<Vgap>();
-				s.sub_scope<Label>(msg);
-				s.sub_scope<Vgap>();
-			}
-			s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Vbox, Hbox> &s) {
-
-				if (attr.ram.requested || attr.caps.requested)
-					s.widget(_grant);
-
-				s.widget(_restart);
+					s.sub_scope<Vgap>();
+					s.sub_scope<Label>(msg);
+					s.sub_scope<Vgap>();
+				}
+				s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Vbox, Hbox> &s) {
+					if (attr.ram.requested || attr.caps.requested)
+						s.widget(_grant);
+				});
 			});
 		});
-	});
+	}
 
-	if (component.pkg.length()) {
-		if (component.pkg.length() > 1) {
-			s.sub_scope<Annotation>(String<80> { "  ", component.pkg, "  " });
-			if (component.option.length() > 1)
-				s.sub_scope<Annotation>(String<50> { "option ", Pretty { component.option } });
-		}
-		s.sub_scope<Small_vgap>();
+	/*
+	 * Footer
+	 */
+
+	if (component.pkg.length() > 1) {
+		s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
+			s.attribute("style", "invisible");
+			s.sub_scope<Vbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Vbox> &s) {
+				s.sub_scope<Annotation>(String<80> { "  ", component.pkg, "  " });
+				if (component.option.length() > 1)
+					s.sub_scope<Annotation>(String<50> { "option ", Pretty { component.option } });
+			});
+		});
 	}
 
 	String<100> const
@@ -159,9 +163,30 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 		caps(attr.caps.assigned - attr.caps.avail, " / ",
 		     attr.caps.assigned, " caps");
 
-	s.sub_scope<Min_ex>(25);
-	s.sub_scope<Label>(ram);
-	s.sub_scope<Label>(caps);
+	s.sub_scope<Frame>([&] (Scope<Depgraph, Frame, Vbox, Frame> &s) {
+		s.attribute("style", "invisible");
+		s.sub_scope<Hbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox> &s) {
+			s.sub_scope<Button>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox, Button> &s) {
+				s.attribute("style", "invisible");
+				s.attribute("stretch", "no");
+				s.widget(_restart, [&] (Scope<Button> &s) {
+					s.attribute("style", "restart");
+					s.sub_node("label", [&] { });
+				});
+			});
+			s.sub_scope<Vbox>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox, Vbox> &s) {
+				s.sub_scope<Min_ex>(25);
+				s.sub_scope<Label>(ram);
+				s.sub_scope<Label>(caps);
+			});
+			/* placeholder for future edit button */
+			s.sub_scope<Button>([&] (Scope<Depgraph, Frame, Vbox, Frame, Hbox, Button> &s) {
+				s.attribute("style", "invisible");
+				s.attribute("stretch", "no");
+				s.sub_scope<Label>("  ");
+			});
+		});
+	});
 }
 
 
