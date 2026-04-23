@@ -186,6 +186,8 @@ class Sculpt::Runtime_config
 			/* dependencies on other child components */
 			List_model<Dep> deps { };
 
+			void reset_selection() { selected = tcb = tcb_updated = false; }
+
 			void for_each_secondary_dep(auto const &fn) const
 			{
 				deps.for_each([&] (Dep const &dep) {
@@ -474,6 +476,13 @@ class Sculpt::Runtime_config
 			 * information but create a lot of noise.
 			 */
 			return name == "depot_rom" || name == "dynamic_depot_rom";
+		}
+
+		void reset_selection()
+		{
+			_components.for_each([&] (Component &child) {
+				child.reset_selection(); });
+			_selected = { };
 		}
 
 		void toggle_selection(Start_name const &name, Storage_target const &storage_target)

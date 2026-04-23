@@ -908,24 +908,30 @@ struct Sculpt::Main : Input_event_handler,
 
 	Fb_connectors::Name _hovered_display { };
 
-	static bool _related_to_popup_dialog(Node const &node)
+	static bool _label_attr_matches_suffix(Node const &node, String<16> const &suffix)
 	{
 		using Label = String<128>;
 
-		Label label { node.attribute_value("label", Label()) };
+		Label const label { node.attribute_value("label", Label()) };
 
-		auto matches_suffix = [&] (Label const &suffix)
-		{
-			if (label.length() >= suffix.length()) {
-				size_t const offset = label.length() - suffix.length();
-				if (!strcmp(label.string() + offset, suffix.string()))
-					return true;
-			}
-			return false;
-		};
+		if (label.length() >= suffix.length()) {
+			size_t const offset = label.length() - suffix.length();
+			if (!strcmp(label.string() + offset, suffix.string()))
+				return true;
+		}
+		return false;
+	}
 
-		return matches_suffix("popup") || matches_suffix("system")
-		    || matches_suffix("panel");
+	static bool _related_to_popup_dialog(Node const &node)
+	{
+		return _label_attr_matches_suffix(node, "popup")
+		    || _label_attr_matches_suffix(node, "system")
+		    || _label_attr_matches_suffix(node, "panel");
+	}
+
+	static bool _related_to_graph_dialog(Node const &node)
+	{
+		return _label_attr_matches_suffix(node, "graph");
 	}
 
 	/*
@@ -953,12 +959,19 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_click_report(Node const &click)
 	{
 		if (components_tab_selected()) {
-			if (!_seq_number_attr_matches(click, _emitted_click_seq_number))
+			if (!_seq_number_attr_matches(click, _emitted_click_seq_number)) {
 				_popup_clicked = Popup_clicked::MAYBE;
-			else if (_popup_clicked == Popup_clicked::MAYBE)
-				_popup_clicked = _related_to_popup_dialog(click) ? Popup_clicked::YES
-				                                                 : Popup_clicked::NO;
+				_graph_clicked = Graph_clicked::MAYBE;
+			} else {
+				if (_popup_clicked == Popup_clicked::MAYBE)
+					_popup_clicked = _related_to_popup_dialog(click) ? Popup_clicked::YES
+					                                                 : Popup_clicked::NO;
+				if (_graph_clicked == Graph_clicked::MAYBE)
+					_graph_clicked = _related_to_graph_dialog(click) ? Graph_clicked::YES
+					                                                 : Graph_clicked::NO;
+			}
 			_try_handle_popup_close();
+			_try_handle_graph_close();
 		}
 	}
 
@@ -1149,7 +1162,7 @@ struct Sculpt::Main : Input_event_handler,
 		});
 	}
 
-	/* used to prevent closing the popup immediatedly after opened */
+	/* used to prevent closing the popup / graph node immediatedly after opened */
 	Input::Seq_number _popup_opened_seq_number { };
 	Input::Seq_number _popup_closed_seq_number { };
 
@@ -1161,6 +1174,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	enum class Popup_touched { MAYBE, NO, YES } _popup_touched { };
 	enum class Popup_clicked { MAYBE, NO, YES } _popup_clicked { };
+	enum class Graph_touched { MAYBE, NO, YES } _graph_touched { };
+	enum class Graph_clicked { MAYBE, NO, YES } _graph_clicked { };
 
 	/**
 	 * Input_event_handler interface
@@ -1182,10 +1197,12 @@ struct Sculpt::Main : Input_event_handler,
 		if (ev.key_press(Input::BTN_LEFT)) {
 			_emitted_click_seq_number = { _seq_number_generator.value() };
 			_popup_clicked = Popup_clicked::MAYBE;
+			_graph_clicked = Graph_clicked::MAYBE;
 		}
 		if (ev.key_press(Input::BTN_TOUCH)) {
 			_emitted_touch_seq_number = { _seq_number_generator.value() };
 			_popup_touched = Popup_touched::MAYBE;
+			_graph_touched = Graph_touched::MAYBE;
 		}
 
 		bool need_generate_dialog = false;
@@ -1529,6 +1546,21 @@ struct Sculpt::Main : Input_event_handler,
 			_popup_closed_seq_number = _popup_opened_seq_number;
 			_close_popup_dialog();
 			discard_construction();
+		}
+	}
+
+	/**
+	 * Handle click outside of any graph node to close the child dialog
+	 */
+	void _try_handle_graph_close()
+	{
+		bool close = false;
+		if (_graph_touched == Graph_touched::NO) close = true;
+		if (_graph_clicked == Graph_clicked::NO) close = true;
+
+		if (close) {
+			_cached_init_config.reset_selection();
+			_graph_view.refresh();
 		}
 	}
 
