@@ -950,12 +950,19 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_touch_report(Node const &touch)
 	{
 		if (components_tab_selected()) {
-			if (!_seq_number_attr_matches(touch, _emitted_touch_seq_number))
+			if (!_seq_number_attr_matches(touch, _emitted_touch_seq_number)) {
 				_popup_touched = Popup_touched::MAYBE;
-			else if (_popup_touched == Popup_touched::MAYBE)
-				_popup_touched = _related_to_popup_dialog(touch) ? Popup_touched::YES
-				                                                 : Popup_touched::NO;
+				_graph_touched = Graph_touched::MAYBE;
+			} else {
+				if (_popup_touched == Popup_touched::MAYBE)
+					_popup_touched = _related_to_popup_dialog(touch) ? Popup_touched::YES
+					                                                 : Popup_touched::NO;
+				if (_graph_touched == Graph_touched::MAYBE)
+					_graph_touched = _related_to_graph_dialog(touch) ? Graph_touched::YES
+					                                                 : Graph_touched::NO;
+			}
 			_try_handle_popup_close();
+			_try_handle_graph_close();
 		}
 	}
 
