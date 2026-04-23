@@ -52,14 +52,34 @@ struct Sculpt::Graph : Widget<Depgraph>
 	Storage_target const &_selected_target;
 	Popup::State   const &_popup_state;
 
+	struct Selectable_node;
+
 	Hosted<Depgraph, Toggle_button> _plus { Id { "+" } };
 
+	using Hosted_title  = Hosted<Depgraph, Frame, Vbox, Hbox, Toggle_button>;
+	using Hosted_remove = Hosted<Depgraph, Frame, Vbox, Hbox, Deferred_action_button>;
+
+	Hosted_title  _title  { Id { "title"  } };
+	Hosted_remove _remove { Id { "remove" } };
+
 	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Deferred_action_button>
-		_remove  { Id { "Remove"  } },
 		_restart { Id { "Restart" } };
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Vbox, Hbox, Action_button>
 		_grant { Id { "Grant" } };
+
+	struct Node_attr
+	{
+		bool selected;
+		bool important;
+		bool alert;
+		Dialog::Id primary_dep;
+		Start_name pretty_name;
+		bool removeable;
+	};
+
+	void _view_node(Scope<Depgraph> &, Id const &, Node_attr const &,
+	                auto const &selected_fn) const;
 
 	struct Attr
 	{

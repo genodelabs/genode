@@ -30,7 +30,7 @@ struct Menu_view::Box_layout_widget : Widget
 
 	bool _vertical() const { return _direction == VERTICAL; }
 
-	unsigned _count = 0;
+	unsigned _stretch_count = 0;
 
 	/**
 	 * Stack and count children, and update min_size for the whole compound
@@ -49,7 +49,7 @@ struct Menu_view::Box_layout_widget : Widget
 
 		/* position children on one row/column */
 		Point position(0, 0);
-		_count = 0;
+		_stretch_count = 0;
 		_children.for_each([&] (Widget &w) {
 
 			Area const child_min_size = w.min_size();
@@ -70,7 +70,8 @@ struct Menu_view::Box_layout_widget : Widget
 				position = position + Point(dx, 0);
 			}
 
-			_count++;
+			if (w.stretch())
+				_stretch_count++;
 		});
 
 		_min_size = (_direction == VERTICAL)
@@ -89,14 +90,17 @@ struct Menu_view::Box_layout_widget : Widget
 			            : max(_geometry.w(), _min_size.w) - _min_size.w;
 
 		/* number of excess pixels at the end of the stack (fixpoint) */
-		unsigned const step_fp = (_count > 0) ? (unused_pixels << 8) / _count : 0;
+		unsigned const step_fp = (_stretch_count > 0)
+		                       ? (unused_pixels << 8) / _stretch_count : 0;
 
 		unsigned consumed_fp = 0;
 		_children.for_each([&] (Widget &w) {
 
-			unsigned const next_consumed_fp = consumed_fp + step_fp;
-			unsigned const padding_pixels   = (next_consumed_fp >> 8)
-			                                - (consumed_fp      >> 8);
+			unsigned const next_consumed_fp = w.stretch() ? consumed_fp + step_fp
+			                                              : consumed_fp;
+
+			unsigned const padding_pixels = (next_consumed_fp >> 8)
+			                              - (consumed_fp      >> 8);
 			if (_direction == VERTICAL) {
 				w.position(w.geometry().p1() + Point(0, consumed_fp >> 8));
 				w.size(Area(geometry().w(), w.min_size().h + padding_pixels));

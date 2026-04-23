@@ -32,55 +32,50 @@ struct Dialog::Parent_node : Sub_scope
 };
 
 
-namespace Dialog { struct Selectable_node; }
-
-struct Dialog::Selectable_node
+void Sculpt::Graph::_view_node(Scope<Depgraph> &s, Id const &id,
+                               Node_attr const &attr, auto const &selected_fn) const
 {
-	struct Attr
-	{
-		bool selected;
-		bool important;
-		bool alert;
-		Dialog::Id primary_dep;
-		Start_name pretty_name;
-	};
+	s.sub_scope<Frame>(id, [&] (Scope<Depgraph, Frame> &s) {
 
-	static void view(Scope<Depgraph> &s, Id const &id,
-	                 Attr const &attr, auto const &selected_fn)
-	{
-		s.sub_scope<Frame>(id, [&] (Scope<Depgraph, Frame> &s) {
+		if (attr.alert)
+			s.attribute("style", "alert");
+		else if (!attr.important)
+			s.attribute("style", "unimportant");
 
-			if (attr.alert)
-				s.attribute("style", "alert");
-			else if (!attr.important)
-				s.attribute("style", "unimportant");
+		if (attr.primary_dep.valid()) {
+			s.attribute("dep", attr.primary_dep.value);
+			if (!attr.important)
+				s.attribute("dep_visible", false);
+		}
 
-			if (attr.primary_dep.valid()) {
-				s.attribute("dep", attr.primary_dep.value);
-				if (!attr.important)
-					s.attribute("dep_visible", false);
-			}
+		s.sub_scope<Vbox>([&] (Scope<Depgraph, Frame, Vbox> &s) {
 
-			s.sub_scope<Vbox>([&] (Scope<Depgraph, Frame, Vbox> &s) {
+			bool const dimmed = (!attr.important || attr.alert)
+			                  && !attr.selected;
 
-				s.sub_scope<Button>(id, [&] (Scope<Depgraph, Frame, Vbox, Button> &s) {
+			s.sub_scope<Hbox>(id, [&] (Scope<Depgraph, Frame, Vbox, Hbox> &s) {
 
-					bool const dimmed = (!attr.important || attr.alert)
-					                  && !attr.selected;
-
-					if (dimmed)        s.attribute("style",    "unimportant");
-					if (s.hovered())   s.attribute("hovered",  "yes");
-					if (attr.selected) s.attribute("selected", "yes");
-
+				s.widget(_title, attr.selected, [&] (Scope<Button> &s) {
+					if (dimmed) s.attribute("style", "unimportant");
 					s.sub_scope<Label>(attr.pretty_name);
 				});
 
-				if (attr.selected)
-					selected_fn(s);
+				if (attr.selected && attr.removeable)
+					s.widget(_remove, [&] (Scope<Button> &s) {
+						s.attribute("stretch", "no");
+						s.attribute("pad", "no");
+						s.sub_scope<Float>([&] (Scope<Button, Float> &s) {
+							s.sub_scope<Button>([&] (Scope<Button, Float, Button> &s) {
+								s.attribute("style", "x");
+								s.attribute("pad", "no");
+								s.sub_node("label", [&] { }); }); }); });
 			});
+
+			if (attr.selected)
+				selected_fn(s);
 		});
-	}
-};
+	});
+}
 
 
 void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
@@ -143,14 +138,6 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 
 				if (attr.ram.requested || attr.caps.requested)
 					s.widget(_grant);
-
-				/*
-				 * Don't allow the interactive removal of components hosted in
-				 * options. Such components should be removed by disabling
-				 * the option.
-				 */
-				if (component.option.length() <= 1)
-					s.widget(_remove);
 
 				s.widget(_restart);
 			});
@@ -221,13 +208,14 @@ void Graph::view(Scope<Depgraph> &s, Action const &action) const
 		bool const alert = component._stalled.constructed()
 		                || info.ram.requested || info.caps.requested;
 
-		Selectable_node::view(s, component.graph_id,
+		_view_node(s, component.graph_id,
 			{
 				.selected    = component.selected,
 				.important   = !unimportant,
 				.alert       = alert,
 				.primary_dep = primary_dep,
-				.pretty_name = pretty_name
+				.pretty_name = pretty_name,
+				.removeable  = component.option.length() <= 1
 			},
 			[&] (Scope<Depgraph, Frame, Vbox> &s) {
 				_view_selected_node_content(s, component, action, {
@@ -276,12 +264,6 @@ using Narrowed_to_child_dialog = At::Narrowed<Depgraph, Frame, Vbox, Ignored>;
 
 void Graph::click(Clicked_at const &at, Action &action)
 {
-	/* select node */
-	Id const id = at.matching_id<Depgraph, Frame, Vbox, Button>();
-	if (id.valid())
-		_runtime_config.with_start_name(id, [&] (Start_name const &name) {
-			_runtime_config.toggle_selection(name, _selected_target); });
-
 	_plus.propagate(at, [&] {
 
 		auto popup_anchor = [] (Node const &dialog)
@@ -299,13 +281,20 @@ void Graph::click(Clicked_at const &at, Action &action)
 		action.open_popup_dialog(popup_anchor(at._location));
 	});
 
+	Id const id = at.matching_id<Depgraph, Frame, Vbox, Hbox>();
+
+	_title.propagate(at, [&] {
+		_runtime_config.with_start_name(id, [&] (Start_name const &name) {
+			_runtime_config.toggle_selection(name, _selected_target); }); });
+
+	_remove.propagate(at);
+
 	Narrowed_to_child_dialog::with_at(at, [&] (Clicked_at const &narrowed) {
 		action.click_child_dialog(narrowed); });
 
 	_grant.propagate(at, [&] {
 		action.grant_resource_request(_runtime_config.selected()); });
 
-	_remove .propagate(at);
 	_restart.propagate(at);
 }
 

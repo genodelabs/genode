@@ -158,6 +158,8 @@ class Menu_view::Widget : List_model<Widget>::Element
 			                 geometry().h() - margin.vertical()));
 		}
 
+		bool _stretch = true; /* widget can be sized larger than min size */
+
 		/*
 		 * Position relative to the parent widget and actual size, defined by
 		 * the parent
@@ -190,6 +192,8 @@ class Menu_view::Widget : List_model<Widget>::Element
 		Rect geometry() const { return _geometry; }
 
 		Rect animated_geometry() const { return _animated_geometry.rect(); }
+
+		bool stretch() const { return _stretch; }
 
 		/*
 		 * Return x/y positions of the edges of the widget with the margin

@@ -60,6 +60,10 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		bool const new_hovered  = _enabled(node, "hovered");
 		bool const new_selected = _enabled(node, "selected");
 
+		_stretch = node.attribute_value("stretch", true);
+		_padding = node.attribute_value("pad", true) ? Padding { 9, 9, 2, 1 }
+		                                             : Padding { 0, 0, 0, 0 };
+
 		char const * const next_texture_name =
 			new_selected ? (new_hovered ? "hselected" : "selected")
 			             : (new_hovered ? "hovered"   : "default");
