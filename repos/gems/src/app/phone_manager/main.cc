@@ -2193,6 +2193,38 @@ struct Sculpt::Main : Input_event_handler,
 };
 
 
+bool Sculpt::Runtime_config::hidden_from_graph(Start_name const &name)
+{
+	return name == "blueprint_query"
+	    || name == "clipboard"
+	    || name == "depot_query"
+	    || name == "depot_rom"
+	    || name == "depot_rw"
+	    || name == "dir_query"
+	    || name == "dynamic_depot_rom"
+	    || name == "editor"
+	    || name == "event_filter"
+	    || name == "font"
+	    || name == "fb"
+	    || name == "fs_query"
+	    || name == "fs_tool"
+	    || name == "global_keys"
+	    || name == "gui_focus"
+	    || name == "leitzentrale"
+	    || name == "manager_keyboard"
+	    || name == "model"
+	    || name == "model_query"
+	    || name == "modem_diag"
+	    || name == "numlock_remap"
+	    || name == "touch"
+	    || name == "pointer"
+	    || name == "public_rw"
+	    || name == "report"
+	    || name == "report_logger"
+	    || name == "runtime_view";
+}
+
+
 void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
                                          Node const &window_list)
 {

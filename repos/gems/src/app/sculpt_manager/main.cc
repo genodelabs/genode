@@ -2220,6 +2220,22 @@ struct Sculpt::Main : Input_event_handler,
 };
 
 
+bool Sculpt::Runtime_config::hidden_from_graph(Start_name const &name)
+{
+	return name == "blueprint_query"
+	    || name == "depot_query"
+	    || name == "depot_rom"
+	    || name == "depot_rw"
+	    || name == "dir_query"
+	    || name == "dynamic_depot_rom"
+	    || name == "editor"
+	    || name == "fs_tool"
+	    || name == "model_query"
+	    || name == "public_rw"
+	    || name == "runtime_view";
+}
+
+
 void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
                                          Node const &window_list)
 {

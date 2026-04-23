@@ -201,21 +201,7 @@ void Graph::view(Scope<Depgraph> &s, Action const &action) const
 		if (name == "mmc-mmcblk0.1.fs")
 			pretty_name = "1.fs";
 
-		/* omit sculpt's helpers from the graph */
-		bool const hidden = (name == "runtime_view"
-		                  || name == "editor"
-		                  || name == "model_query"
-		                  || name == "update"
-		                  || name == "fs_tool"
-		                  || name == "depot_rw"
-		                  || name == "public_rw"
-		                  || name == "depot_rom"
-		                  || name == "dynamic_depot_rom"
-		                  || name == "depot_query"
-		                  || name == "blueprint_query"
-		                  || name == "dir_query"
-		                  || name == "manager_keyboard");
-		if (hidden)
+		if (Runtime_config::hidden_from_graph(name))
 			return;
 
 		bool const unimportant = any_selected && !component.tcb;
@@ -262,7 +248,7 @@ void Graph::view(Scope<Depgraph> &s, Action const &action) const
 		if (show_details) {
 			component.for_each_secondary_dep([&] (Start_name dep_name) {
 
-				if (Runtime_config::blacklisted_from_graph(dep_name))
+				if (Runtime_config::hidden_from_graph(dep_name))
 					return;
 
 				if (dep_name == "default_fs_rw")

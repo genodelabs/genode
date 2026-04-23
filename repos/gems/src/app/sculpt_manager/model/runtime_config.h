@@ -469,14 +469,7 @@ class Sculpt::Runtime_config
 			return count;
 		}
 
-		static bool blacklisted_from_graph(Start_name const &name)
-		{
-			/*
-			 * Connections to depot_rom do not reveal any interesting
-			 * information but create a lot of noise.
-			 */
-			return name == "depot_rom" || name == "dynamic_depot_rom";
-		}
+		static bool hidden_from_graph(Start_name const &name);
 
 		void reset_selection()
 		{
@@ -524,7 +517,7 @@ class Sculpt::Runtime_config
 					if (dep == "default_fs_rw")
 						dep = storage_target.fs();
 
-					if (!blacklisted_from_graph(dep))
+					if (!hidden_from_graph(dep))
 						_components.for_each([&] (Component &child) {
 							if (child.name == dep)
 								child.tcb = true; });
