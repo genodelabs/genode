@@ -14,9 +14,9 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/openssl \
                   [depot_user]/src/zlib \
                   [depot_user]/pkg/system_rtc-[board] \
-                  [depot_user]/src/libestr/0.1.11-2025-10-09 \
-                  [depot_user]/src/libfastjson/1.2304.0-2025-10-09 \
-                  [depot_user]/src/rsyslog/8.2502.0-2025-10-09
+                  [depot_user]/src/libestr/0.1.11-2026-04-22 \
+                  [depot_user]/src/libfastjson/1.2304.0-2026-04-22 \
+                  [depot_user]/src/rsyslog/8.2502.0-2026-04-22
 
 #
 # Generate config

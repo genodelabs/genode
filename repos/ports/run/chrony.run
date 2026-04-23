@@ -36,9 +36,9 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_jitterentropy \
                   [depot_user]/src/vfs_lxip \
                   [depot_user]/src/vfs_pipe \
-                  [depot_user]/src/nettle/3.7-2026-01-14 \
-                  [depot_user]/src/gnutls/3.6.16-2025-10-02 \
-                  [depot_user]/src/chrony/4.6.1-2025-10-02
+                  [depot_user]/src/nettle/3.7-2026-04-22 \
+                  [depot_user]/src/gnutls/3.6.16-2026-04-22 \
+                  [depot_user]/src/chrony/4.6.1-2026-04-22
 
 #
 # Generate config

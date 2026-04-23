@@ -26,7 +26,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/libusb \
                   [depot_user]/src/vfs_libusb \
-                  [depot_user]/pkg/test-smartcard/2025-11-17
+                  [depot_user]/pkg/test-smartcard/2026-04-22
 
 install_config {
 config

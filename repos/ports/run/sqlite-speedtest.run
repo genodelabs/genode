@@ -9,7 +9,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/posix \
                   [depot_user]/src/vfs \
                   [depot_user]/pkg/system_rtc-[board] \
-                  genodelabs/pkg/sqlite-speedtest/3.50.4-2025-09-19
+                  genodelabs/pkg/sqlite-speedtest/3.50.4-2026-04-22
 
 #
 # Generate config
