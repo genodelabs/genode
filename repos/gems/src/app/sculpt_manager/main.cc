@@ -2037,8 +2037,9 @@ struct Sculpt::Main : Input_event_handler,
 				if (a.name != "managed")
 					g.attribute(a.name.string(), a.value.start, a.value.num_bytes); });
 			node.for_each_sub_node([&] (Node const &sub_node) {
-				if (sub_node.has_type("capture")) {
+				if (sub_node.has_type("capture") && sub_node.attribute_value("managed", false)) {
 					g.node("capture", [&] {
+						g.attribute("managed", "yes");
 
 						/* generate panorama of fb-driver sessions */
 						Panorama_config(_fb_config_model).gen_policy_entries(g);

@@ -1,5 +1,5 @@
-config | focus: rom | managed: yes
-+ capture
+config | focus: rom
++ capture | managed: yes
 + event
 + report | hover: yes | focus: yes | clicked: yes | keystate: no | panorama: yes
 
