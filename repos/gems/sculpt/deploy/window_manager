@@ -9,7 +9,7 @@ deploy | info: simple desktop environment
 + option black_hole
 + option system_shell
 
-+ child wm_backdrop | pkg: sticks_blue_backdrop
++ child wm_backdrop | pkg: sticks_blue_backdrop | priority: bg
   + connect | + gui | + child gui | label: backdrop
   + config
     + libc

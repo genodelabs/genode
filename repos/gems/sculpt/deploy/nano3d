@@ -4,7 +4,7 @@ deploy | info: software-rendering example
 + option sculpt  | required: yes
 + option managed | required: yes
 
-+ child backdrop | pkg: sticks_blue_backdrop
++ child backdrop | pkg: sticks_blue_backdrop | priority: bg
   + config
   | + libc
   | + vfs

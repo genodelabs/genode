@@ -13,7 +13,7 @@ deploy | info: disposable web browser
 + child mesa_gpu-cpu | pkg: mesa_gpu-cpu
   + connect | + rm | + parent
 
-+ child falkon_backdrop | pkg: sticks_blue_backdrop
++ child falkon_backdrop | pkg: sticks_blue_backdrop | priority: bg
   + connect | + gui | + child gui | label: backdrop
   + config
     + libc

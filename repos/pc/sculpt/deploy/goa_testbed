@@ -12,7 +12,7 @@ deploy | info: Goa testbed
 + child mesa_gpu-intel | pkg: mesa_gpu-intel
   + connect | + rm | + parent
 
-+ child system_info | pkg: jschlatow/pkg/system_info/2026-04-21-a
++ child system_info | pkg: jschlatow/pkg/system_info/2026-04-21-a | priority: bg
   + connect
   | + gui               | + child gui | label: backdrop
   | + rtc               | + child system_clock
