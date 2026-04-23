@@ -1921,6 +1921,8 @@ class Nvme::Driver : Genode::Noncopyable
 		Signal_handler<Driver>  _system_rom_sigh {
 			_env.ep(), *this, &Driver::_system_update };
 
+		Bit_array<align_addr(int(NUM_QUEUES), { .log2 = 6 })> _resume_queues { };
+
 		void _handle_config_update()
 		{
 			_config_rom.update();
@@ -2061,10 +2063,16 @@ class Nvme::Driver : Genode::Noncopyable
 			/* skip the admin SQ/CQ and reinit all other used queues */
 			for (uint16_t qid_value = 1; qid_value < NUM_QUEUES; qid_value++) {
 				Io_queue_space::Id const qid { .value = qid_value };
-				if (!ctrlr.active_io(qid))
-					continue;
 
-				ctrlr.setup_io(qid, qid);
+				_resume_queues.get(qid_value, 1).with_result([&] (bool used) {
+					if (!used)
+						return;
+
+					/* clear must succeed because in use */
+					(void)_resume_queues.clear(qid_value, 1);
+
+					ctrlr.setup_io(qid, qid);
+				}, [](auto &) { /* unused queue -> nothing to setup */ });
 			}
 
 			/*
@@ -2111,9 +2119,21 @@ class Nvme::Driver : Genode::Noncopyable
 
 		void device_release_if_stopped_and_idle()
 		{
-			if (_stop_processing && _submits_in_flight == 0) {
-				_nvme_ctrlr.destruct();
+			if (!_stop_processing || _submits_in_flight)
+				return;
+
+			if (!_nvme_ctrlr.constructed())
+				return;
+
+			/* skip the admin SQ/CQ, created ever on reinit */
+			for (auto i = 1u; i < NUM_QUEUES; i++) {
+				if (_nvme_ctrlr->active_io({ .value = i })) {
+					if (_resume_queues.set(i, 1).failed())
+						error(__func__, "queue resume tracking ", i, " failed");
+				}
 			}
+
+			_nvme_ctrlr.destruct();
 		}
 
 		void _system_update()
