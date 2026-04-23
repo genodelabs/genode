@@ -297,9 +297,17 @@ proc log_route { } {
 
 install_hid [model]/runtime {
 config | arch: } [depot_spec] { | verbose: no | prio_levels: 8 | depot_rom: depot_rom
+
 + report  | init_ram: yes | init_caps: yes | child_ram: yes | child_caps: yes
           | requested: no | provided: no | delay_ms: 2000 | buffer: 1M
+
++ priority | default: -3
+  + driver -1
+  + media  -2
+  + bg     -4
+
 + heartbeat | rate_ms: 2000
+
 + static
   + parent-provides
     + service ROM
@@ -316,6 +324,7 @@ config | arch: } [depot_spec] { | verbose: no | prio_levels: 8 | depot_rom: depo
     + service IO_PORT
     + service IRQ
     + service Terminal
+
 + common_routes
   + service ROM | label_last: ld.lib.so | + parent
   + service ROM | label_last: init      | + parent
