@@ -27,22 +27,25 @@ struct Sculpt::Network_widget : Widget<Frame>
 {
 	using Wlan_config_policy = Ap_selector_widget::Wlan_config_policy;
 
-	enum class Target { DISCONNECTED, NIC, WIFI, MOBILE };
+	enum class Target { DISCONNECTED, NIC, WIFI, USB, MOBILE };
 
 	struct Action : Interface, Noncopyable
 	{
 		virtual void nic_target(Target) = 0;
 	};
 
+	struct Avail { bool nic, wifi, usb, mobile; };
+
 	struct Enabled
 	{
-		bool nic, wifi, mobile;
-		bool any() const { return nic || wifi || mobile; }
+		bool nic, wifi, usb, mobile;
+		bool any() const { return nic || wifi || usb || mobile; }
 
 		static Enabled from_runtime(Runtime_state const &runtime)
 		{
 			return { .nic    = runtime.present_in_runtime("nic"),
 			         .wifi   = runtime.present_in_runtime("wifi"),
+			         .usb    = runtime.present_in_runtime("usb_net"),
 			         .mobile = runtime.present_in_runtime("mobile") };
 		}
 	};
@@ -53,20 +56,17 @@ struct Sculpt::Network_widget : Widget<Frame>
 			_local  { Id { "Disconected" } },
 			_nic    { Id { "Wired"       } },
 			_wifi   { Id { "Wifi"        } },
+			_usb    { Id { "USB"         } },
 			_mobile { Id { "Mobile data" } };
 
-		void view(Scope<Hbox> &s, Enabled const enabled, Board_info const &board_info) const
+		void view(Scope<Hbox> &s, Avail const avail, Enabled const enabled) const
 		{
 			s.widget(_local, !enabled.any());
 
-			if (board_info.detected.nic || board_info.soc.nic)
-				s.widget(_nic, enabled.nic);
-
-			if (board_info.wifi_avail())
-				s.widget(_wifi, enabled.wifi);
-
-			if (board_info.soc.modem)
-				s.widget(_mobile, enabled.mobile);
+			if (avail.nic)    s.widget(_nic, enabled.nic);
+			if (avail.wifi)   s.widget(_wifi, enabled.wifi);
+			if (avail.usb)    s.widget(_usb, enabled.usb);
+			if (avail.mobile) s.widget(_mobile, enabled.mobile);
 		}
 
 		void click(Clicked_at const &at, Action &action)
@@ -74,6 +74,7 @@ struct Sculpt::Network_widget : Widget<Frame>
 			_local .propagate(at, [&] { action.nic_target(Target::DISCONNECTED); });
 			_nic   .propagate(at, [&] { action.nic_target(Target::NIC); });
 			_wifi  .propagate(at, [&] { action.nic_target(Target::WIFI); });
+			_usb   .propagate(at, [&] { action.nic_target(Target::USB); });
 			_mobile.propagate(at, [&] { action.nic_target(Target::MOBILE); });
 		}
 	};
@@ -83,12 +84,12 @@ struct Sculpt::Network_widget : Widget<Frame>
 	void _gen_connected_ap(Generator &, bool) const;
 
 	void view(Scope<Frame> &s, Nic_state const &nic_state,
-	          Board_info const &board_info, Enabled enabled, auto const &fn) const
+	          Avail const avail, Enabled const enabled, auto const &fn) const
 	{
 		s.sub_scope<Vbox>([&] (Scope<Frame, Vbox> &s) {
 			s.sub_scope<Min_ex>(35);
 
-			s.widget(_target_selector, enabled, board_info);
+			s.widget(_target_selector, avail, enabled);
 
 			if (enabled.any()) {
 				s.sub_scope<Frame>([&] (Scope<Frame, Vbox, Frame> &s) {

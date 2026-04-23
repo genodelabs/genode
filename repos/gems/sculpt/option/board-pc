@@ -180,4 +180,12 @@ option
     + rom wpa_driver_nl80211.lib.so | + parent
     + rom wpa_supplicant.lib.so     | + parent
     + rm                            | + parent
+
++ child usb_net | binary: usb_net | ram: 20M | caps: 200 | enabled: no
+  + config
+    + device | vendor_id: 0x2c7c | mac: 02:00:00:00:01:05
+  + connect
+    + usb    | + child usb
+    + report | + child report
+    + uplink | + child network | label: usb_net
 -

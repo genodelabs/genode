@@ -17,4 +17,5 @@ config | managed: yes | bios_handoff: no
 
 + policy | label_prefix: usb_net ->
   + device | vendor_id: 0x0bda | product_id: 0x8156 | . RTL8156
+  + device | vendor_id: 0x0b95 | product_id: 0x1790 | . AX88179
 -

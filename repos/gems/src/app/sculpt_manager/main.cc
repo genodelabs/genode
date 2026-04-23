@@ -308,7 +308,9 @@ struct Sculpt::Main : Input_event_handler,
 		.suspending = false,
 	};
 
-	bool _usb_storage_acquired = false, _usb_hid_present = false;
+	bool _usb_storage_acquired = false;
+	bool _usb_hid_present      = false;
+	bool _usb_net_present      = false;
 
 	/**
 	 * Drivers::Action
@@ -453,9 +455,11 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_usb_devices(Node const &devices)
 	{
 		bool const orig_usb_hid_present = _usb_hid_present;
+		bool const orig_usb_net_present = _usb_net_present;
 
 		_usb_storage_acquired = false;
 		_usb_hid_present      = false;
+		_usb_net_present      = false;
 
 		static constexpr unsigned CLASS_HID = 3, CLASS_STORAGE = 8;
 
@@ -468,15 +472,18 @@ struct Sculpt::Main : Input_event_handler,
 					_usb_storage_acquired |= (class_id == CLASS_STORAGE) && acquired;
 				});
 			});
+			unsigned const vendor = device.attribute_value("vendor_id", 0U);
+			_usb_net_present |= vendor == 0x0b95; /* ASIX */
+			_usb_net_present |= vendor == 0x0bda; /* Realtek */
 		});
 
-		if (orig_usb_hid_present != _usb_hid_present) {
+		if (orig_usb_hid_present != _usb_hid_present)
 			_vfs.edit("/model/option/board", [&] (Hid_edit &edit) {
 				edit.adjust("option | + child usb_hid | : enabled", false,
 					[&] (unsigned) { return _usb_hid_present ? "yes" : "no"; }); });
 
-			generate_runtime_config();
-		}
+		if (orig_usb_net_present && !_usb_net_present)
+			nic_target(Network_widget::Target::DISCONNECTED);
 
 		handle_device_plug_unplug();
 	}
@@ -592,6 +599,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		disable_if_unused("wifi",   Target::WIFI);
 		disable_if_unused("nic",    Target::NIC);
+		disable_if_unused("usb_net",Target::USB);
 		disable_if_unused("mobile", Target::MOBILE);
 
 		auto enable_if_targeted = [&] (auto const &name, Target driver)
@@ -604,6 +612,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		enable_if_targeted("wifi",   Target::WIFI);
 		enable_if_targeted("nic",    Target::NIC);
+		enable_if_targeted("usb_net",Target::USB);
 		enable_if_targeted("mobile", Target::MOBILE);
 	}
 
@@ -1470,8 +1479,13 @@ struct Sculpt::Main : Input_event_handler,
 
 		if (selected == "network")
 			_drivers.with_board_info([&] (Board_info const &board_info) {
+				Network_widget::Avail avail = {
+					.nic    = board_info.detected.nic || board_info.soc.nic,
+					.wifi   = board_info.wifi_avail(),
+					.usb    = _usb_net_present,
+					.mobile = board_info.soc.modem };
 				auto enabled = Network_widget::Enabled::from_runtime(_runtime_state);
-				s.widget(_network_widget, _network._nic_state, board_info, enabled,
+				s.widget(_network_widget, _network._nic_state, avail, enabled,
 					[&] (Scope<Frame, Vbox, Frame, Vbox> &s) {
 						if (!_network._nic_state.ready() && enabled.wifi)
 							s.sub_scope<Label>("connect at wifi component");
