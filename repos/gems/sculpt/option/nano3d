@@ -1,5 +1,5 @@
 option
-+ child nano3d | pkg: nano3d | priority: -2
++ child nano3d | pkg: nano3d | priority: media
   + connect
     + gui | + child wm
   + config | shape: cube

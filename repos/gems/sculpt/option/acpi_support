@@ -1,5 +1,5 @@
 option
-+ child acpi_support | pkg: acpica | priority: -2
++ child acpi_support | pkg: acpica | priority: media
   + connect
     + io_mem            | + parent
     + io_port           | + parent

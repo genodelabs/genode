@@ -1,5 +1,5 @@
 option
-+ child audio | ram: 3M | caps: 145 | pkg: bsd_audio | priority: -1
++ child audio | ram: 3M | caps: 145 | pkg: bsd_audio | priority: driver
 
   + config | report_mixer: yes | record_play: yes
     + mixer | field: outputs.master | value: 255 | . value range [0,255]

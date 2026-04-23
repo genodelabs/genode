@@ -1,6 +1,6 @@
 option
 
-+ child log_view | binary: init | caps: 350 | ram: 16M | priority: -1
++ child log_view | binary: init | caps: 350 | ram: 16M | priority: driver
   + connect
     + gui                | + child leitzentrale
     + rom config         | + child model  | label: child/log_view

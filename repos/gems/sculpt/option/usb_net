@@ -1,5 +1,5 @@
 option
-+ child usb_net | binary: usb_net | ram: 20M | caps: 200 | priority: -3
++ child usb_net | binary: usb_net | ram: 20M | caps: 200
   + config
     + device | vendor_id: 0x2c7c | mac: 02:00:00:00:01:05
   + connect

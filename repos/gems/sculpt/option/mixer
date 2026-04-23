@@ -1,5 +1,5 @@
 option
-+ child mixer | pkg: record_play_mixer | priority: -1
++ child mixer | pkg: record_play_mixer | priority: driver
   + config | jitter_ms: 10 | warning_rate_ms: 0
   |
   | + mix left

@@ -1,6 +1,6 @@
 option
 
-+ child model | binary: init | caps: 300 | ram: 15M | priority: -1
++ child model | binary: init | caps: 300 | ram: 15M | priority: driver
   + provides
     + rom
     + rom vimrc
@@ -15,7 +15,7 @@ option
     + rom chroot    | + parent
     + rom fs_rom    | + parent
 
-+ child report | binary: init | caps: 1000 | ram: 30M | priority: -1
++ child report | binary: init | caps: 1000 | ram: 30M | priority: driver
   + provides
     + log
     + report
@@ -41,7 +41,7 @@ option
     + rom fs_rom             | + parent
     + rom fs_report          | + parent
 
-+ child gui | binary: nitpicker | caps: 1000 | ram: 18M | priority: -1
++ child gui | binary: nitpicker | caps: 1000 | ram: 18M | priority: driver
   + affinity | xpos: 1 | width: 1 | . decouple nitpicker from boot CPU
   + provides
     + gui
@@ -68,13 +68,13 @@ option
     + rom VeraMono.ttf   | + parent
     + rom config         | + child model | label: child/font
 
-+ child report_logger | binary: report_rom | ram: 1M | caps: 100 | priority: -1
++ child report_logger | binary: report_rom | ram: 1M | caps: 100 | priority: driver
   + provides
     + report
     + rom
   + config | verbose: yes
 
-+ child numlock_remap | binary: rom_filter | ram: 1M | caps: 100 | priority: -1
++ child numlock_remap | binary: rom_filter | ram: 1M | caps: 100 | priority: driver
   .
   . toggle key mappings depending on the numlock state
   .
@@ -83,7 +83,7 @@ option
     + rom config  | + child model  | label: child/numlock_remap
     + rom numlock | + child report | label: global_keys/numlock
 
-+ child event_filter | binary: event_filter | caps: 120 | ram: 2M | priority: -1
++ child event_filter | binary: event_filter | caps: 120 | ram: 2M | priority: driver
   + provides | + event
   + connect
     + event                         | + child gui
@@ -92,7 +92,7 @@ option
     + rom capslock                  | + child report | label: global_keys/capslock
     + rom | label_prefix: keyboard/ | + child model
 
-+ child gui_focus | binary: rom_filter | ram: 1M | caps: 100 | priority: -1
++ child gui_focus | binary: rom_filter | ram: 1M | caps: 100 | priority: driver
   .
   . override user focus when leitzentrale is active
   .
@@ -114,7 +114,7 @@ option
     + rom hover        | + child report | label: gui/hover
     + rom leitzentrale | + child report | label: global_keys/leitzentrale
 
-+ child pointer | binary: pointer | ram: 2M | caps: 100 | priority: -1
++ child pointer | binary: pointer | ram: 2M | caps: 100 | priority: driver
   + provides | + report
   + config | shapes: yes
   + connect
@@ -122,13 +122,13 @@ option
     + rom hover | + child report | label: gui/hover
     + rom xray  | + child report | label: global_keys/xray
 
-+ child global_keys | binary: global_keys_handler | ram: 1M | caps: 100 | priority: -1
++ child global_keys | binary: global_keys_handler | ram: 1M | caps: 100 | priority: driver
   + connect
     + gui        | + child gui
     + rom config | + child model | label: child/global_keys
     + report     | + child report
 
-+ child clipboard | binary: clipboard | ram: 2M | caps: 100 | priority: -1
++ child clipboard | binary: clipboard | ram: 2M | caps: 100 | priority: driver
   + provides
     + rom
     + report
@@ -137,7 +137,7 @@ option
     + rom config    | + child model  | label: child/clipboard
     + rom focus     | + child report | label: gui/focus
 
-+ child leitzentrale | binary: init | caps: 2200 | ram: 194M | priority: -1
++ child leitzentrale | binary: init | caps: 2200 | ram: 194M | priority: driver
   + affinity | xpos: 1 | width: 1 | . decouple leitzentrale from boot CPU
   + provides
     + gui
@@ -186,7 +186,7 @@ option
     + rom platform_info                        | + parent
     + rom VERSION                              | + parent
 
-+ child network | binary: nic_router | ram: 10M | caps: 300 | priority: -3
++ child network | binary: nic_router | ram: 10M | caps: 300
   + provides
     + nic
     + uplink
@@ -195,7 +195,7 @@ option
     + rom config     | + child model | label: child/network
     + report         | + child report
 
-+ child ram_fs | binary: vfs | ram: 1M | caps: 300 | priority: -2
++ child ram_fs | binary: vfs | ram: 1M | caps: 300 | priority: media
   + managed | max_ram: 2G
   + provides | + fs
   + connect
@@ -203,7 +203,7 @@ option
     + rom config     | + child model | label: child/ram_fs
     + rom            | + parent
 
-+ child runtime_view | binary: menu_view | ram: 52M | caps: 330 | priority: -2
++ child runtime_view | binary: menu_view | ram: 52M | caps: 330 | priority: media
   + managed | max_ram: 128M | max_caps: 2000
   + heartbeat | restart_after_skipped: 2
   + connect
@@ -221,7 +221,7 @@ option
     + rom                     | + child leitzentrale | . dialogs
     + fs font                 | + child font
 
-+ child model_query | binary: fs_query  | ram: 2M | caps: 200 | priority: -3
++ child model_query | binary: fs_query  | ram: 2M | caps: 200
   + config | query: rom
     + vfs | + fs
     + query | path: /option
@@ -231,12 +231,12 @@ option
     + report         | + child report
     + fs             | + child model | identity: ro
 
-+ child depot | binary: chroot | ram: 2M | caps: 100 | priority: -3
++ child depot | binary: chroot | ram: 2M | caps: 100
   + config | + default-policy | path: /depot
   + provides | + fs
   + connect | + fs | + child default_fs_rw
 
-+ child depot_rom | binary: cached_fs_rom | ram: 24M | caps: 200 | priority: -3 | version: 1
++ child depot_rom | binary: cached_fs_rom | ram: 24M | caps: 200 | version: 1
   + managed | max_ram: 2G
   + config
   + provides | + rom
@@ -244,7 +244,7 @@ option
     + fs | + child depot
     + rm | + parent
 
-+ child dynamic_depot_rom | binary: fs_rom | ram: 8M | caps: 200 | priority: -3 | version: 1
++ child dynamic_depot_rom | binary: fs_rom | ram: 8M | caps: 200 | version: 1
   + managed | max_ram: 2G
   + config
   + provides | + rom
@@ -252,7 +252,7 @@ option
     + fs | + child depot
     + rm | + parent
 
-+ child blueprint_query | binary: depot_query | ram: 2M | caps: 200 | priority: -3
++ child blueprint_query | binary: depot_query | ram: 2M | caps: 200
   + config | query: rom
     + vfs | + dir depot | + fs
   + connect
@@ -261,7 +261,7 @@ option
     + rom query        | + parent | label: query
     + report blueprint | + parent | label: blueprint
 
-+ child depot_query | binary: depot_query | ram: 2M | caps: 200 | priority: -3
++ child depot_query | binary: depot_query | ram: 2M | caps: 200
   + config | query: rom
     + vfs | + dir depot | + fs
   + connect

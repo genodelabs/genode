@@ -1,5 +1,5 @@
 option
-+ child backdrop | pkg: sticks_blue_backdrop | priority: -3
++ child backdrop | pkg: sticks_blue_backdrop
   + config
   | .
   | . The graphics operations 'fill' and 'image' are applied in order.

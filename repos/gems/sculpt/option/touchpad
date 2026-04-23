@@ -1,5 +1,5 @@
 option
-+ child touchpad | pkg: pc_i2c_hid | priority: -2
++ child touchpad | pkg: pc_i2c_hid | priority: media
   + config
     + i2c_slave  | irq: 266 | bus_addr: 44 | hid_addr: 32 | gpio_chip: INT34C5  | . Fujitsu U7411 (SYNAPTICS)
     x i2c_slave  | irq: 266 | bus_addr: 21 | hid_addr: 1  | gpio_chip: INT34C5  | . Fujitsu U7511 (ELAN)

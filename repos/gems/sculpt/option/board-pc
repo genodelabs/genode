@@ -39,7 +39,7 @@ option
     + rom board         | + child model           | label: option/board
     + rom platform_info | + parent
 
-+ child usb | binary: pc_usb_host | ram: 16M | caps: 200 | priority: -2 | enabled: discover
++ child usb | binary: pc_usb_host | ram: 16M | caps: 200 | priority: media | enabled: discover
   + managed | disable: while_suspended
   + provides
     + usb
@@ -48,7 +48,7 @@ option
     + report     | + child report
     + rom config | + child model    | label: child/usb
 
-+ child intel_gpu | binary: intel_gpu | ram: 32M | caps: 1400 | priority: -2 | enabled: discover
++ child intel_gpu | binary: intel_gpu | ram: 32M | caps: 1400 | priority: media | enabled: discover
   + managed | max_ram: 256M | max_caps: 5000
   + provides
     + gpu
@@ -59,7 +59,7 @@ option
     + rom system | + child model    | label: system
     + rm         | + parent
 
-+ child intel_fb | binary: pc_intel_fb | ram: 16M | caps: 800 | priority: -2 | enabled: discover
++ child intel_fb | binary: pc_intel_fb | ram: 16M | caps: 800 | priority: media | enabled: discover
   + managed | max_ram: 256M | max_caps: 5000 | disable: while_suspended
   + heartbeat | restart_after_skipped: 2
   + connect
@@ -70,7 +70,7 @@ option
     + rom intel_opregion | + child report | label: platform/intel_opregion
     + rm                 | + parent
 
-+ child boot_fb | binary: boot_fb | ram: 8M | caps: 100 | priority: -2 | enabled: discover
++ child boot_fb | binary: boot_fb | ram: 8M | caps: 100 | priority: media | enabled: discover
   + connect
     + rom config        | + child model | label: fb
     + rom platform_info | + parent      | label: platform_info
@@ -78,7 +78,7 @@ option
     + capture           | + child gui
     + report            | + child report
 
-+ child vesa_fb | binary: vesa_fb | ram: 8M | caps: 110 | priority: -2 | enabled: discover
++ child vesa_fb | binary: vesa_fb | ram: 8M | caps: 110 | priority: media | enabled: discover
   + managed | max_ram: 256M | max_caps: 5000
   + connect
     + platform   | + child platform | label: vesa_fb
@@ -88,7 +88,7 @@ option
     + io_mem     | + parent
     + io_port    | + parent
 
-+ child ps2 | binary: ps2 | ram: 1M | caps: 100 | priority: -2 | enabled: discover
++ child ps2 | binary: ps2 | ram: 1M | caps: 100 | priority: media | enabled: discover
   + managed | disable: while_suspended
   + config | capslock_led: rom | numlock_led: rom | system: yes
   + connect
@@ -98,7 +98,7 @@ option
     + rom system   | + child model        | label: system
     + event        | + child event_filter | label: ps2
 
-+ child ahci | binary: ahci | ram: 10M | caps: 100 | priority: -3 | enabled: discover
++ child ahci | binary: ahci | ram: 10M | caps: 100 | priority: media | enabled: discover
   + managed | max_ram: 32M | max_caps: 500
   + provides
     + block
@@ -115,7 +115,7 @@ option
     + rom system | + child model    | label: system
     + report     | + child report
 
-+ child nvme | binary: nvme | ram: 8M | caps: 100 | priority: -3 | enabled: discover
++ child nvme | binary: nvme | ram: 8M | caps: 100 | priority: media | enabled: discover
   + managed | max_ram: 32M | max_caps: 500
   + provides
     + block
@@ -127,7 +127,7 @@ option
     + rom system | + child model    | label: system
     + report     | + child report
 
-+ child usb_hid | binary: usb_hid | ram: 11M | caps: 180 | priority: -2 | enabled: no
++ child usb_hid | binary: usb_hid | ram: 11M | caps: 180 | priority: media | enabled: no
   .
   . Enabled/disabled by the sculpt manager according to the presence of
   . USB-HID devices.
@@ -140,7 +140,7 @@ option
     + rom numlock  | + child report | label: global_keys/numlock
     + event        | + child event_filter | label: usb_hid
 
-+ child nic | binary: pc_nic | ram: 20M | caps: 300 | priority: -3 | enabled: no
++ child nic | binary: pc_nic | ram: 20M | caps: 300 | enabled: no
   + managed | disable: while_suspended
   + config
   + connect
@@ -149,7 +149,7 @@ option
     + report      | + child report
     + rm          | + parent
 
-+ child wifi | binary: wifi | ram: 24M | caps: 260 | priority: -3 | enabled: no
++ child wifi | binary: wifi | ram: 24M | caps: 260 | enabled: no
   + managed | disable: while_suspended
   + config
   | + libc | stdout: /dev/log | stderr: /dev/null | rtc: /dev/rtc
