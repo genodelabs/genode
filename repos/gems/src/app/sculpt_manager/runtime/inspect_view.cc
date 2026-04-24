@@ -157,7 +157,7 @@ static void gen_fs_rom_start(Generator &g)
 static void gen_bash_start(Generator &g)
 {
 	gen_common_start_content(g, "bash",
-	                         Cap_quota{400}, Ram_quota{16*1024*1024},
+	                         Cap_quota{450}, Ram_quota{18*1024*1024},
 	                         Priority::NESTED_MAX);
 
 	gen_named_node(g, "binary", "/bin/bash", [&] { });
@@ -217,7 +217,7 @@ void Sculpt::gen_inspect_view(Generator                 &g,
 	g.node("child", [&] {
 
 		gen_child_attr(g, Child_name { "inspect" }, Binary_name { "init" },
-		               Cap_quota{1000}, Ram_quota{76*1024*1024},
+		               Cap_quota{1000}, Ram_quota{77*1024*1024},
 		               Priority::LEITZENTRALE);
 
 		g.attribute("version", version.value);
