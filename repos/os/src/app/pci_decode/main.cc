@@ -131,8 +131,8 @@ static uint64_t fixup_bar_base_address(Config const &cfg,
 			if (bdf == Bdf { 0, 0x15, 2 } && bar == 0) base_address = 0x80627000;
 		}
 
-		/* Framework 13 Alder/Raptor Lake */
-		if (subsystem_vendor_id == 0xf111 && device_id == 0x51eb) {
+		/* Framework 13 Tiger/Alder/Raptor Lake */
+		if (subsystem_vendor_id == 0xf111 && (device_id == 0x51eb || device_id == 0xa0eb)) {
 			if (bdf == Bdf { 0, 0x15, 3 } && bar == 0) base_address = 0x4017002000;
 		}
 
