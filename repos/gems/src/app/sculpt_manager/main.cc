@@ -455,7 +455,6 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_usb_devices(Node const &devices)
 	{
 		bool const orig_usb_hid_present = _usb_hid_present;
-		bool const orig_usb_net_present = _usb_net_present;
 
 		_usb_storage_acquired = false;
 		_usb_hid_present      = false;
@@ -482,7 +481,8 @@ struct Sculpt::Main : Input_event_handler,
 				edit.adjust("option | + child usb_hid | : enabled", false,
 					[&] (unsigned) { return _usb_hid_present ? "yes" : "no"; }); });
 
-		if (orig_usb_net_present && !_usb_net_present)
+		/* no usb_net device found but driver is running - disconnect */
+		if (!_usb_net_present && _runtime_state.present_in_runtime("usb_net"))
 			nic_target(Network_widget::Target::DISCONNECTED);
 
 		handle_device_plug_unplug();
