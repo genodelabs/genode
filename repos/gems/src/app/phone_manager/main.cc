@@ -2221,7 +2221,8 @@ bool Sculpt::Runtime_config::hidden_from_graph(Start_name const &name)
 	    || name == "public_rw"
 	    || name == "report"
 	    || name == "report_logger"
-	    || name == "runtime_view";
+	    || name == "runtime_view"
+	    || name == "update";
 }
 
 

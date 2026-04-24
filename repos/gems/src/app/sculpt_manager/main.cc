@@ -2254,7 +2254,8 @@ bool Sculpt::Runtime_config::hidden_from_graph(Start_name const &name)
 	    || name == "fs_tool"
 	    || name == "model_query"
 	    || name == "public_rw"
-	    || name == "runtime_view";
+	    || name == "runtime_view"
+	    || name == "update";
 }
 
 
